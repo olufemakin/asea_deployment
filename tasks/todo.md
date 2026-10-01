@@ -47,3 +47,9 @@ Could not do (capability/permission boundaries — handed to user):
 
 Note: added an `interviewace` entry to epsilon's `.claude/launch.json` purely to preview the
 static file locally; harmless, can be removed.
+
+## 2026-10-01 — Source recovered into GitHub
+- Original local files were lost; the live Netlify deploy was downloaded and pushed to
+  `olufemakin/asea_deployment` (`main`). The source is the original readable `index.html`.
+- Added `CLAUDE.md` (project context + code map), `netlify.toml` (publish root, headers),
+  and fixed the readme's run instructions. Smoke-tested the full flow in headless Chromium: no errors.

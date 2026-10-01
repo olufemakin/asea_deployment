@@ -59,10 +59,16 @@ To change the baked brand text, edit the `BRAND` object near the top of the
 Open `index.html` in a browser. If your browser blocks the mic on `file://`,
 serve it:
 ```bash
-cd "/Users/olufemakin/AI Interviewer"
+# from this folder
 python3 -m http.server 4555
 # visit http://localhost:4555
 ```
+
+## Live site & auto-deploy
+Live at **https://strong-dragon-d8b60f.netlify.app**. Source of truth is this GitHub repo
+(`olufemakin/asea_deployment`). Recommended: in Netlify → Site configuration → Build & deploy →
+**Link repository** → pick this repo, branch `main`. `netlify.toml` already sets publish dir `.` and
+no build command, so every merge to `main` redeploys automatically.
 
 ## Deploy it free (get a public URL like the reference app)
 One static file → any free static host works:
