@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img" aria-label="BSP — Business Startup Powerhouse">
+  <defs>
+    <radialGradient id="bspBg" cx="38%" cy="32%" r="78%">
+      <stop offset="0%" stop-color="#2f72b0"/>
+      <stop offset="58%" stop-color="#184a78"/>
+      <stop offset="100%" stop-color="#0b2843"/>
+    </radialGradient>
+    <linearGradient id="bspSilver" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fdfeff"/>
+      <stop offset="34%" stop-color="#d2d9e1"/>
+      <stop offset="54%" stop-color="#98a2ad"/>
+      <stop offset="74%" stop-color="#dbe1e7"/>
+      <stop offset="100%" stop-color="#79828d"/>
+    </linearGradient>
+  </defs>
+  <circle cx="120" cy="120" r="118" fill="#091d30"/>
+  <circle cx="120" cy="120" r="110" fill="url(#bspBg)"/>
+  <circle cx="120" cy="120" r="110" fill="none" stroke="url(#bspSilver)" stroke-width="9"/>
+  <text x="121" y="156" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="118" letter-spacing="-5" fill="url(#bspSilver)">bsp</text>
+</svg>
