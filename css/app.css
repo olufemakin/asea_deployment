@@ -364,3 +364,9 @@ details.qresult>summary::-webkit-details-marker{display:none}
 details.card>summary{cursor:pointer}
 .recs{margin-top:16px}
 @media(max-width:560px){.pclock{font-size:22px}.pnum{width:34px;height:34px}.art-chart{height:120px}}
+/* Practice Lab: categories without a full published bank */
+.card.soon{opacity:.62;cursor:not-allowed}
+.card.soon .t{font-weight:800}
+.card.soon .d{color:var(--muted);font-size:14px}
+.recbox{border:1px solid rgba(167,139,250,.45);background:rgba(139,92,246,.10);border-radius:14px;padding:12px 14px;margin:10px 0 14px}
+#typeOpts .opt .tag{position:static;display:inline-block;margin-bottom:6px}

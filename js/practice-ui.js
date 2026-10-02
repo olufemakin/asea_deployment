@@ -27,8 +27,9 @@ function openPracticeSetup(cat, diff){ App.practicePreset={ cat, diff }; go("pra
 
 /* ---------- Practice Lab home --------------------------------------------- */
 function scrPractice(){
-  const done=Repo.practiceSessions.all().filter(p=>p.status==="submitted"), active=activePractice();
-  const last={}; done.forEach(p=>{ if(!last[p.category]) last[p.category]=p; });
+  const done=standardPracticeSessions(), active=activePractice();
+  const last={}; done.forEach(p=>{ const k=normCategoryId(p.category); if(!last[k]) last[k]=p; });
+  const avail=PRACTICE_CATEGORIES.filter(c=>isCategoryAvailable(c.id));
   el.innerHTML=pageHead("Practice Lab","BSP AI Practice Lab","Timed practice for AI evaluation work. Every session is exactly 10 questions: Easy 15 minutes, Medium 20 minutes, Hard 25 minutes.")
   + (active?`<div class="card" style="margin-bottom:18px"><div class="row between center wrapw"><div><h3 style="margin:0 0 4px">Practice in progress</h3>
       <b>${H(practiceCat(active.category).label)}</b> · ${PRACTICE_DIFF[active.difficulty].label} · <span class="faint">${fmtClock(practiceRemaining(active))} remaining</span></div>
@@ -36,10 +37,16 @@ function scrPractice(){
   + `<div class="grid g3" style="margin-bottom:18px">
       <div class="card stat"><div class="l">Sessions completed</div><div class="v">${done.length}</div></div>
       <div class="card stat"><div class="l">Average score</div><div class="v">${done.length?avg(done.map(p=>p.results.score)):"–"}</div></div>
-      <div class="card stat"><div class="l">Categories practised</div><div class="v">${Object.keys(last).length} / ${PRACTICE_CATEGORIES.length}</div></div></div>`
+      <div class="card stat"><div class="l">Categories practised</div><div class="v">${Object.keys(last).length} / ${avail.length}</div></div></div>`
   + (done.length||Repo.sessions.completed().length?`<div class="card" style="margin-bottom:18px">${recommendationsHTML()||`<p class="small muted" style="margin:0">Complete more sessions to unlock personalised recommendations.</p>`}</div>`:"")
-  + `<div class="grid g3">${PRACTICE_CATEGORIES.map(c=>{ const l=last[c.id], prog=practiceProgression(c.id); return `
-      <a class="card linkcard" href="#/practice/setup/${c.id}">
+  + `<div class="grid g3">${PRACTICE_CATEGORIES.map(c=>{ const l=last[c.id], prog=practiceProgression(c.id);
+      if(!isCategoryAvailable(c.id)) return `
+      <div class="card soon" data-cat="${c.id}" aria-disabled="true">
+        <div class="row between center"><span class="ic" style="margin:0">${c.icon}</span><span class="badge ok">Coming soon</span></div>
+        <div class="t" style="margin-top:8px">${H(c.label)}</div><div class="d">${H(c.d)}</div>
+        <div class="small faint" style="margin-top:8px">Content incomplete: more practice questions are being prepared.</div></div>`;
+      return `
+      <a class="card linkcard" href="#/practice/setup/${c.id}" data-cat="${c.id}">
         <div class="row between center"><span class="ic" style="margin:0">${c.icon}</span>${l?scoreBadge(l.results.score):`<span class="badge">New</span>`}</div>
         <div class="t" style="margin-top:8px">${H(c.label)}</div><div class="d">${H(c.d)}</div>
         ${prog?`<div class="small" style="margin-top:8px;color:var(--accent)">Recommended: ${PRACTICE_DIFF[prog.difficulty].label}</div>`:""}</a>`; }).join("")}</div>
@@ -49,6 +56,8 @@ function scrPractice(){
 /* ---------- Setup --------------------------------------------------------- */
 function scrPracticeSetup(catId){
   const c=practiceCat(catId); if(!c){ go("practice"); return; }
+  if(normCategoryId(catId)!==catId){ go("practice/setup/"+normCategoryId(catId)); return; }
+  const counts=QuestionBank.counts(catId), avail=isCategoryAvailable(catId);
   const prog=practiceProgression(catId);
   const preset=(App.practicePreset&&App.practicePreset.cat===catId)?App.practicePreset.diff:null;
   App.practiceSel = App.practiceSel && App.practiceSel.cat===catId ? App.practiceSel : { cat:catId, diff:preset||(prog&&prog.difficulty)||"easy" };
@@ -58,22 +67,26 @@ function scrPracticeSetup(catId){
   + `<div class="card">
       <h3>Choose difficulty</h3>
       <div class="opts" id="pDiff">${Object.entries(PRACTICE_DIFF).map(([k,D])=>optCard({ sel:App.practiceSel.diff===k, onclick:`pickPracticeDiff('${k}')`,
-        title:D.label.toUpperCase(), d:`${PRACTICE_QUESTIONS} Questions · ${D.minutes} Minutes`, why:D.d, tag:prog&&prog.difficulty===k?"Recommended":"" })).join("")}</div>
+        title:D.label.toUpperCase(), d:`${PRACTICE_QUESTIONS} Questions · ${D.minutes} Minutes`, why:D.d+` (${counts[k]} published questions in this level.)`,
+        tag:counts[k]<PRACTICE_MIN_PER_DIFFICULTY?"Coming soon":prog&&prog.difficulty===k?"Recommended":"" })).join("")}</div>
+      ${counts[App.practiceSel.diff]<PRACTICE_QUESTIONS?`<p class="note" id="pUnavailable" style="color:#ffe08a">More practice questions are being prepared for this level.</p>`:""}
+      ${avail?"":`<p class="note">This category is marked <b>Coming soon</b> until it has at least ${PRACTICE_MIN_PER_DIFFICULTY} published Easy, Medium and Hard questions. Questions are never borrowed from other categories.</p>`}
       ${prog?`<p class="note">${H(prog.reason)} Difficulty is never locked; choose any level.</p>`:`<p class="note">Progression: Medium is recommended after 3 Easy sessions with 80%+ on your latest two; Hard after 3 Medium sessions with 80%+ on your latest two. Difficulty is never locked.</p>`}
       <h3 style="margin-top:18px">Competencies tested</h3>
-      <div class="feat" style="margin-top:0">${c.comps.map(x=>`<span>${H(x)}</span>`).join("")}</div>
+      <div class="feat" style="margin-top:0">${c.competencies.map(x=>`<span>${H(competencyName(x.id))}</span>`).join("")}</div>
       <h3 style="margin-top:18px">How it works</h3>
       <ul class="clean small"><li>Exactly ${PRACTICE_QUESTIONS} questions. The timer starts when you press Start and keeps running if you leave or refresh.</li>
         <li>Move with Previous / Next, jump using the question numbers, and flag questions for review.</li>
         <li>Every answer autosaves. When time runs out, your answers are submitted automatically; unanswered questions are marked "No response".</li></ul>
       ${active?`<p class="note" style="color:var(--ok)">Starting a new session will submit your in-progress ${H(practiceCat(active.category).label)} session as it is.</p>`:""}
-      <div class="row wrapw" style="margin-top:18px;gap:10px"><button class="btn primary lg upper" id="startPractice" onclick="startPractice('${catId}')">Start practice</button><a class="btn ghost" href="#/practice">Cancel</a></div>
+      <div class="row wrapw" style="margin-top:18px;gap:10px"><button class="btn primary lg upper" id="startPractice" onclick="startPractice('${catId}')" ${counts[App.practiceSel.diff]<PRACTICE_QUESTIONS?"disabled":""}>Start practice</button><a class="btn ghost" href="#/practice">Cancel</a></div>
     </div>`;
 }
 function pickPracticeDiff(k){ App.practiceSel.diff=k; scrPracticeSetup(App.practiceSel.cat); }
 function startPractice(catId){
+  if(QuestionBank.pool(normCategoryId(catId), App.practiceSel.diff).length<PRACTICE_QUESTIONS){ alert("More practice questions are being prepared for this level."); return; }
   const prev=activePractice(); if(prev) submitPracticeSession(prev, false);
-  createPracticeSession(catId, App.practiceSel.diff);
+  if(!createPracticeSession(catId, App.practiceSel.diff)){ alert("More practice questions are being prepared for this level."); return; }
   go("practice/run");
 }
 
@@ -105,7 +118,7 @@ function renderPracticeRun(ps){
     <nav class="palette" aria-label="Questions">${ps.questions.map((x,i)=>`<button class="pnum ${i===ps.current?"cur":""} ${isAnswered(x,ps.responses[x.id])?"done":""} ${ps.flags.includes(x.id)?"flag":""}" onclick="pGoto(${i})" aria-label="Question ${i+1}${ps.flags.includes(x.id)?", flagged":""}">${i+1}</button>`).join("")}</nav>
   </div>
   <div class="card" id="pQuestion">
-    <div class="row between center wrapw"><span class="qmeta" style="margin:0">${H(q.comp)} · ${["","Easy","Medium","Hard"][q.d]} item</span>
+    <div class="row between center wrapw"><span class="qmeta" style="margin:0">${H(q.comp)} · ${typeof q.d==="number"?["","Easy","Medium","Hard"][q.d]:PRACTICE_DIFF[q.difficulty||ps.difficulty].label} item</span>
       <button class="btn sm ${flagged?"danger":"ghost"}" id="flagBtn" onclick="pFlag()" aria-pressed="${flagged}">${flagged?"⚑ Flagged for review":"⚐ Flag for review"}</button></div>
     ${renderPQ(q, r, false)}
   </div>
@@ -219,7 +232,10 @@ function scrPracticeResults(id){
           .map(([l,v])=>`<div class="mini"><div class="l">${l}</div><div class="v">${H(v)}</div></div>`).join("")}
       </div></div>
     <div class="grid g2" style="margin-top:18px">
-      <div><h3>Competency breakdown</h3>${Object.entries(R.competencies).map(([k,v])=>barRow(k,v)).join("")}</div>
+      <div><h3>Competency breakdown</h3>${R.competencyEvidence
+          ? Object.values(R.competencyEvidence).sort((a,b)=>b.score-a.score).map(e=>barRow(`${e.name} (${e.n} question${e.n>1?"s":""})`, e.score)).join("")
+          : Object.entries(R.competencies).map(([k,v])=>barRow(k,v)).join("")}
+        ${ps.snapshot?`<p class="small faint" style="margin-top:8px">Scored against question versions captured on ${H(fmtDate(ps.snapshot.takenAt))}.</p>`:""}</div>
       <div><h3>Summary</h3><ul class="clean small">
         <li><b>Strongest skill:</b> ${H(R.strongest||"Not yet established: aim for 75+ on a competency")}</li>
         <li><b>Focus next:</b> ${H(R.focus||"Move up a difficulty level")}</li>
@@ -248,10 +264,11 @@ function scrPracticeHistory(){
   const list=Repo.practiceSessions.all(), legacy=Repo.practice.all();
   el.innerHTML=pageHead("Practice","My practice history","Every timed practice session, newest first.")
   + (list.length?`<div class="card"><div class="art-scroll"><table class="htable"><thead><tr><th>Date</th><th>Category</th><th>Difficulty</th><th>Score</th><th>Questions</th><th>Time</th><th>Avg time</th><th></th></tr></thead><tbody>
-    ${list.map(p=>{ const c=practiceCat(p.category), R=p.results; return `<tr><td>${H(fmtDate(p.startedAt))}</td><td>${c?c.icon+" "+H(c.label):H(p.category)}</td><td>${PRACTICE_DIFF[p.difficulty].label}</td>
+    ${list.map(p=>{ const c=practiceCat(p.category), R=p.results, D=PRACTICE_DIFF[p.difficulty]||{label:p.difficulty}; return `<tr><td>${H(fmtDate(p.startedAt))}</td><td>${c?c.icon+" "+H(c.label):H(p.category)}</td><td>${H(D.label)}</td>
       <td>${R?scoreBadge(R.score):`<span class="badge info">In progress</span>`}</td><td>${PRACTICE_QUESTIONS}</td><td>${R?fmtDur(R.timeUsedSec):fmtClock(practiceRemaining(p))+" left"}</td><td>${R?fmtDur(R.avgSec):"–"}</td>
       <td>${R?`<a class="btn sm" href="#/practice/results/${p.id}">Review</a>`:`<a class="btn sm primary" href="#/practice/run">Resume</a>`}</td></tr>`; }).join("")}
     </tbody></table></div></div>`
   : emptyCard("🧪","No practice sessions yet","Start a timed 10-question session in the Practice Lab.","#/practice","Open Practice Lab"))
-  + (legacy.length?`<details class="card"><summary><b>Earlier single-task attempts (${legacy.length})</b></summary><div class="list" style="margin-top:12px">${legacy.map(a=>`<div class="item"><div><div class="t">${H(a.title)}</div><div class="m">${H(fmtDate(a.at))} · ${H(a.skill)}</div></div>${scoreBadge(a.score)}</div>`).join("")}</div></details>`:"");
+  + (legacy.length?`<div class="card legacy"><h3>Legacy practice</h3><p class="small muted">Single tasks completed before the Practice Lab upgrade. They stay readable here but are not counted in standardised analytics, progression or recommendations.</p>
+    <div class="list">${legacy.map(a=>`<div class="item legacyrow"><div><div class="t"><span class="badge">LEGACY PRACTICE</span> ${H(a.title)}</div><div class="m">1 Task · Completed before Practice Lab upgrade · ${H(fmtDate(a.at))}${a.skill?" · "+H(a.skill):""}</div></div>${scoreBadge(a.score)}</div>`).join("")}</div></div>`:"");
 }

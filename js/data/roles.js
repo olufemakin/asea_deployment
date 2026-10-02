@@ -387,7 +387,7 @@ const ROLE_MODELS = {
     ],
     memory:[{re:/\b(rating|rate|rank\w*)\b/i,comp:"rubric_consistency",q:"How did you keep those ratings consistent over a long session?"}] },
 
-  "bilingual-fr-en":{ appliesTo:["bilingual-evaluator-french-and-english","french-evaluator"], bilingual:"fr",
+  "bilingual-fr-en":{ appliesTo:["bilingual-evaluator-french-and-english"], bilingual:"fr",   // two configured languages only
     comps:["en_comm","fr_comm","comprehension","meaning_pres","grammar_fr","tone","translation_judgment","ai_language"],
     questions:[
       {lang:"en",stage:"domain",type:"knowledge",comp:"en_comm",d:1,text:"In English: explain to a client why a word-for-word translation can mislead readers. Give one example.",

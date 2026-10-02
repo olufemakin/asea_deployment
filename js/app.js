@@ -9,7 +9,7 @@ const el = document.getElementById("app");
 const H = s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmtDate = t=>{ try{ return new Date(t).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"}); }catch(e){ return ""; } };
 
-const DEFAULT_SETUP = { step:1, professionId:null, mode:Speech.sttAvailable?"voice":"text", type:"ai_domain",
+const DEFAULT_SETUP = { step:1, professionId:null, mode:Speech.sttAvailable?"voice":"text", type:"ai_domain", typeChosen:false,
   level:"experienced", difficulty:"adaptive", length:"standard", name:"", platform:"", langBalance:"balanced" };
 const App = { setup:null, session:null, ui:{ search:"", group:"all", customOpen:false }, practice:{}, closing:null };
 
@@ -29,7 +29,12 @@ function normalizeSetup(){
   if(!LENGTHS[S.length]) S.length="standard";
   if(!LANG_BALANCE[S.langBalance]) S.langBalance="balanced";
   const p=S.professionId && getProfession(S.professionId);
-  if(p && !typeAvailability(p)[S.type].ok) S.type=recommendedType(p);
+  /* selected type (S.type) vs the profession's recommendation: the recommendation only fills the
+     selection while the user hasn't chosen one, or when their choice isn't offered for this profession. */
+  if(p && (!S.typeChosen || !typeAvailability(p)[S.type].ok)){
+    if(S.typeChosen && S.type!==recommendedType(p)) App.ui.typeNote=`${TYPES[S.type].label} isn't offered for ${p.title}, so the recommended type is selected. You can change it.`;
+    S.type=recommendedType(p); S.typeChosen=false;
+  }
 }
 
 /* ---------- Router -------------------------------------------------------- */
@@ -205,14 +210,14 @@ function scrDomainLanding(){
 }
 function scrAiEvalLanding(){
   landing("AI Evaluation Interview","Show you can evaluate AI-generated work","These interviews test the skills AI-training and evaluation roles screen for.",[
-    { type:"ai_readiness", tag:"Any profession", title:TYPES.ai_readiness.label, d:TYPES.ai_readiness.d, cta:"Set up AI Training Readiness",
+    { type:"ai_readiness", tag:"Generalist AI Readiness", title:TYPES.ai_readiness.label, d:TYPES.ai_readiness.d, cta:"Set up AI Training Readiness",
       points:["Instruction following and rubric consistency","Fact checking and error detection","Comparing and rating AI responses"] },
     { type:"ai_domain", tag:"Field expertise + AI", title:TYPES.ai_domain.label, d:TYPES.ai_domain.d, cta:"Set up AI Domain Expert Interview",
       points:["AI output evaluation in your own field","Error detection with domain context","Professional judgment"] },
   ]);
 }
 function presetType(t){
-  App.setup.type=t; normalizeSetup();
+  App.setup.type=t; App.setup.typeChosen=true; normalizeSetup();
   App.setup.step = App.setup.professionId ? 3 : 1;
   saveSetup(); go("interview/start");
 }
@@ -238,7 +243,7 @@ function wizFoot(canNext, nextLabel){
   return `<div class="wizfoot">${S.step>1?`<button class="btn ghost" onclick="setStep(${S.step-1})">← Back</button>`:`<a class="btn ghost" href="#/interview">← Interview Lab</a>`}
     ${S.step<7?`<button class="btn primary" onclick="setStep(${S.step+1})" ${canNext?"":"disabled"}>${nextLabel||"Continue →"}</button>`:""}</div>`;
 }
-function setField(k, v){ App.setup[k]=v; normalizeSetup(); saveSetup(); renderStep(); }
+function setField(k, v){ App.setup[k]=v; if(k==="type"){ App.setup.typeChosen=true; App.ui.typeNote=""; } normalizeSetup(); saveSetup(); renderStep(); }
 function optCard(o){
   return `<button class="opt ${o.sel?"sel":""}" ${o.disabled?"disabled":""} onclick="${o.onclick}" aria-pressed="${!!o.sel}">
     ${o.tag?`<span class="tag">${o.tag}</span>`:""}<div class="t">${o.title}</div>${o.d?`<div class="d">${o.d}</div>`:""}${o.why?`<div class="why">${o.why}</div>`:""}</button>`;
@@ -277,10 +282,9 @@ function onProfSearch(v){ App.ui.search=v; document.getElementById("profList").i
 function setGroupFilter(g){ App.ui.group=g; document.getElementById("groupChips").innerHTML=groupChipsHTML(); document.getElementById("profList").innerHTML=profListHTML(); }
 function pickProfession(id){
   const list=document.getElementById("profList"), top=list?list.scrollTop:0;
-  const changed=App.setup.professionId!==id;
+  App.ui.typeNote="";
   App.setup.professionId=id;
   const p=getProfession(id);
-  if(changed && p && (isLingual(p) || isTransferable(p))) App.setup.type=recommendedType(p);  // language → Bilingual, hands-on → Transferable
   normalizeSetup(); saveSetup(); renderStep();
   const l2=document.getElementById("profList"); if(l2) l2.scrollTop=top;
 }
@@ -334,10 +338,15 @@ function stepMode(p){
 }
 function stepType(p){
   const S=App.setup, av=typeAvailability(p), rec=recommendedType(p);
+  const order=Object.keys(TYPES);
   return `<h2>Step 3 · Choose interview type</h2>
-    ${isTransferable(p)?`<p class="muted">For transferable-skills roles, Alex runs a <b>Transferable Skills Interview</b> focused on attention to detail, process adherence, quality review and instruction following. No profession-specific AI job is invented.</p>`:""}
-    <div class="opts">${Object.entries(TYPES).map(([k,t])=>optCard({ sel:S.type===k, disabled:!av[k].ok, onclick:`setField('type','${k}')`,
-      title:t.label.toUpperCase(), d:t.d, why:av[k].ok?"":av[k].why, tag:k===rec&&av[k].ok?"Recommended":"" })).join("")}</div>
+    <div class="recbox" id="recType"><div class="small faint" style="text-transform:uppercase;letter-spacing:1px;font-weight:700">Recommended for Your Background</div>
+      <div style="font-weight:800;margin:4px 0">${H(TYPES[rec].label)}</div><div class="small">${H(TYPES[rec].why)}</div>
+      <div class="small muted" style="margin-top:6px">Based on <b>${H(p.title)}</b>${isLingual(p)?` · working language${profLanguages(p).length>1?"s":""}: ${H(profLanguages(p).join(" + "))}`:""}. This is a recommendation only: choose any available type below.</div></div>
+    ${App.ui.typeNote?`<p class="note">${H(App.ui.typeNote)}</p>`:""}
+    ${isTransferable(p)?`<p class="muted">For transferable-skills roles no profession-specific AI job is invented; the Transferable Skills Interview focuses on attention to detail, process adherence, quality review and instruction following.</p>`:""}
+    <div class="opts" id="typeOpts">${order.map(k=>{ const t=TYPES[k]; return optCard({ sel:S.type===k, disabled:!av[k].ok, onclick:`setField('type','${k}')`,
+      title:t.label.toUpperCase(), d:t.d, why:av[k].ok?t.why:av[k].why, tag:k===rec&&av[k].ok?"Recommended":"" }); }).join("")}</div>
     ${S.type==="bilingual" && isFrenchBilingual(p)?`<h3 style="margin-top:20px">Language balance</h3><p class="small muted">Alex switches naturally between English and French. Choose the mix.</p>
       <div class="opts" id="langBalance">${Object.entries(LANG_BALANCE).map(([k,b])=>optCard({ sel:S.langBalance===k, onclick:`setField('langBalance','${k}')`, title:b.label, d:b.d, tag:k==="balanced"?"Default":"" })).join("")}</div>`:""}
     ${wizFoot(true)}`;
@@ -414,7 +423,7 @@ function scrReport(id){
   const closing = App.closing && App.closing.id===id ? App.closing : null;
   if(closing){ App.closing=null; if(closing.speak) Speech.say(closing.text); }
   const comps=Object.entries(s.scores.competencies||{}).sort((a,b)=>a[1]-b[1]);
-  const meta=[ s.profession.title, sessionTypeLabel(s), s.mode?MODES[s.mode]&&MODES[s.mode].label+" mode":"",
+  const meta=[ s.profession.title, sessionTypeLabel(s), s.recommendedInterviewType && s.recommendedInterviewType!==s.interviewType && TYPES[s.recommendedInterviewType] ? `Recommended type: ${TYPES[s.recommendedInterviewType].label}` : "", s.mode?MODES[s.mode]&&MODES[s.mode].label+" mode":"",
     LEVELS[s.experienceLevel]?LEVELS[s.experienceLevel].label:"", DIFFS[s.difficulty]?DIFFS[s.difficulty].label:"", `${s.answers.length} question${s.answers.length===1?"":"s"}`, fmtDate(s.completedAt||s.startedAt) ].filter(Boolean);
   const canRepeat = s.version>=2 && getProfession(s.profession.id);
   const areas=Object.entries((s.scores&&s.scores.areas)||{});
@@ -434,6 +443,11 @@ function scrReport(id){
       <div><h3>Rubric</h3>${["Relevance","Depth","Structure","Specificity"].map(n=>barRow(n, s.scores.dims[n])).join("")}</div>
       <div><h3>Competencies</h3>${comps.length?comps.map(([k,v])=>barRow(k,v)).join(""):`<p class="small muted">Competency scores are available for interviews taken with Alex.</p>`}</div>
     </div>
+    ${s.scores.competencyEvidence?`<details class="evidence" style="margin-top:10px"><summary><b>Competency evidence</b> <span class="small faint">(what each score is based on)</span></summary>
+      <div class="list" style="margin-top:10px">${Object.values(s.scores.competencyEvidence).sort((a,b)=>a.score-b.score).map(e=>`<div class="item"><div>
+        <div class="t">${H(e.name)} · ${e.score}/100 <span class="faint small">· ${e.n} answer${e.n>1?"s":""}</span></div>
+        ${e.found.length?`<div class="m">Evidence found: ${H(e.found.slice(0,8).join(", "))}</div>`:""}
+        ${e.missing.length?`<div class="m faint">Evidence missing: ${H(e.missing.slice(0,8).join(", "))}</div>`:""}</div></div>`).join("")}</div></details>`:""}
     ${s.feedback&&(s.feedback.strengths.length||s.feedback.focus.length)?`<div class="grid g2" style="margin-top:8px">
       <div><h3>Strengths</h3>${s.feedback.strengths.length?`<ul class="clean small">${s.feedback.strengths.map(x=>`<li>${H(x)}</li>`).join("")}</ul>`:`<p class="small muted">Build consistency: no competency scored 70+ yet.</p>`}</div>
       <div><h3>Focus areas</h3>${s.feedback.focus.length?`<ul class="clean small">${s.feedback.focus.map(x=>`<li>${H(x)}</li>`).join("")}</ul>`:`<p class="small muted">No competency below 70. Keep going.</p>`}</div></div>`:""}
@@ -505,7 +519,7 @@ function competencyStats(){
   return Object.entries(m).map(([k,v])=>({ label:k, score:avg(v), n:v.length })).sort((a,b)=>a.score-b.score);
 }
 function scrReadiness(){
-  const r=readiness(), done=Repo.sessions.completed().map(reportOf), prac=Repo.practiceSessions.all().filter(x=>x.status==="submitted"), weak=competencyStats()[0];
+  const r=readiness(), done=Repo.sessions.completed().map(reportOf), prac=standardPracticeSessions(), weak=competencyStats()[0];
   const label = r==null?"":r>=78?"Interview-ready":r>=55?"Nearly ready":"Building foundations";
   el.innerHTML=pageHead("Progress","Interview readiness","Your readiness weighs your three most recent completed interviews, with the newest counting most.")+tabs(PROGRESS_TABS,"#/progress")
   + (r==null ? emptyCard("🎯","No readiness score yet","Complete an interview with Alex to get your first readiness score.","#/interview/start","Start interview")
@@ -526,7 +540,8 @@ function scrReadiness(){
 }
 function scrSkills(){
   const A=allAnswers(), comps=competencyStats();
-  const pm={}; Repo.practiceSessions.all().filter(x=>x.status==="submitted").forEach(p=>Object.entries(p.results.competencies).forEach(([k,v])=>{ (pm[k]=pm[k]||[]).push(v); }));
+  const pm={}; standardPracticeSessions().forEach(p=>{ const R=p.results, e=R.competencyEvidence;
+    (e ? Object.values(e).map(x=>[x.name,x.score]) : Object.entries(R.competencies||{})).forEach(([k,v])=>{ (pm[k]=pm[k]||[]).push(v); }); });
   el.innerHTML=pageHead("Progress","Skills & scores","Averages across every interview answer and practice attempt.")+tabs(PROGRESS_TABS,"#/progress/skills")
   + (!A.length && !Object.keys(pm).length ? emptyCard("📈","No scores yet","Complete an interview or a practice task to see your skill profile.","#/interview/start","Start interview")
   : `<div class="grid g2">
@@ -540,7 +555,8 @@ function scrActivity(){
     Repo.sessions.all().map(s=>({ at:s.completedAt||s.startedAt, html:`<div><div class="t">🎙️ ${sessionTitle(s)}</div><div class="m">${H(fmtDate(s.completedAt||s.startedAt))} ${statusBadge(s)}</div></div>
       <div class="row center" style="gap:10px">${s.answers&&s.answers.length?scoreBadge(reportOf(s).scores.overall):""}${s.status==="in_progress"?`<button class="btn sm" onclick="resumeSession('${s.sessionId}')">Resume</button>`:s.answers&&s.answers.length?`<a class="btn sm" href="#/results/${s.sessionId}">Report</a>`:""}</div>` })),
     Repo.practiceSessions.all().map(p=>{ const c=practiceCat(p.category)||{icon:"🧪",label:p.category}; return { at:p.submittedAt||p.startedAt, html:`<div><div class="t">${c.icon} ${H(c.label)} <span class="faint small">· Practice Lab · ${PRACTICE_DIFF[p.difficulty].label}</span></div><div class="m">${H(fmtDate(p.submittedAt||p.startedAt))} · ${PRACTICE_QUESTIONS} questions</div></div>
-      <div class="row center" style="gap:10px">${p.results?scoreBadge(p.results.score)+`<a class="btn sm" href="#/practice/results/${p.id}">Review</a>`:`<span class="badge info">In progress</span><a class="btn sm" href="#/practice/run">Resume</a>`}</div>` }; })
+      <div class="row center" style="gap:10px">${p.results?scoreBadge(p.results.score)+`<a class="btn sm" href="#/practice/results/${p.id}">Review</a>`:`<span class="badge info">In progress</span><a class="btn sm" href="#/practice/run">Resume</a>`}</div>` }; }),
+    Repo.practice.all().map(a=>({ at:a.at, html:`<div><div class="t"><span class="badge">LEGACY PRACTICE</span> ${H(a.title)}</div><div class="m">1 Task · Completed before Practice Lab upgrade · ${H(fmtDate(a.at))}</div></div>${scoreBadge(a.score)}` }))
   ).sort((a,b)=>b.at-a.at).slice(0,40);
   el.innerHTML=pageHead("Progress","Recent activity","Your latest interviews and practice, newest first.")+tabs(PROGRESS_TABS,"#/progress/activity")
   + (items.length?`<div class="card"><div class="list">${items.map(i=>`<div class="item">${i.html}</div>`).join("")}</div></div>`
@@ -552,7 +568,7 @@ function scrAbout(){
   el.innerHTML=pageHead("About","About BSP AI WorkReady · Interview IQ","The AI Interview Lab from Business Startup Powerhouse, built to help people practise realistic AI-led interviews for free.")
   + `<div class="grid g2">
     <div class="card"><h3>What it is</h3><p>Interview IQ simulates the AI-led screening interviews used across professional and AI-training work. Alex, your BSP AI interviewer, asks profession-specific questions, adapts to your answers and gives you a detailed, transparent report.</p>
-      <p class="muted">${PROFESSIONS.length}+ professions · 8 interview types · voice or text · adaptive follow-ups · a timed Practice Lab with ${PRACTICE_CATEGORIES.length} AI-evaluation categories (every session is exactly ${PRACTICE_QUESTIONS} questions).</p><a href="#/interview/alex">Meet Alex →</a></div>
+      <p class="muted">${PROFESSIONS.length}+ professions · ${Object.keys(TYPES).length} interview types · voice or text · adaptive follow-ups · a timed Practice Lab with ${PRACTICE_CATEGORIES.filter(c=>isCategoryAvailable(c.id)).length} AI-evaluation categories (every session is exactly ${PRACTICE_QUESTIONS} questions).</p><a href="#/interview/alex">Meet Alex →</a></div>
     <div class="card"><h3>How interviews work</h3><ul class="clean small">
       <li>Each profession has its own competency model, for example Risk Management or Stakeholder Management for project managers.</li>
       <li>Questions are structured by competency, difficulty and type: knowledge, behavioral, scenario, AI output evaluation, error detection, explanation and practical tasks.</li>

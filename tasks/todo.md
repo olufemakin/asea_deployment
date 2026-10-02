@@ -89,3 +89,12 @@ Done:
       prev/next/palette/flags, autosave, manual + auto-submit (NO RESPONSE), results, full question review, progression, history
 - [x] Interview↔practice recommendations on reports, Progress and Practice Lab
 - [x] Tests: tests/regression.mjs 137/137 · tests/engine-check.js OK (911 combos, 72 practice sessions)
+
+## 2026-10-02 — Prompt 2 correction pass: question bank integrity + interview defaults
+- [x] Removed the cross-category practice top-up; `QuestionBank.select` is strict (category + difficulty + published), unseen first, exactly 10 or no session
+- [x] Question bank rebuilt to the full schema with statuses and versions; 751 questions; 23/24 categories AVAILABLE (≥10 per difficulty); Response Critique = COMING SOON
+- [x] Per-category competency mapping + central `COMPETENCY_REGISTRY`; practice results and interview reports carry competency-level evidence
+- [x] Legacy single tasks reviewed: 4 converted with full metadata (ranking/eval), 4 archived; old history labelled LEGACY PRACTICE and excluded from analytics
+- [x] Interview defaults: recommended vs selected type (no forced selection), "Recommended for Your Background" + why-text, Language Evaluation Interview for single-language evaluators, Technical recommended for software roles, role matrices
+- [x] Tests: regression 179/179 (removed the borrowing expectation; added purity, coming-soon, no-borrowing, legacy, status, dead-handler and interview-default checks) · engine-check OK (614 combos, 138 strict sessions)
+- [x] Prompt 3 readiness audit: docs/PROMPT3_READINESS.md

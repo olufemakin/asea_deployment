@@ -28,8 +28,11 @@ Live: **https://strong-dragon-d8b60f.netlify.app**
 - 🖼️ **Practical exhibits.** Risk registers, reconciliations, code, dashboards, lesson plans, captions, and source text with two translations, to evaluate out loud or in text.
 - 🇫🇷 **French-English bilingual interviews.** Mostly English, Mostly French or Balanced (40/40/20). Alex switches languages naturally.
 - 🎤 **Voice interview.** A microphone check with level meter and sample transcript, and Alex speaking/listening/reviewing statuses. Controls: replay, mute and playback speed, plus start/pause/finish answer. You can review and correct the transcript before submitting, and both mic and transcription failures fall back to text. Audio is never stored, and accent is never scored.
-- ⏱️ **Timed Practice Lab.** 24 AI-evaluation categories (preference ranking, factuality, hallucination detection, spreadsheets, image labelling, transcription, coding, French-English, …).
+- 🧭 **Recommended, never forced.** Your profession recommends an interview type ("Recommended for Your Background"); you can still pick any type offered for that role. Bilingual interviews need two configured languages; single-language evaluators get a Language Evaluation Interview.
+- ⏱️ **Timed Practice Lab.** 24 AI-evaluation categories (preference ranking, factuality, hallucination detection, spreadsheets, image labelling, transcription, coding, French-English, …). 23 are fully available; a category shows **Coming soon** until it has at least 10 published Easy, Medium and Hard questions.
   - Every session is exactly 10 questions: Easy 15 minutes, Medium 20 minutes, Hard 25 minutes.
+  - All 10 questions come from the category and difficulty you chose. Questions are never borrowed from another category or level.
+  - Results are broken down by competency, with the evidence each score is based on.
   - Navigation: previous/next, flag for review, autosave, and auto-submit when time runs out.
   - Results include a full question review: expected outcome, what was correct, what was missed, the rubric, and a strong example.
   - Difficulty progression is recommended, never locked.

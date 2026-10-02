@@ -155,10 +155,10 @@ P("marketing","UGC Creator","creative audience copy community",{kw:"user generat
 
 /* LANGUAGE */
 const LANG_COMPS = "translation register localization grammar bilingual_eval";
-P("language","Bilingual Evaluator — French & English",LANG_COMPS,{lang:"French",kw:"french english bilingual"});
+P("language","Bilingual Evaluator — French & English",LANG_COMPS,{lang:"French",languages:["English","French"],kw:"french english bilingual"});
 ["French","Spanish","German","Italian","Portuguese","Arabic","Mandarin","Japanese","Korean","Hindi","Russian","Dutch","Turkish","Polish","Vietnamese","Swahili","Yoruba","Tagalog"]
-  .forEach(l=>P("language",l+" Evaluator",LANG_COMPS,{lang:l,kw:"language bilingual "+l.toLowerCase()}));
-P("language","Linguist","grammar translation register lit_eval communication",{lang:"your second language",kw:"linguistics"});
+  .forEach(l=>P("language",l+" Evaluator",LANG_COMPS,{lang:l,languages:[l],kw:"language evaluator "+l.toLowerCase()}));
+P("language","Linguist","grammar translation register lit_eval communication",{lang:"your second language",languages:["English","your second language"],kw:"linguistics"});
 
 /* WRITING / CONTENT */
 P("writing","Writer","clarity editing factuality style",{lang:"English",kw:"author"});
@@ -166,8 +166,8 @@ P("writing","Editor","editing style clarity factuality communication",{lang:"Eng
 P("writing","Proofreader","editing style attention_detail clarity",{lang:"English"});
 P("writing","Technical Writer","tech_writing clarity style requirements",{lang:"English",kw:"documentation"});
 P("writing","Journalist","journalism factuality clarity judgment",{lang:"English",kw:"reporter"});
-P("writing","Translator","translation register localization grammar",{lang:"your target language",ai:"ai_language",lingual:true});
-P("writing","Localization Specialist","localization translation register grammar",{lang:"your target language",ai:"ai_language",lingual:true,kw:"localisation l10n"});
+P("writing","Translator","translation register localization grammar",{lang:"your target language",languages:["English","your target language"],ai:"ai_language",lingual:true});
+P("writing","Localization Specialist","localization translation register grammar",{lang:"your target language",languages:["English","your target language"],ai:"ai_language",lingual:true,kw:"localisation l10n"});
 P("writing","Transcription Specialist","transcription attention_detail instructions style",{lang:"English",kw:"transcriber"});
 
 /* LEGAL */

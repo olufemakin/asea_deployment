@@ -122,7 +122,7 @@ await section("Profession library + custom profession", async () => {
   await p.fill("#profSearch", "janitor"); await p.click('#profList .pchip:has-text("Janitor")');
   await p.click("text=Continue →"); await p.click("text=Continue →");
   const domainDisabled = await p.$eval('.opt:has-text("DOMAIN EXPERT INTERVIEW")', b => b.disabled);
-  check("Transferable role: domain types disabled, no invented AI job", domainDisabled && /No profession-specific AI job is invented/.test(await appText(p)));
+  check("Transferable role: domain types disabled, no invented AI job", domainDisabled && /No profession-specific AI job is invented/i.test(await appText(p)));
 });
 let firstSessionId = null;
 await section("Setup flow + text interview", async () => {
@@ -187,6 +187,10 @@ await section("Healthcare + bilingual", async () => {
   await p.goto(BASE + "#/interview/start"); await p.click(".step >> text=Profession");
   await p.fill("#profSearch", "french"); await p.click('#profList .pchip:has-text("Bilingual Evaluator")');
   await p.click("text=Continue →"); await p.click('.opt:has-text("TEXT")'); await p.click("text=Continue →");
+  // Correction pass: the profession no longer overwrites a type the user already chose (AI Domain for the nurse above),
+  // so the Bilingual Interview is selected explicitly here.
+  check("Previously chosen type kept when switching to FR-EN (not silently forced)", await p.$eval('.opt:has-text("AI DOMAIN EXPERT INTERVIEW")', b => b.classList.contains("sel")));
+  await p.click('.opt:has-text("BILINGUAL INTERVIEW")');
   check("Bilingual interview offers language balance", /Language balance/i.test(await appText(p)) && /Mostly English/.test(await appText(p)) && /Mostly French/.test(await appText(p)));
   await p.click('#langBalance .opt:has-text("Balanced")'); await p.click(".step >> text=Summary");
   check("Summary shows language balance", /Language balance Balanced/.test(await appText(p)));
@@ -295,9 +299,9 @@ async function answerCurrent(pp, text) {
 await section("Practice Lab: setup + runner", async () => {
   const pp = await newPage();
   await pp.goto(BASE + "#/practice"); await pp.waitForSelector(".linkcard");
-  const cats = await pp.$$eval(".linkcard .t", n => n.map(x => x.textContent));
-  check("All 24 practice categories listed", cats.length === 24, cats.length + "");
-  await pp.goto(BASE + "#/practice/setup/response-evaluation"); await pp.waitForSelector("#pDiff");
+  const cats = await pp.$$eval("[data-cat]", n => n.map(x => x.dataset.cat));
+  check("All 24 practice categories listed (available + coming soon)", cats.length === 24, cats.length + "");
+  await pp.goto(BASE + "#/practice/setup/ai_response_evaluation"); await pp.waitForSelector("#pDiff");
   const st = await appText(pp);
   check("Setup shows Easy 15 / Medium 20 / Hard 25 minutes, 10 questions each", /EASY 10 Questions · 15 Minutes/.test(st) && /MEDIUM 10 Questions · 20 Minutes/.test(st) && /HARD 10 Questions · 25 Minutes/.test(st));
   check("No 5/15/20 practice-length picker", !/\b(5|15|20) questions\b/i.test(st) && (await pp.$$("#pDiff .opt")).length === 3);
@@ -345,22 +349,22 @@ await section("Practice Lab: timers, auto-submit, formats, progression", async (
   const res = await appText(pp);
   check("Timer reaching 00:00 auto-submits", /Time's up/i.test(res) && /SESSION COMPLETE/i.test(res));
   check("Unanswered marked NO RESPONSE after auto-submit", (await pp.evaluate(() => Repo.practiceSessions.all()[0].results.noResponse)) === 9);
-  await pp.goto(BASE + "#/practice/setup/coding-evaluation"); await pp.click('#pDiff .opt:has-text("HARD")'); await pp.click("#startPractice"); await pp.waitForSelector("#pClock");
+  await pp.goto(BASE + "#/practice/setup/coding_evaluation"); await pp.click('#pDiff .opt:has-text("HARD")'); await pp.click("#startPractice"); await pp.waitForSelector("#pClock");
   check("Hard timer starts at 25:00", /^(25:00|24:5\d)$/.test(await pp.innerText("#pClock")), await pp.innerText("#pClock"));
   // formats render
   const fmts = {};
-  for (const [cat, sel] of [["preference-ranking", ".dimtbl"], ["image-labelling", ".pimg svg"], ["spreadsheet-evaluation", ".art-table"], ["transcription", "text=Play audio"], ["fact", null]]) {
+  for (const [cat, sel] of [["preference_ranking", ".dimtbl"], ["image_labelling", ".pimg svg"], ["spreadsheet_evaluation", ".art-table"], ["transcription", "text=Play audio"], ["fact", null]]) {
     if (!sel) continue;
     await pp.goto(BASE + "#/practice/setup/" + cat); await pp.click("#startPractice"); await pp.waitForSelector("#pClock");
     fmts[cat] = !!(await pp.$(sel));
   }
-  check("Ranking shows 5-point scale + 6 dimensions", fmts["preference-ranking"] && /A much better/.test(await (async () => { await pp.goto(BASE + "#/practice/setup/preference-ranking"); await pp.click("#startPractice"); await pp.waitForSelector("#pClock"); return appText(pp); })()) && (await pp.$$(".dimtbl tr")).length === 6);
-  check("Image labelling renders an image", fmts["image-labelling"]);
-  check("Spreadsheet evaluation renders a table", fmts["spreadsheet-evaluation"]);
+  check("Ranking shows 5-point scale + 6 dimensions", fmts["preference_ranking"] && /A much better/.test(await (async () => { await pp.goto(BASE + "#/practice/setup/preference_ranking"); await pp.click("#startPractice"); await pp.waitForSelector("#pClock"); return appText(pp); })()) && (await pp.$$(".dimtbl tr")).length === 6);
+  check("Image labelling renders an image", fmts["image_labelling"]);
+  check("Spreadsheet evaluation renders a table", fmts["spreadsheet_evaluation"]);
   check("Transcription offers audio playback", fmts["transcription"]);
   // progression: seed 3 easy sessions ≥80 → Medium recommended (not locked)
-  await pp.evaluate(() => { const now = Date.now(); for (let i = 0; i < 3; i++) Repo.practiceSessions.save({ id: "seed" + i, category: "factuality", difficulty: "easy", questions: [], responses: {}, flags: [], timeSpent: {}, status: "submitted", startedAt: now - 1e6 + i, submittedAt: now - 1e6 + i, results: { score: 85, competencies: {}, timeUsedSec: 300, avgSec: 30 } }); });
-  await pp.goto(BASE + "#/practice/setup/factuality"); await pp.waitForTimeout(80);
+  await pp.evaluate(() => { const now = Date.now(); for (let i = 0; i < 3; i++) Repo.practiceSessions.save({ id: "seed" + i, category: "fact_checking", difficulty: "easy", responses: {}, flags: [], timeSpent: {}, status: "submitted", startedAt: now - 1e6 + i, submittedAt: now - 1e6 + i, questions: Array(10).fill({}), results: { score: 85, competencies: {}, timeUsedSec: 300, avgSec: 30 } }); });
+  await pp.goto(BASE + "#/practice/setup/fact_checking"); await pp.waitForTimeout(80);
   const t = await appText(pp);
   check("Progression recommends Medium after 3 Easy sessions with 80%+", /MEDIUM\s*10 Questions[^]*Recommended|Recommended\s*MEDIUM/i.test(t) && /3\+ Easy sessions/.test(t));
   check("Difficulty is not locked (Hard selectable)", !(await pp.$eval('#pDiff .opt:has-text("HARD")', b => b.disabled)));
@@ -378,15 +382,150 @@ await section("Interview ↔ practice recommendations", async () => {
                 { q: "q2", questionType: "knowledge", stage: "domain", compLabel: "Risk Management", score: 80, communication: 70, dims: { Relevance: 80, Depth: 80, Structure: 80, Specificity: 80 } }] });
     return getRecommendations();
   });
-  check("Weak AI evaluation (58%) → AI Response Evaluation practice, Medium", recs.some(r => r.category === "response-evaluation" && r.difficulty === "medium"), JSON.stringify(recs));
+  check("Weak AI evaluation (58%) → AI Response Evaluation practice, Medium", recs.some(r => r.category === "ai_response_evaluation" && r.difficulty === "medium"), JSON.stringify(recs));
   await ip.goto(BASE + "#/results/seed-int"); await ip.waitForTimeout(80);
   check("Report shows 'AI Response Evaluation Practice · Medium · 10 Questions · 20 Minutes'", /AI Response Evaluation Practice/.test(await appText(ip)) && /Medium · 10 Questions · 20 Minutes/.test(await appText(ip)));
-  const voiceRec = await ip.evaluate(() => { const now = Date.now(); for (let i = 0; i < 2; i++) Repo.practiceSessions.save({ id: "strong" + i, category: "factuality", difficulty: "medium", questions: [], responses: {}, flags: [], timeSpent: {}, status: "submitted", startedAt: now + i, submittedAt: now + i, results: { score: 90, competencies: {}, timeUsedSec: 300, avgSec: 30 } }); return getRecommendations(); });
+  const voiceRec = await ip.evaluate(() => { const now = Date.now(); for (let i = 0; i < 2; i++) Repo.practiceSessions.save({ id: "strong" + i, category: "fact_checking", difficulty: "medium", questions: Array(10).fill({}), responses: {}, flags: [], timeSpent: {}, status: "submitted", startedAt: now + i, submittedAt: now + i, results: { score: 90, competencies: {}, timeUsedSec: 300, avgSec: 30 } }); return getRecommendations(); });
   check("Strong practice + no voice interview → Voice Interview With Alex", voiceRec.some(r => r.kind === "voice"));
   await ip.goto(BASE + "#/progress"); await ip.waitForTimeout(80);
   check("Progress page shows recommendations", /Recommended next/i.test(await appText(ip)) && /Voice Interview With Alex/.test(await appText(ip)));
   await ip.click("text=Start voice interview"); await ip.waitForTimeout(80);
   check("Voice recommendation opens setup in voice mode", (await ip.evaluate(() => App.setup.mode)) === "voice" && /#\/interview\/start/.test(ip.url()));
+});
+
+/* =================== CORRECTION PASS: QUESTION BANK INTEGRITY =================== */
+/* Replaces the Prompt 2 expectation that a category could be "topped up" from related categories:
+   sessions are now built strictly from one category + one difficulty + published questions. */
+await section("Question bank integrity", async () => {
+  const qp = await newPage();
+  await qp.goto(BASE + "#/practice"); await qp.waitForSelector("[data-cat]");
+  const purity = await qp.evaluate(() => {
+    const out = {};
+    const one = (cat, d) => { const qs = buildPracticeQuestions(cat, d) || [];
+      return { n: qs.length, cat: qs.every(q => q.category === cat), diff: qs.every(q => q.difficulty === d), pub: qs.every(q => q.status === "published"), uniq: new Set(qs.map(q => q.id)).size === qs.length }; };
+    out.halluMedium = one("hallucination_detection", "medium");
+    for (const c of ["preference_ranking", "ai_response_evaluation", "data_annotation", "french_english_evaluation"]) for (const d of ["easy", "medium", "hard"]) out[c + "/" + d] = one(c, d);
+    return out;
+  });
+  const ok = r => r.n === 10 && r.cat && r.diff && r.pub && r.uniq;
+  check("Hallucination Detection · Medium: 10 questions, all hallucination_detection, all medium, unique ids", ok(purity.halluMedium), JSON.stringify(purity.halluMedium));
+  for (const c of ["preference_ranking", "ai_response_evaluation", "data_annotation", "french_english_evaluation"])
+    check(`${c}: Easy/Medium/Hard sessions are pure (10, same category + difficulty, published, unique)`, ["easy", "medium", "hard"].every(d => ok(purity[c + "/" + d])), JSON.stringify(["easy", "medium", "hard"].map(d => purity[c + "/" + d])));
+  const audit = await qp.evaluate(() => QuestionBank.audit());
+  const PRIORITY = ["preference_ranking", "ai_response_evaluation", "instruction_following", "fact_checking", "hallucination_detection", "research_verification", "data_annotation",
+    "text_classification", "document_evaluation", "spreadsheet_evaluation", "generalist_ai_evaluation", "french_english_evaluation"];
+  check("All 12 priority categories AVAILABLE with ≥10 Easy, ≥10 Medium, ≥10 Hard", PRIORITY.every(id => { const a = audit.find(x => x.id === id); return a && a.status === "available" && a.easy >= 10 && a.medium >= 10 && a.hard >= 10; }));
+  check("Availability rule: AVAILABLE only when every difficulty has ≥10 published", audit.every(a => (a.status === "available") === (a.easy >= 10 && a.medium >= 10 && a.hard >= 10)));
+  // A category without content is COMING SOON and never a dead link.
+  const soon = await qp.$('[data-cat="response_critique"]');
+  check("Incomplete category shows COMING SOON (not a link)", soon && /Coming soon/i.test(await soon.innerText()) && (await soon.evaluate(n => n.tagName)) !== "A");
+  await qp.goto(BASE + "#/practice/setup/response_critique"); await qp.waitForSelector("#pDiff");
+  check("Incomplete category: start disabled + 'More practice questions are being prepared for this level.'", await qp.isDisabled("#startPractice") && /More practice questions are being prepared for this level\./.test(await appText(qp)));
+  // No borrowing: drop a pool to 9 and the session must not start (no top-up from other categories or levels).
+  const blocked = await qp.evaluate(() => { const id = QuestionBank.pool("hallucination_detection", "medium")[0].id; Repo.bankOverrides.set(id, { status: "archived" }); QuestionBank.reset();
+    const r = { pool: QuestionBank.pool("hallucination_detection", "medium").length, session: createPracticeSession("hallucination_detection", "medium") }; return { pool: r.pool, started: !!r.session }; });
+  await qp.goto(BASE + "#/practice/setup/hallucination_detection"); await qp.click('#pDiff .opt:has-text("MEDIUM")'); await qp.waitForTimeout(60);
+  check("9 published questions → no session, no borrowing; setup explains why", blocked.pool === 9 && !blocked.started && await qp.isDisabled("#startPractice") && /More practice questions are being prepared for this level\./.test(await appText(qp)), JSON.stringify(blocked));
+  await qp.evaluate(() => { localStorage.removeItem("bsp.workready.v1.bankOverrides"); QuestionBank.reset(); });
+  // Unseen first: after 10 of 12 Easy ranking questions are used, the next session includes the 2 unseen ones.
+  const unseen = await qp.evaluate(() => { const first = buildPracticeQuestions("preference_ranking", "easy"); QuestionBank.recordUse(first.map(q => q.id));
+    const rest = QuestionBank.pool("preference_ranking", "easy").map(q => q.id).filter(id => !first.some(q => q.id === id)); const next = buildPracticeQuestions("preference_ranking", "easy").map(q => q.id);
+    return rest.length > 0 && rest.every(id => next.includes(id)); });
+  check("Selection: unseen questions are served first", unseen);
+  // UI run: Hallucination Detection Medium via the setup page, snapshot of versions, competency evidence.
+  await qp.goto(BASE + "#/practice/setup/hallucination_detection"); await qp.click('#pDiff .opt:has-text("MEDIUM")'); await qp.click("#startPractice"); await qp.waitForSelector("#pClock");
+  const live = await qp.evaluate(() => { const ps = Repo.practiceSessions.all()[0]; return { n: ps.questions.length, cats: [...new Set(ps.questions.map(q => q.category))], diffs: [...new Set(ps.questions.map(q => q.difficulty))], snap: Object.keys(ps.snapshot.versions).length }; });
+  check("UI session: Hallucination Medium = 10 hallucination_detection/medium questions + version snapshot", live.n === 10 && live.cats.join() === "hallucination_detection" && live.diffs.join() === "medium" && live.snap === 10, JSON.stringify(live));
+  await answerCurrent(qp); await qp.click("#pSubmit"); await qp.waitForSelector(".ring");
+  const ev = await qp.evaluate(() => { const R = Repo.practiceSessions.all()[0].results; return { ids: Object.keys(R.competencyEvidence), reg: Object.keys(R.competencyEvidence).every(id => !!COMPETENCY_REGISTRY[id]), q: R.questions.every(g => g.competencyScores && Object.keys(g.competencyScores).length) }; });
+  check("Practice results carry competency-level evidence (registered ids, per question)", ev.ids.length >= 2 && ev.reg && ev.q, JSON.stringify(ev));
+  // Legacy URL ids still resolve.
+  await qp.goto(BASE + "#/practice/setup/factuality"); await qp.waitForTimeout(80);
+  check("Legacy category URL redirects to the new id", /practice\/setup\/fact_checking$/.test(qp.url()), qp.url());
+  // Legacy single tasks: readable, labelled, excluded from analytics.
+  await qp.evaluate(() => { localStorage.setItem("bsp.workready.v1.practice", JSON.stringify([{ id: "old1", taskId: "pt-sleep-rate", title: "Rate an AI answer about sleep", skill: "Rating", score: 72, at: Date.now() - 864e5 }])); });
+  await qp.goto(BASE + "#/practice/history"); await qp.waitForTimeout(80);
+  const ht = await appText(qp);
+  check("Legacy history: 'LEGACY PRACTICE · … · 1 Task · Completed before Practice Lab upgrade'", /LEGACY PRACTICE/.test(ht) && /Rate an AI answer about sleep/.test(ht) && /1 Task · Completed before Practice Lab upgrade/.test(ht));
+  check("Legacy tasks excluded from standardised analytics", await qp.evaluate(() => standardPracticeSessions().every(p => p.questions.length === 10) && !standardPracticeSessions().some(p => p.id === "old1")));
+  check("Every question has the full schema", await qp.evaluate(() => QuestionBank.all().every(q => ["id","category","subcategory","profession","domain","competencies","difficulty","questionType","prompt","scenario","referenceMaterial","responseA","responseB","answerOptions","expectedOutcome","expectedSignals","commonErrors","rubric","explanation","version","status","createdAt","updatedAt"].every(k => k in q))));
+  check("No console errors in question bank checks", qp.errors.length === 0, qp.errors.slice(0, 3).join(" | "));
+});
+
+/* =================== CORRECTION PASS: INTERVIEW DEFAULTS =================== */
+await section("Interview defaults: recommended vs selected", async () => {
+  const ip = await newPage();
+  const toType = async (search, pick) => {
+    await ip.goto(BASE + "#/interview/start"); await ip.waitForSelector("#stepper"); await ip.click(".step >> text=Profession");
+    await ip.fill("#profSearch", search); await ip.click(`#profList .pchip:text-is("${pick}")`);
+    await ip.click("text=Continue →"); await ip.click('.opt:has-text("TEXT")'); await ip.click("text=Continue →"); await ip.waitForSelector("#recType");
+  };
+  const enabled = () => ip.$$eval("#typeOpts .opt:not([disabled]) .t", n => n.map(x => x.textContent.trim()).sort());
+  const selected = () => ip.$eval("#typeOpts .opt.sel .t", n => n.textContent.trim());
+  await toType("french", "Bilingual Evaluator — French & English");
+  let rec = await ip.innerText("#recType");
+  check("FR-EN: 'Recommended for Your Background' = Bilingual Interview", /Recommended for Your Background/i.test(rec) && /Bilingual Interview/.test(rec) && /across two languages/.test(rec));
+  check("FR-EN: Bilingual pre-selected while nothing chosen", (await selected()) === "BILINGUAL INTERVIEW");
+  check("FR-EN: can choose Bilingual, AI Domain, AI Training Readiness, Full Mock", JSON.stringify(await enabled()) === JSON.stringify(["AI DOMAIN EXPERT INTERVIEW", "AI TRAINING READINESS", "BILINGUAL INTERVIEW", "FULL MOCK INTERVIEW"]), JSON.stringify(await enabled()));
+  await ip.click('#typeOpts .opt:has-text("FULL MOCK INTERVIEW")');
+  check("FR-EN: selector editable (Full Mock selected)", (await selected()) === "FULL MOCK INTERVIEW" && (await ip.evaluate(() => App.setup.typeChosen)) === true);
+  await toType("project manager", "Project Manager");
+  check("Chosen type is not overwritten by a new profession (Full Mock kept for PM)", (await selected()) === "FULL MOCK INTERVIEW");
+  rec = await ip.innerText("#recType");
+  check("PM: recommended AI Domain Expert, with why-text", /AI Domain Expert Interview/.test(rec) && /Combine your professional knowledge with evaluation of AI-generated content/.test(rec));
+  check("PM: can choose Domain, AI Domain, Behavioral, Full Mock", JSON.stringify(await enabled()) === JSON.stringify(["AI DOMAIN EXPERT INTERVIEW", "BEHAVIORAL INTERVIEW", "DOMAIN EXPERT INTERVIEW", "FULL MOCK INTERVIEW"]), JSON.stringify(await enabled()));
+  await ip.click('#typeOpts .opt:has-text("BEHAVIORAL INTERVIEW")');
+  check("PM: selector editable (Behavioral selected)", (await selected()) === "BEHAVIORAL INTERVIEW");
+  await toType("janitor", "Janitor");
+  rec = await ip.innerText("#recType");
+  check("Janitor: recommended Transferable Skills, with why-text", /Transferable Skills Interview/.test(rec) && /instruction following, attention to detail, prioritization, process adherence and quality review/.test(rec));
+  check("Janitor: can choose Transferable, Generalist AI Readiness, Behavioral, Full Mock", JSON.stringify(await enabled()) === JSON.stringify(["AI TRAINING READINESS", "BEHAVIORAL INTERVIEW", "FULL MOCK INTERVIEW", "TRANSFERABLE SKILLS INTERVIEW"]), JSON.stringify(await enabled()));
+  check("Janitor: Behavioral choice kept (allowed for this role)", (await selected()) === "BEHAVIORAL INTERVIEW");
+  await ip.click('#typeOpts .opt:has-text("AI TRAINING READINESS")');
+  check("Janitor: selector editable (AI Training Readiness selected)", (await selected()) === "AI TRAINING READINESS");
+  await ip.evaluate(() => { App.setup.typeChosen = false; saveSetup(); });
+  await toType("software engineer", "Software Engineer");
+  check("Software Engineer: recommended + pre-selected Technical; can choose Technical, AI Domain, Behavioral, Full Mock",
+    /Technical Interview/.test(await ip.innerText("#recType")) && (await selected()) === "TECHNICAL INTERVIEW" && JSON.stringify(await enabled()) === JSON.stringify(["AI DOMAIN EXPERT INTERVIEW", "BEHAVIORAL INTERVIEW", "FULL MOCK INTERVIEW", "TECHNICAL INTERVIEW"]));
+  await toType("french evaluator", "French Evaluator");
+  check("Single-language evaluator: Language Evaluation Interview recommended, Bilingual unavailable",
+    /Language Evaluation Interview/.test(await ip.innerText("#recType")) && (await selected()) === "LANGUAGE EVALUATION INTERVIEW" && await ip.$eval('#typeOpts .opt:has-text("BILINGUAL INTERVIEW")', b => b.disabled) && !/Language balance/i.test(await appText(ip)));
+  // Interview competency evidence + recommended/selected stored on the session.
+  await ip.click("text=Continue →"); await ip.click("text=Continue →"); await ip.click('.opt:has-text("Adaptive")'); await ip.click("text=Continue →");
+  await ip.click('.opt:has-text("STANDARD")'); await ip.click("text=Review summary →"); await ip.click("text=Start interview with Alex"); await ip.waitForSelector(".qbox");
+  const q1 = await ip.innerText(".qbox");
+  await answerUntilDone(ip, () => "Je vérifie la grammaire, le registre et le sens, because the meaning must stay accurate; for example I compare terminology against the glossary and check the tone for the audience.");
+  const s = await ip.evaluate(() => { const s = Repo.sessions.all()[0]; return { sel: s.selectedInterviewType, rec: s.recommendedInterviewType, ev: s.scores.competencyEvidence, a: s.answers[1].competencyEvidence }; });
+  check("Language Evaluation interview runs in one language (no English/French split)", /French/.test(q1) && !/English and French/.test(q1), q1.slice(0, 120));
+  check("Session stores selectedInterviewType + recommendedInterviewType", s.sel === "language" && s.rec === "language");
+  check("Interview answers map to competencies with score, evidence found + missing", Array.isArray(s.a) && s.a[0].id && typeof s.a[0].score === "number" && Array.isArray(s.a[0].found) && Array.isArray(s.a[0].missing)
+    && Object.values(s.ev).every(e => typeof e.score === "number" && Array.isArray(e.found) && Array.isArray(e.missing)));
+  check("Report shows competency evidence", /Competency evidence/i.test(await appText(ip)));
+  check("No console errors in interview default checks", ip.errors.length === 0, ip.errors.slice(0, 3).join(" | "));
+});
+
+await section("Statuses, admin hook, dead buttons", async () => {
+  const sp = await newPage();
+  await sp.goto(BASE + "#/practice"); await sp.waitForSelector("[data-cat]");
+  const st = await sp.evaluate(() => {
+    const q = QuestionBank.pool("data_annotation", "easy")[0];
+    Repo.bankOverrides.set(q.id, { status: "draft" });
+    Repo.bankOverrides.set("da-admin-1", { category: "data_annotation", d: "easy", fmt: "single", prompt: "Admin test question", material: { text: "x" }, options: ["A", "B"], answer: 0, sig: ["a"], model: "A is correct.", status: "review" });
+    QuestionBank.reset();
+    const r = { draftServed: QuestionBank.pool("data_annotation", "easy").some(x => x.id === q.id), admin: QuestionBank.get("da-admin-1"), statuses: QuestionBank.statuses };
+    localStorage.removeItem("bsp.workready.v1.bankOverrides"); QuestionBank.reset();
+    return { draftServed: r.draftServed, adminStatus: r.admin && r.admin.status, adminServed: QuestionBank.pool("data_annotation", "easy").some(x => x.id === "da-admin-1"), statuses: r.statuses };
+  });
+  check("Statuses Draft/Review/Published/Archived/Legacy supported; only Published is served", JSON.stringify(st.statuses) === JSON.stringify(["draft", "review", "published", "archived", "legacy"]) && !st.draftServed && st.adminStatus === "review", JSON.stringify(st));
+  check("Legacy tasks recorded with Legacy/Archived status and review notes", await sp.evaluate(() => { const L = QuestionBank.legacy(); return L.length === 8 && L.filter(x => x.status === "legacy").length === 4 && L.filter(x => x.status === "archived").length === 4 && L.every(x => x.reviewNote); }));
+  // Every inline onclick handler on the main screens resolves to a real function.
+  const missing = new Set();
+  for (const h of ["#/", "#/interview", "#/interview/start", "#/interview/alex", "#/interview/domain", "#/interview/ai-evaluation", "#/interview/history", "#/practice", "#/practice/setup/fact_checking", "#/practice/setup/response_critique", "#/practice/history", "#/results", "#/progress", "#/progress/skills", "#/progress/activity", "#/about"]) {
+    await sp.goto(BASE + h); await sp.waitForTimeout(60);
+    (await sp.$$eval("[onclick]", n => n.map(x => x.getAttribute("onclick").match(/^\s*([A-Za-z_$][\w$]*)\s*\(/)).filter(Boolean).map(m => m[1]).filter(f => typeof window[f] !== "function"))).forEach(f => missing.add(h + " → " + f));
+  }
+  check("No dead onclick handlers on main screens", missing.size === 0, [...missing].join(", "));
+  check("No console errors in status/admin checks", sp.errors.length === 0, sp.errors.slice(0, 3).join(" | "));
 });
 
 /* =================== MOBILE + NAMING =================== */
@@ -401,7 +540,7 @@ await section("Mobile", async () => {
   await mob.click("text=Review summary →"); await mob.click("text=Start interview with Alex");
   await mob.waitForSelector(".qbox, #micStatus");
   check("Mobile interview screen usable (no overflow)", (await mob.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 0);
-  await mob.goto(BASE + "#/practice/setup/spreadsheet-evaluation"); await mob.click("#startPractice"); await mob.waitForSelector("#pClock");
+  await mob.goto(BASE + "#/practice/setup/spreadsheet_evaluation"); await mob.click("#startPractice"); await mob.waitForSelector("#pClock");
   check("Mobile practice runner usable (no overflow)", (await mob.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 0);
   check("No console errors on mobile", mob.errors.length === 0, mob.errors.slice(0, 3).join(" | "));
 });

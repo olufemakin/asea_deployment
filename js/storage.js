@@ -55,6 +55,15 @@ const Repo = (()=>{
     save(ps){ const list=practiceSessions.all().filter(x=>x.id!==ps.id); list.push(ps); list.sort((a,b)=>b.startedAt-a.startedAt); A.set("practiceSessions", list.slice(0, MAX_PRACTICE)); return ps; },
     remove(id){ A.set("practiceSessions", practiceSessions.all().filter(p=>p.id!==id)); },
   };
+  /* Per-question usage (unseen-first selection) and admin overrides (Prompt 3 Question Bank Admin). */
+  const questionStats = {
+    all(){ return A.get("questionStats", {}); },
+    recordUse(ids){ const st=questionStats.all(), now=Date.now(); ids.forEach(id=>{ const s=st[id]||{ timesUsed:0 }; s.timesUsed++; s.lastUsedAt=now; st[id]=s; }); A.set("questionStats", st); },
+  };
+  const bankOverrides = {
+    all(){ return A.get("bankOverrides", {}); },
+    set(id, patch){ const o=bankOverrides.all(); o[id]=Object.assign(o[id]||{}, patch, { updatedAt:new Date().toISOString() }); A.set("bankOverrides", o); return o[id]; },
+  };
   const prefs = {
     get(){ return A.get("prefs", {}); },
     set(patch){ const p = Object.assign(prefs.get(), patch); A.set("prefs", p); return p; },
@@ -91,9 +100,9 @@ const Repo = (()=>{
 
   function exportAll(){
     return { exportedAt:new Date().toISOString(), storage:A.kind,
-      sessions:sessions.all(), practiceSessions:practiceSessions.all(), practice:practice.all(), prefs:prefs.get(), customProfessions:customProfessions.all() };
+      sessions:sessions.all(), practiceSessions:practiceSessions.all(), practice:practice.all(), questionStats:questionStats.all(), prefs:prefs.get(), customProfessions:customProfessions.all() };
   }
-  function clearAll(){ ["sessions","practice","practiceSessions","prefs","customProfessions"].forEach(k=>A.remove(k)); }
+  function clearAll(){ ["sessions","practice","practiceSessions","questionStats","prefs","customProfessions"].forEach(k=>A.remove(k)); }
 
-  return { sessions, practice, practiceSessions, prefs, customProfessions, migrate, exportAll, clearAll, kind:A.kind };
+  return { sessions, practice, practiceSessions, questionStats, bankOverrides, prefs, customProfessions, migrate, exportAll, clearAll, kind:A.kind };
 })();

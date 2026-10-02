@@ -6,8 +6,9 @@ const fs=require("fs"), vm=require("vm");
 const store={};
 const ctx={ window:{ localStorage:{ getItem:k=>store[k]??null, setItem:(k,v)=>store[k]=String(v), removeItem:k=>delete store[k] } }, console, Math, Date, JSON };
 ctx.window.window=ctx.window; ctx.store=store; vm.createContext(ctx);
-const files=["legacy-bank","competencies","professions","items","roles","practice-bank"].map(f=>"js/data/"+f+".js").filter(f=>fs.existsSync(f))
-  .concat(["js/storage.js","js/engine.js"]).concat(fs.existsSync("js/practice.js")?["js/practice.js"]:[]);
+const files=["legacy-bank","competencies","professions","items","roles","practice-core","bank-ranking","bank-evaluation","bank-facts",
+  "bank-annotation","bank-language","bank-generalist","bank-coding","bank-generated"].map(f=>"js/data/"+f+".js")
+  .concat(["js/storage.js","js/engine.js","js/question-bank.js","js/practice.js"]);
 vm.runInContext(files.map(f=>fs.readFileSync(f,"utf8")).join("\n;\n"), ctx);
 const R=src=>vm.runInContext(src, ctx);
 R(`
@@ -26,6 +27,7 @@ PROFESSIONS.forEach(p=>{
   const av=typeAvailability(p);
   Object.keys(TYPES).forEach(t=>{ if(!av[t].ok) return; combos++;
     const pool=buildPool(p,t);
+    pool.forEach(q=>{ if(!p.custom && !COMPETENCY_REGISTRY[q.competency]) fail("interview competency not registered: "+q.competency+" ("+q.id+")"); });
     pool.forEach(q=>{ const txt=q.questionText+q.scenario; if(/\\{(role|a_role|lang|cond)\\}/.test(txt)||/undefined/.test(txt)) fail("token "+q.id+" "+p.title); if(!q.compLabel||!q.expectedStrongSignals.length) fail("bad q "+q.id); });
     const s=run(p.id, t, "standard");
     if(s.answers.length!==10) fail("standard length "+s.answers.length+" "+p.title+"/"+t);
@@ -99,5 +101,9 @@ if(!nurse.asked[0] || !nurse.healthcare) fail("healthcare flag");
 console.log("combos", combos, "issues", issues.length); issues.slice(0,25).forEach(i=>console.log(" -", i));
 if(issues.length) throw new Error(issues.length+" engine issues");
 `);
-if(fs.existsSync("js/practice.js")) R(`if(typeof practiceSelfCheck==="function"){ const r=practiceSelfCheck(); console.log("Practice bank:", r.summary); if(r.issues.length){ r.issues.slice(0,20).forEach(i=>console.log(" -",i)); throw new Error(r.issues.length+" practice issues"); } }`);
+R(`const r=practiceSelfCheck();
+console.log("QUESTION BANK (published per difficulty)");
+r.audit.forEach(a=>console.log("  "+a.label.padEnd(30)+" E "+String(a.easy).padStart(2)+"  M "+String(a.medium).padStart(2)+"  H "+String(a.hard).padStart(2)+"  "+a.status.toUpperCase()));
+console.log("Practice bank:", JSON.stringify(r.summary));
+if(r.issues.length){ r.issues.slice(0,30).forEach(i=>console.log(" -",i)); throw new Error(r.issues.length+" practice issues"); }`);
 console.log("ENGINE CHECK OK");

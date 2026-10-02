@@ -142,21 +142,37 @@ function isTechnical(p){ return !!(p.tech || (GROUP[p.group]||{}).tech); }
 function isHealthcare(p){ const m=roleModelFor(p); return p.group==="healthcare" || !!(m&&m.healthcare); }
 function isFrenchBilingual(p){ const m=roleModelFor(p); return !!(m && m.bilingual==="fr"); }
 function getComp(p, id){ return (p.customComps||[]).find(c=>c.id===id) || COMPS[id]; }
-function profComps(p){ const m=roleModelFor(p); return (m && m.comps) ? m.comps : p.comps; }
+/* A bilingual role model's competencies apply only to the Bilingual Interview itself. */
+function profComps(p, type){ const m=roleModelFor(p); return (m && m.comps && (!m.bilingual || !type || type==="bilingual")) ? m.comps : p.comps; }
+/* Working languages configured for a profession. Bilingual needs two; one language → Language Evaluation. */
+function profLanguages(p){ return p.languages || (isLingual(p) ? [p.lang||"your working language"] : []); }
+function isTwoLanguage(p){ return isLingual(p) && profLanguages(p).length>=2; }
 function competencyModel(p){ return profComps(p).concat(p.ai?[p.ai]:[]).map(id=>getComp(p,id)).filter(Boolean); }
 
+/* Interview types a profession may choose. The profession only RECOMMENDS a type (recommendedType);
+   the user's selection is kept separately and never overwritten once they have chosen. */
+function allowedTypes(p){
+  if(isTransferable(p)) return ["transferable","ai_readiness","behavioral","full_mock"];
+  if(isLingual(p)) return isTwoLanguage(p) ? ["bilingual","ai_domain","ai_readiness","full_mock"] : ["language","ai_domain","ai_readiness","full_mock"];
+  if(p.group==="software") return ["technical","ai_domain","behavioral","full_mock"];
+  if(isTechnical(p)) return ["technical","domain","ai_domain","behavioral","full_mock"];
+  if(p.group==="general_ai") return ["ai_readiness","ai_domain","domain","behavioral","full_mock"];
+  return ["domain","ai_domain","behavioral","full_mock"];
+}
 function typeAvailability(p){
-  const out={};
+  const allow=allowedTypes(p), out={};
   Object.keys(TYPES).forEach(t=>{
-    let ok=true, why="";
-    if(isTransferable(p) && ["domain","ai_domain","technical","bilingual"].includes(t)){ ok=false; why="Not used for transferable-skills roles; your strengths are assessed in the Transferable Skills Interview."; }
-    else if(t==="technical" && !isTechnical(p)){ ok=false; why="For coding, data, science and engineering professions."; }
-    else if(t==="bilingual" && !isLingual(p)){ ok=false; why="For language and translation professions."; }
+    let ok=allow.includes(t), why="";
+    if(!ok) why = t==="technical" ? "For coding, data, science and engineering professions."
+      : t==="bilingual" ? (isLingual(p) ? "Needs two configured working languages; this profession has one." : "For two-language evaluation professions.")
+      : t==="language" ? (isLingual(p) ? "This profession uses the Bilingual Interview (two languages)." : "For single-language evaluation professions.")
+      : isTransferable(p) && ["domain","ai_domain"].includes(t) ? "Not used for transferable-skills roles; your strengths are assessed in the Transferable Skills Interview."
+      : "Not offered for this profession.";
     out[t]={ok, why};
   });
   return out;
 }
-function recommendedType(p){ return isTransferable(p) ? "transferable" : isLingual(p) ? "bilingual" : "ai_domain"; }
+function recommendedType(p){ return isTransferable(p) ? "transferable" : isLingual(p) ? (isTwoLanguage(p) ? "bilingual" : "language") : p.group==="software" ? "technical" : "ai_domain"; }
 
 /* Builds a private interview profile from the "Add My Profession" form. */
 function buildCustomProfession(f){
@@ -254,8 +270,9 @@ const AI_GENERAL=["instruction_following","error_detection","factuality","rubric
 function compIdsFor(p, type){
   if(type==="ai_readiness") return AI_GENERAL.concat(p.ai?[p.ai]:[]);
   if(type==="bilingual"){ const m=roleModelFor(p); return m&&m.bilingual ? m.comps : ["translation","register","localization","grammar","bilingual_eval","communication"]; }
+  if(type==="language") return ["grammar","register","translation","localization","ai_language","communication"];
   if(type==="transferable") return isTransferable(p) ? p.comps : ["attention_detail","process_adherence","quality_review","instructions","reliability","communication"];
-  const ids=[...profComps(p)];
+  const ids=[...profComps(p, type)];
   if(["ai_domain","full_mock","technical"].includes(type)){ if(p.ai) ids.push(p.ai); else if(!ids.some(id=>(getComp(p,id)||{}).ai)) ids.push("preference_judgment"); }
   return uniq(ids);
 }
@@ -264,6 +281,7 @@ function introQuestion(p, type, lang){
   const text = fr ? "Pour commencer, présentez votre parcours en français et en anglais, et les contextes professionnels où vous utilisez chaque langue."
     : type==="transferable" ? "To begin, tell me about your work as {a_role}: what you do day to day, and what you take pride in."
     : type==="bilingual" ? "To begin, tell me about your background with English and {lang}, and where you have used both professionally."
+    : type==="language" ? "To begin, tell me about your background with {lang}: how you use it professionally and what kinds of text you review or produce."
     : (type==="ai_domain"||type==="ai_readiness") ? "To begin, tell me about your background as {a_role} and what makes you well suited to evaluating AI-generated work in your field."
     : "To begin, tell me about your background as {a_role} and the experience you would draw on for this kind of work.";
   const sig = fr ? ["expérience","français","anglais","travail","projet","client","traduction","années","exemple","contexte"]
@@ -271,16 +289,16 @@ function introQuestion(p, type, lang){
   return mkQ(p,{ id:"intro", type:"intro", comp:COMPS.experience, d:1, text, sig, stage:"background", lang:fr?"fr":(type==="bilingual"&&isFrenchBilingual(p)?"en":null) });
 }
 function finalQuestion(p, type){
-  const f = type==="bilingual" ? FINALS.bilingual : type==="transferable"||isTransferable(p) ? FINALS.transferable
+  const f = type==="bilingual" ? FINALS.bilingual : type==="language" ? FINALS.language : type==="transferable"||isTransferable(p) ? FINALS.transferable
     : ["ai_domain","ai_readiness","full_mock"].includes(type) ? FINALS.ai : FINALS.default;
   const m=roleModelFor(p);
-  const use = (m && m.final && type!=="bilingual") ? m.final : f;
+  const use = (m && m.final && !["bilingual","language"].includes(type) && !m.bilingual) ? m.final : f;
   return mkQ(p,{ id:"final", type:"final", comp:COMPS.judgment, d:2, text:use.text, sig:use.sig, stage:"communication", lang:type==="bilingual"&&isFrenchBilingual(p)?"x":null });
 }
 function buildPool(p, type){
   const pool=[], comps=compIdsFor(p,type).map(id=>getComp(p,id)).filter(Boolean);
   const role=roleModelFor(p);
-  const roleOK = role && (type!=="transferable") && (type!=="bilingual" || role.bilingual) && (type!=="ai_readiness" || !role.bilingual);
+  const roleOK = role && !["transferable","language"].includes(type) && (type==="bilingual" ? !!role.bilingual : !role.bilingual);
   if(roleOK){
     role.questions.forEach((q,i)=>{
       if(q.stage==="ai" && TYPES[type].weights.ai===0) return;
@@ -301,7 +319,7 @@ function buildPool(p, type){
   if(["ai_domain","full_mock","ai_readiness"].includes(type)) ["preference_judgment","factuality","error_detection"].forEach(id=>{
     if(!comps.some(c=>c.id===id)){ const c=COMPS[id]; pool.push(mkQ(p,{ id:id+"-s", type:"ai_eval", comp:c, d:2, text:c.scen })); }
   });
-  const sets = type==="ai_readiness" ? uniq(["general_ai", p.set]) : type==="bilingual" ? ["language"] : type==="transferable" ? ["transferable"] : [p.set];
+  const sets = type==="ai_readiness" ? uniq(["general_ai", p.set]) : (type==="bilingual"||type==="language") ? ["language"] : type==="transferable" ? ["transferable"] : [p.set];
   const items=[].concat(...sets.map(k=>(ITEM_SETS[k]||[]).map((it,i)=>({...it, iid:k+"-"+i}))), (sets.includes("transferable")?[]:(p.customItems||[]).map((it,i)=>({...it, iid:"c-"+i}))));
   const itemComps = comps.concat(type==="ai_readiness"?[]:[COMPS.error_detection]);
   items.forEach(it=>{
@@ -323,7 +341,7 @@ function buildPool(p, type){
 /* Background → Domain → Reasoning/Scenario → AI Evaluation → Communication → Final. */
 function sessionWeights(p, type){
   const m=roleModelFor(p);
-  const w=Object.assign({}, TYPES[type].weights, (m&&m.weights)||{});
+  const w=Object.assign({}, TYPES[type].weights, (m&&m.weights&&(!m.bilingual||type==="bilingual"))?m.weights:{});
   if(isTransferable(p)) w.ai=0;
   return w;
 }
@@ -383,7 +401,8 @@ function memoryQuestion(s, p, stage){
   if((s.memory||[]).length>=cap || stage!=="reasoning") return null;
   const prev=s.asked[s.asked.length-1]; if(prev && prev.questionType==="callback") return null;
   const usedKeys=new Set((s.memory||[]).map(m=>m.key));
-  const role=roleModelFor(p), triggers=(role&&role.memory)||[];
+  let role=roleModelFor(p); if(role && role.bilingual && s.interviewType!=="bilingual") role=null;   // bilingual model only drives the Bilingual Interview
+  const triggers=(role&&role.memory)||[];
   const answers=s.answers.filter(a=>a.questionType!=="final");
   for(let i=0;i<triggers.length;i++){
     const t=triggers[i], key="role-"+i; if(usedKeys.has(key)) continue;
@@ -418,7 +437,7 @@ function createSession(cfg){
   const introLang = fr && blueprint[0]==="intro:fr" ? "fr" : null;
   const s={ sessionId:newSessionId(), version:3,
     profession:{ id:p.id, title:p.title, group:p.group, custom:!!p.custom },
-    interviewType:cfg.type, mode:cfg.mode, experienceLevel:cfg.level, difficulty:cfg.difficulty, length:cfg.length,
+    interviewType:cfg.type, selectedInterviewType:cfg.type, recommendedInterviewType:recommendedType(p), mode:cfg.mode, experienceLevel:cfg.level, difficulty:cfg.difficulty, length:cfg.length,
     langBalance:balance, healthcare:isHealthcare(p), roleModel:(roleModelFor(p)||{}).key||null,
     weights: fr ? { en:40, fr:40, x:20 } : sessionWeights(p, cfg.type), blueprint,
     questionTarget:L.n, questionRange:[L.min, L.max], currentQuestion:0,
@@ -583,8 +602,27 @@ function recordPending(s){
     scenario:q.scenario, code:q.code, artifact:q.artifact, difficulty:q.difficulty, hint:q.scoringRubric.hint,
     answer:s.pending.answer, seconds:s.pending.seconds, score:r.score, wc:r.wc, dims:r.dims, communication:r.communication, langMismatch:r.langMismatch,
     hit:r.hit, missed:r.missed, followUp:s.pending.followUp||null, feedback:feedbackFor(r, q, s.experienceLevel) };
+  rec.competencyEvidence=answerEvidence(rec);
   s.answers.push(rec); s.phase="main"; s.pending=null;
   return rec;
+}
+/* Competency-level evidence for one interview answer: the question's competency (with the
+   expected signals found / missing), the interview stage's competency, and communication. */
+function answerEvidence(a){
+  const out=[{ id:a.competency, name:a.compLabel||competencyName(a.competency), score:a.score, found:(a.hit||[]).slice(), missing:(a.missed||[]).slice() }];
+  const sc=STAGE_COMPETENCY[a.stage];
+  if(sc && sc!==a.competency && !["intro","final"].includes(a.questionType)) out.push({ id:sc, name:competencyName(sc), score:a.score, found:[], missing:[] });
+  if(typeof a.communication==="number" && a.competency!=="communication") out.push({ id:"communication", name:competencyName("communication"), score:a.communication, found:[], missing:[] });
+  return out.filter(e=>e.id);
+}
+function interviewEvidence(A){
+  const ev={};
+  A.forEach(a=>(a.competencyEvidence||answerEvidence(a)).forEach(e=>{
+    const x=ev[e.id]=ev[e.id]||{ id:e.id, name:e.name, scores:[], found:new Set(), missing:new Set(), questionIds:[] };
+    x.scores.push(e.score); e.found.forEach(f=>x.found.add(f)); e.missing.forEach(f=>x.missing.add(f)); x.questionIds.push(a.questionId);
+  }));
+  return Object.fromEntries(Object.values(ev).map(x=>[x.id,{ id:x.id, name:x.name, score:avg(x.scores), n:x.scores.length,
+    found:[...x.found], missing:[...x.missing].filter(m=>!x.found.has(m)), questionIds:x.questionIds }]));
 }
 function adapt(s, rec){
   const A=s.adaptive;
@@ -648,7 +686,7 @@ function finalizeReport(s){
   const verdict = overall>=78 ? `${nm?nm+", you":"You"} performed at the level strong candidates show. Keep it consistent across sessions.`
     : overall>=55 ? `${nm?nm+", you":"You"} are close. Strengthen the focus areas below and you'll clear most screening interviews.`
     : `This is a starting point${nm?", "+nm:""}. Work through the focus areas below, then run the interview again.`;
-  s.scores={ overall, dims, competencies, areas, communication:avg(A.filter(a=>typeof a.communication==="number").map(a=>a.communication)) };
+  s.scores={ overall, dims, competencies, areas, competencyEvidence:interviewEvidence(A), communication:avg(A.filter(a=>typeof a.communication==="number").map(a=>a.communication)) };
   s.feedback={ verdict, strengths:sorted.filter(([,v])=>v>=70).slice(0,3).map(([k])=>k), focus:sorted.slice().reverse().filter(([,v])=>v<70).slice(0,3).map(([k])=>k) };
   return s;
 }
