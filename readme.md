@@ -1,86 +1,76 @@
-# Interview IQ — by BSP · Business Startup Powerhouse
+# BSP AI WorkReady · Interview IQ
 
-> A free AI Interview Simulator from **Business Startup Powerhouse (BSP)**.
+**AI Interview Lab — Powered by Business Startup Powerhouse (BSP)**
 
-A free, voice-enabled AI interview simulator that mirrors the AI screening "gate"
-used by data-work platforms (**Outlier**, **Mercor**, **Micro1**). Built for a
-community that trains people to pass those interviews.
+Practice realistic AI-led interviews with **Alex, your BSP AI Interviewer**. The lab covers
+professional, domain-expert, AI-evaluation, behavioral and transferable-skills interviews for
+more than 140 professions. It's free, needs no sign-up, and runs entirely in your browser.
 
-Everything runs in the browser — **zero cost, zero accounts, no API keys**.
+Live: **https://strong-dragon-d8b60f.netlify.app**
 
-## What it does
-- 👋 **Candidate intro** — captures the candidate's name, target platform
-  (Outlier / Mercor / Micro1), and experience level. The AI interviewer greets
-  them by name and tailors difficulty — just like a real HR screen.
-- 🎙️ **Real voice interview** — the interviewer *speaks* each question
-  (browser text-to-speech) and *listens* to spoken answers (browser
-  speech-to-text). Falls back to typing automatically when a browser lacks
-  speech support.
-- 🧪 **17 profession tracks** — Software, Data/ML, Math, Physics, Chemistry,
-  Biology, Medicine, Law, Finance, Economics, Business, Writing, Linguistics,
-  Engineering, Psychology, Education, plus General. Each blends universal
-  AI-trainer screening questions (instruction-following, spotting subtle errors,
-  quality/consistency, handling feedback) with 6 domain-specific questions each
-  — 108 questions in total; any interview draws up to 12.
-- 🤖 **Adaptive** — asks a probing follow-up when an answer is thin.
-- 📊 **Transparent scoring** — every answer scored 0–100 on **Relevance, Depth,
-  Structure, Specificity**, with a per-question report and concrete "how to
-  improve" tips. Personalised report header + printable.
-- ⏱️ Difficulty levels, adjustable length, per-question timer.
-- 🔒 **100% private** — no backend, no keys, no sign-up. Saves recent sessions
-  locally.
+## Features
+- 🎙️ **Voice or text interviews.** Alex speaks each question, and in voice mode listens to your answer (Web Speech API), with automatic fallback to typing.
+- 🧑‍💼 **Alex, the official interviewer.** Alex is professional, calm and neutral, uses a consistent introduction tailored to your profession, and asks adaptive follow-ups.
+- 🔎 **Searchable profession library.** 145 professions in 13 groups (General AI, Business, Finance, Healthcare, Education, Science, Engineering, Software/Data, Marketing, Language, Writing, Legal, Transferable Skills). Each has its own competency model.
+- ➕ **Add My Profession.** Build a private interview profile from your own job title, responsibilities and skills.
+- 🧭 **Step-by-step setup:**
+  1. Profession
+  2. Mode: Voice or Text
+  3. Interview type: Domain Expert, AI Domain Expert, AI Training Readiness, Behavioral, Technical, Bilingual, Transferable Skills, or Full Mock
+  4. Experience: Entry to Expert
+  5. Difficulty: Easy, Medium, Hard, or Adaptive
+  6. Length: Quick (5), Standard (10), Full (15), or Deep Expert (12–20, adaptive)
+  7. Summary
+- 🔀 **Adaptive engine.** Strong answers lead to deeper follow-ups and harder scenarios. Vague answers get a request to clarify, and competencies you haven't shown yet get explored.
+- 📊 **Detailed reports.** Each report scores Relevance, Depth, Structure and Specificity, breaks results down by competency, lists strengths and focus areas, and gives question-by-question feedback. Reports are printable.
+- 🧪 **Practice Lab.** Original AI-evaluation tasks: compare responses, rate quality, find errors, fix the format.
+- 📈 **Progress.** Interview readiness score, skills and scores, and recent activity.
+- 🔒 **Guest mode.** History, practice and preferences are saved in your browser. You can export or delete them from the About page.
 
-## Branding (baked in for BSP)
-The brand is **permanently set** (not user-editable): the app is **Interview IQ
-by BSP · Business Startup Powerhouse**, on the Ocean-Blue theme that matches the
-BSP logo. It shows in the header, page title, and footer.
+All interview and practice questions are **original BSP practice content**. Interview IQ is not
+affiliated with any hiring or AI-training platform.
 
-**Logo:** the header loads, in order, `logo.png` → `logo.svg` → an emoji mark.
-- A placeholder **`logo.svg`** (silver "bsp" badge) ships so it looks branded
-  out of the box.
-- **To use your exact logo:** save your BSP image as **`logo.png`** in this
-  folder (next to `index.html`). The header picks it up automatically — no code
-  change. A square image (e.g. 512×512) looks best.
-
-To change the baked brand text, edit the `BRAND` object near the top of the
-`<script>` in `index.html` (`name`, `community`, `tagline`).
-
-## How it works (no API key, by design)
-- **Voice** uses the built-in [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API).
-- **The "brain"** is a built-in question bank with rubric metadata plus a
-  deterministic scorer (concept coverage, depth, reasoning structure,
-  specificity). No LLM, so it's free forever and works offline.
-- Everything is one self-contained `index.html`.
-
-> **Best experience:** Chrome or Edge (desktop or Android) for full speech-to-text.
-> Safari/Firefox can still hear the interviewer and you type your answers.
+## Project structure
+Static site with no build step. See `CLAUDE.md` for the full architecture map.
+```
+index.html            shell + navigation
+css/app.css           styles
+js/data/*.js          competencies, professions, interview config, practice tasks, original v1 bank
+js/storage.js         storage adapter + repositories (guest mode; cloud-ready)
+js/engine.js          speech, scoring, question architecture, adaptive session engine
+js/app.js             router + screens
+tests/                Playwright regression suite + headless engine check
+```
 
 ## Run it locally
-Open `index.html` in a browser. If your browser blocks the mic on `file://`,
-serve it:
 ```bash
 # from this folder
 python3 -m http.server 4555
 # visit http://localhost:4555
 ```
+The microphone needs `localhost` or HTTPS.
+
+## Tests
+```bash
+node tests/engine-check.js     # every profession × interview type, headless (≈2–3 min)
+node tests/regression.mjs      # 65 browser checks (needs Playwright + Chromium and the local server)
+```
 
 ## Live site & auto-deploy
-Live at **https://strong-dragon-d8b60f.netlify.app**. Source of truth is this GitHub repo
-(`olufemakin/asea_deployment`). Recommended: in Netlify → Site configuration → Build & deploy →
-**Link repository** → pick this repo, branch `main`. `netlify.toml` already sets publish dir `.` and
-no build command, so every merge to `main` redeploys automatically.
+The source of truth is this GitHub repo (`olufemakin/asea_deployment`). To deploy automatically, open
+Netlify → Site configuration → Build & deploy → **Link repository**, then pick this repo and the `main`
+branch. `netlify.toml` already sets the publish directory to `.` with no build command, so every merge
+to `main` redeploys.
 
-## Deploy it free (get a public URL like the reference app)
-One static file → any free static host works:
-1. **Netlify Drop** (no CLI): https://app.netlify.com/drop — drag this folder on.
-   Instant live URL; sign in (free) to keep/rename it.
-2. **Cloudflare Pages**: free account → Pages → "Upload assets" → drag the folder.
-3. **GitHub Pages**: push to a repo → Settings → Pages → deploy from `main`/root.
-4. **Vercel**: `npx vercel` in this folder.
+Manual alternative: drag this folder onto **Netlify Drop** (https://app.netlify.com/drop). Any static
+host works, but it must serve over HTTPS for microphone access.
 
-All four are free and serve over HTTPS (required for microphone access).
+> **Best experience:** Chrome or Edge (desktop or Android) for full speech-to-text.
+> Safari and Firefox can still speak questions aloud; you type your answers.
 
-## Customize questions
-Edit the `CORE` and `DOMAINS` objects near the top of the `<script>` in
-`index.html`. Each question lists `concepts` (keywords the scorer rewards) and a
-`hint` (what a top answer shows). Scoring weights live in `scoreAnswer()`.
+## Customise
+- **Professions:** add a `P(group, title, comps, extra)` line in `js/data/professions.js`.
+- **Competencies:** add a `C(...)` entry in `js/data/competencies.js` (signals plus knowledge, scenario and behavioral prompts).
+- **Field question items:** edit `ITEM_SETS` in `js/data/items.js`.
+- **Alex's script:** edit `ALEX` in `js/data/items.js`.
+- **Scoring weights:** edit `scoreAnswer()` in `js/engine.js`.

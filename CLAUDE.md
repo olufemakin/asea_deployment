@@ -1,62 +1,83 @@
-# CLAUDE.md — Interview IQ (by BSP · Business Startup Powerhouse)
+# CLAUDE.md — BSP AI WorkReady · Interview IQ
 
 Context for Claude (and humans) picking this project up later.
 
 ## What this is
-A free, voice-enabled AI interview simulator for the BSP community, who train
-people to pass the AI screening interviews on Outlier, Mercor and Micro1.
-Live at **https://strong-dragon-d8b60f.netlify.app** (Netlify site
-`strong-dragon-d8b60f`).
+**BSP AI WorkReady · Interview IQ — AI Interview Lab, powered by Business Startup Powerhouse.**
+A free, guest-first AI interview simulator. **Alex** (always "Alex · BSP AI Interviewer", never
+"bot", "agent" or "recruiter") runs adaptive, profession-specific interviews in voice or text mode.
+Live at **https://strong-dragon-d8b60f.netlify.app** (Netlify site `strong-dragon-d8b60f`).
 
-Design constraints set by the owner — keep them unless told otherwise:
+Owner constraints (keep unless told otherwise):
 - **Zero cost, no accounts, no API keys, no backend.** Everything runs in the browser.
-- Voice = browser Web Speech API (TTS + STT), with automatic fallback to typing.
-- The "AI" is a built-in question bank + deterministic rubric scorer (no LLM).
-- Branding is fixed: "Interview IQ by BSP · Business Startup Powerhouse", ocean-blue theme.
+- **Guest-first:** never block interviews, reports or practice behind sign-up.
+- Voice = Web Speech API (TTS + STT) with automatic fallback to typing.
+- The "AI" is a structured question bank + deterministic adaptive engine + rubric scorer (no LLM).
+- **Original content only.** Never copy questions from hiring/AI-training platforms.
+- Transferable-skills roles (janitor, retail…) get a Transferable Skills Interview, never an invented AI job.
+- Alex stays neutral during interviews (no "Great answer!"); feedback goes in the report.
+- Design: premium dark navy / near-black with indigo, purple and electric violet accents.
 
-## Project layout
-| File | Purpose |
+## Upgrade roadmap
+The owner is delivering a 3-part upgrade brief. **Prompt 1 (foundation, Alex, role system,
+interview setup) is done.** Prompts 2 and 3 will follow; extend the systems below, don't replace them.
+
+## Project layout (static, no build step)
+| Path | Purpose |
 |---|---|
-| `index.html` | The whole app: HTML, CSS and JS in one self-contained file |
-| `logo.png` | BSP logo used in the header (512×512) |
-| `logo.svg` | Fallback logo if `logo.png` fails to load |
-| `log.png.jpeg` | Original full-size BSP logo image (source asset, not referenced by the app) |
-| `readme.md` | User-facing overview + deploy guide |
-| `tasks/todo.md` | Original build plan and change log |
-| `netlify.toml` | Netlify config (publish root, security headers incl. microphone permission) |
+| `index.html` | Shell: header/nav, `<main id="app">`, footer, script tags (order matters) |
+| `css/app.css` | All styles (tokens in `:root`) |
+| `js/data/legacy-bank.js` | Original v1 question bank (`CORE`, `DOMAINS`), kept verbatim and reused |
+| `js/data/competencies.js` | `COMPS`: competency library (signals, knowledge/scenario/behavioral prompts) |
+| `js/data/professions.js` | `GROUPS`, `PROFESSIONS` (145), `PROF` lookup, `TRANSFERABLE_HINTS` |
+| `js/data/items.js` | `ALEX` script, `TYPES`, `MODES`, `LEVELS`, `DIFFS`, `LENGTHS`, `FOLLOWUP`, `ITEM_SETS`, `LEGACY_MAP`, `PRACTICE_TASKS` |
+| `js/storage.js` | `StorageAdapter` (localStorage → memory fallback) + `Repo` (sessions, practice, prefs, customProfessions), v1 migration |
+| `js/engine.js` | `Speech`, `scoreAnswer`, question architecture (`buildPool`, `mkQ`), session model, adaptive engine, reports |
+| `js/app.js` | Hash router, nav, all screens |
+| `tests/regression.mjs` | Playwright browser regression suite (65 checks) |
+| `tests/engine-check.js` | Headless sweep: every profession × allowed type builds a pool and finishes an interview |
+| `logo.png` / `logo.svg` | Header logo + fallback; `log.png.jpeg` is the source logo asset (unused) |
 
-## Map of `index.html` (`<script>` section)
-- `BRAND` / `renderBrand()` — baked-in brand text and logo fallback chain (`logo.png` → `logo.svg` → emoji).
-- `PLATFORMS` — target platforms offered on the intro screen.
-- `CORE` — universal AI-trainer screening questions; `CORE[0]` is always asked first.
-- `DOMAINS` — 17 profession tracks, each `{label, icon, q:[...]}`. Every question has
-  `q` (text), `concepts` (keywords the scorer rewards) and `hint` (what a top answer shows).
-- `DIFFICULTY` — warm-up / standard / rigorous: per-question time limit and score multiplier.
-- `Speech` — wrapper around `speechSynthesis` and `SpeechRecognition`.
-- `scoreAnswer()` — rubric: coverage 40%, depth 25%, structure 20%, specificity 15%;
-  `feedbackFor()` turns the scores into tips.
-- `App` — global state; `render()` dispatches to the `scrWelcome / scrIntro / scrSetup /
-  scrInterview / scrResults` screen functions, which rebuild `#app` via template strings.
-  Escape all user text with `H()`.
-- `buildQuestions()` — `CORE[0]`, then domain and core questions interleaved, cut to `cfg.count`.
-- History — last 10 sessions in `localStorage["ia_history"]`.
-- Inline `onclick` handlers call functions exported onto `window` at the bottom
-  (`Object.assign(window,{...})`) — add any new handler there too.
+Scripts are classic (not modules) and share globals; load order is in `index.html`.
+Top-level `function` declarations are global, which is what inline `onclick` handlers rely on.
+
+## Key concepts
+- **Profession** `{id, title, group, comps[], ai, set, kw?, lang?, tech?, lingual?}`. Custom professions
+  (from "Add My Profession") add `custom:true, customComps, customItems, profile` and live only in `Repo.customProfessions`.
+- **Question** (built by `mkQ`): `profession, competency, compLabel, difficulty(1–3), questionType, scenario,
+  questionText, expectedStrongSignals, commonWeakSignals, followUpRules, scoringRubric`.
+  Types: intro, knowledge, behavioral, scenario, ai_eval, error_detection, explanation, practical (+ adaptive follow-up).
+- **Interview types** (`TYPES`) each have a `plan` of question-type slots; `typeAvailability(p)` gates
+  technical / bilingual / transferable; `recommendedType(p)`.
+- **Session** (`createSession`): `sessionId, profession, interviewType, mode, experienceLevel, difficulty, length,
+  questionTarget, questionRange, currentQuestion, answers[], followUps[], asked[], startedAt, completedAt,
+  status (not_started|in_progress|completed|abandoned), scores, feedback, candidate, adaptive{target,revisit,fuUsed,fuBudget}, phase, pending`.
+  Saved on every step, so in-progress interviews survive reloads (`prefs.activeSessionId`).
+- **Adaptive engine:** `pickNext` chooses the slot type, least-covered competency, difficulty near `adaptive.target`
+  and `revisit` competencies (weak answers). `adapt()` raises the target only after two strong answers
+  (or one very strong answer at senior/expert level) and lowers it after two weak ones. `decideFollowUp()`: clarify (short),
+  evidence (hedging), probe (missing concepts), deepen (strong + adaptive/hard + experienced+). Budget per length.
+- **Scoring:** Relevance 40 / Depth 25 (scaled to level word targets) / Structure 20 / Specificity 15, minus hedging.
+
+## Routes
+`#/` home · `#/interview` hub · `/interview/start` (7-step wizard) · `/interview/alex` · `/interview/domain` ·
+`/interview/ai-evaluation` · `/interview/history` · `/interview/session` · `#/practice` · `/practice/task/:id` ·
+`/practice/history` · `#/results` · `/results/:id` · `#/progress` · `/progress/skills` · `/progress/activity` · `#/about`.
+Unknown routes fall back to home. Add new nav links only with a working route.
 
 ## Run / test locally
 ```bash
-python3 -m http.server 4555   # then open http://localhost:4555
+python3 -m http.server 4555            # then open http://localhost:4555
+node tests/regression.mjs              # needs Playwright + Chromium; BASE_URL overrides the URL
+node tests/engine-check.js             # no browser needed
 ```
-The mic needs `localhost` or HTTPS. To test without a mic, set `App.cfg.voice=false`, then
-reveal `#typeBox` and call `submitAnswer()`. Headless Chromium + Playwright can drive the
-whole flow (welcome → intro → setup → interview → results).
+The mic needs `localhost` or HTTPS. Run both suites before every push.
 
 ## Deploy
-Static site, no build step. Preferred: connect the Netlify site to this GitHub repo
-(`olufemakin/asea_deployment`, branch `main`) so every merge redeploys automatically.
-A manual fallback is dragging the folder onto Netlify Drop.
+Static site with no build step. Preferred: connect the Netlify site to `olufemakin/asea_deployment` (branch `main`).
+`netlify.toml` publishes the repo root.
 
 ## Conventions
-- Keep it a single dependency-free `index.html` unless there's a strong reason to split.
-- Match the existing compact JS style (template-string screens, short helpers).
+- Match the compact JS style (template-string screens, short helpers); escape user text with `H()`.
+- Persist through `Repo` only. Never call `localStorage` directly, so a cloud adapter can be added later.
 - Record notable changes in `tasks/todo.md`.

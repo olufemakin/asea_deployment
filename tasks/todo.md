@@ -53,3 +53,25 @@ static file locally; harmless, can be removed.
   `olufemakin/asea_deployment` (`main`). The source is the original readable `index.html`.
 - Added `CLAUDE.md` (project context + code map), `netlify.toml` (publish root, headers),
   and fixed the readme's run instructions. Smoke-tested the full flow in headless Chromium: no errors.
+
+## 2026-10-02 — Upgrade Prompt 1 of 3: Foundation + Alex + Role system + Interview setup
+Audit of v1 (single-file, no framework): flow/voice/scoring/print/history WORKING; history (last
+report only), follow-ups (voice + word count only) PARTIAL; no routing, so refresh/back lost state, and
+typed answers never got follow-ups (BROKEN); nav, Alex, profession library, custom professions,
+interview types/modes/levels, adaptive engine, session model, practice, progress, about MISSING.
+
+Done:
+- [x] Split into static files (no build step): css/, js/data/, storage, engine, app; v1 bank kept verbatim and reused
+- [x] Hash router + nav (Home · Interview ▾ · Practice ▾ · Results · Progress ▾ · About); no dead links; unknown routes → home
+- [x] Rebrand: BSP AI WorkReady › INTERVIEW IQ › AI Interview Lab; navy/indigo/violet premium theme; responsive
+- [x] Alex (BSP AI Interviewer): consistent identity, neutral transitions, standard intro tailored to profession and type, closing line
+- [x] 145 professions / 13 groups, each with its own competency model; searchable selector; group filters
+- [x] Add My Profession → private profile (custom competencies, AI evaluation, practical items); transferable detection
+- [x] Transferable-skills roles → Transferable Skills Interview only (no invented AI job)
+- [x] 7-step setup: profession, mode, type (8), experience (5), difficulty (4, Adaptive default), length (4, Standard default), summary
+- [x] Structured question architecture (competency, difficulty, type, scenario, signals, follow-up rules, rubric)
+- [x] Adaptive engine: difficulty target, competency revisit, clarify/evidence/probe/deepen follow-ups (typed or spoken), deep 12–20 length
+- [x] Session model with statuses; saved every step; resume after reload; end-early report
+- [x] Storage abstraction (StorageAdapter + Repo), v1 `ia_history` migration, export/delete data
+- [x] Results, report (rubric + competencies + strengths/focus), interview history, Practice Lab (8 tasks), progress (readiness, skills, activity), About
+- [x] Tests: tests/regression.mjs (65/65 pass), tests/engine-check.js (911 profession×type combos, 0 issues)
