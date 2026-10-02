@@ -174,7 +174,9 @@ function typeAvailability(p){
   });
   return out;
 }
-function recommendedType(p){ return isTransferable(p) ? "transferable" : isLingual(p) ? (isTwoLanguage(p) ? "bilingual" : "language") : p.group==="software" ? "technical" : "ai_domain"; }
+function recommendedType(p){
+  if(p.recommendedType && TYPES[p.recommendedType] && allowedTypes(p).includes(p.recommendedType)) return p.recommendedType;   // profession / family config
+  return isTransferable(p) ? "transferable" : isLingual(p) ? (isTwoLanguage(p) ? "bilingual" : "language") : p.group==="software" ? "technical" : "ai_domain"; }
 
 /* Builds a private interview profile from the "Add My Profession" form. */
 function buildCustomProfession(f){
@@ -210,10 +212,19 @@ function buildCustomProfession(f){
     {t:"explanation",d:1,q:`Explain to someone new to ${f.industry?f.industry.trim():"your field"} why ${first} matters and what good work looks like.`,
       sig:["because","example","standard","quality","customer","result","mistake","why","impact","good"]},
   ];
+  /* Dynamic competency engine: responsibility-derived competencies first, then the closest
+     profession-family template (inferred from the title and industry) fills the professional core.
+     Nothing is invented about the person: credentials come only from what they typed. */
+  const inf=ProfessionLib.inferCustom(title, f.industry), fam=PROFESSION_FAMILIES[transferable?"facilities_frontline":inf.family]||PROFESSION_FAMILIES.generalist;
+  const famComps=fam.comps.filter(id=>COMPS[id] && !comps.includes(id) && !(transferable && COMPS[id].ai));
+  const allComps=uniq(comps.slice(0, customComps.length).concat(famComps.slice(0, Math.max(2, 8-customComps.length)), comps.slice(customComps.length))).slice(0,9);
   return { id:"custom-"+slug(title).slice(0,40)+"-"+Date.now().toString(36), title, group:"custom", custom:true,
-    comps, ai, set:transferable?"transferable":"general_ai", transferable, customComps, customItems,
+    comps:allComps, ai, set:transferable?"transferable":(fam.set||(GROUP[fam.group]||{}).set||"general_ai"), transferable, customComps, customItems,
+    category:transferable?"other":inf.category, family:transferable?"facilities_frontline":inf.family, specialty:f.specialty||"",
+    types:transferable?null:(fam.types?fam.types.filter(t=>t!=="transferable"||transferable):null), recommendedType:transferable?"transferable":(fam.recommended&&fam.recommended!=="transferable"?fam.recommended:null),
+    specialties:f.specialty?[f.specialty]:[],
     profile:{ industry:f.industry||"", years:f.years||"", responsibilities:f.responsibilities||"", skills:f.skills||"",
-      education:f.education||"", credentials:f.credentials||"" }, createdAt:Date.now() };
+      education:f.education||"", credentials:f.credentials||"", specialty:f.specialty||"", goal:f.goal||"" }, createdAt:Date.now() };
 }
 
 /* ---------- Question architecture ---------------------------------------- */
@@ -446,7 +457,8 @@ function memoryQuestion(s, p, stage){
 function newSessionId(){ return "s-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,7); }
 function initialTarget(cfg){ return cfg.difficulty==="adaptive" ? LEVELS[cfg.level].target : DIFFS[cfg.difficulty].target; }
 function createSession(cfg){
-  const p=getProfession(cfg.professionId); if(!p) throw new Error("Unknown profession");
+  const base=getProfession(cfg.professionId); if(!base) throw new Error("Unknown profession");
+  const p=ProfessionLib.withSpecialty(base, cfg.specialty);
   const L=LENGTHS[cfg.length];
   const fr = cfg.type==="bilingual" && isFrenchBilingual(p);
   const balance = fr ? (cfg.langBalance||"balanced") : null;
@@ -454,7 +466,7 @@ function createSession(cfg){
   const introLang = fr && blueprint[0]==="intro:fr" ? "fr" : null;
   const cvSnap = cfg.useCv && typeof CV!=="undefined" && CV.hasConfirmed() ? CV.snapshot() : null;
   const s={ sessionId:newSessionId(), version:3,
-    profession:{ id:p.id, title:p.title, group:p.group, custom:!!p.custom },
+    profession:{ id:p.id, title:p.title, group:p.group, custom:!!p.custom, category:p.category||null, family:p.family||null, specialty:cfg.specialty||null },
     interviewType:cfg.type, selectedInterviewType:cfg.type, recommendedInterviewType:recommendedType(p), mode:cfg.mode, experienceLevel:cfg.level, difficulty:cfg.difficulty, length:cfg.length,
     langBalance:balance, healthcare:isHealthcare(p), roleModel:(roleModelFor(p)||{}).key||null,
     weights: fr ? { en:40, fr:40, x:20 } : sessionWeights(p, cfg.type), blueprint,
@@ -470,12 +482,14 @@ function startSession(s){
   Repo.sessions.inProgress().forEach(o=>{ if(o.sessionId!==s.sessionId){ o.status="abandoned"; if(o.answers.length) finalizeReport(o); Repo.sessions.save(o); } });
   s.status="in_progress"; Repo.sessions.save(s); return s;
 }
+/* The profession as used in this session (with the chosen specialty, if any). */
+function sessionProfession(s){ return ProfessionLib.withSpecialty(getProfession(s.profession.id), s.profession.specialty); }
 function currentQ(s){ return s.asked[s.currentQuestion]; }
 function scoreCtx(s){
   const mult = s.difficulty==="adaptive" ? ({1:1.08,2:1,3:.94})[s.adaptive.target] : DIFFS[s.difficulty].mult;
   return { level:s.experienceLevel, mult };
 }
-function isAdvanced(s){ return ["experienced","senior","expert"].includes(s.experienceLevel) || s.difficulty==="hard" || ["full","deep"].includes(s.length); }
+function isAdvanced(s){ return ["experienced","senior","expert","doctoral"].includes(s.experienceLevel) || s.difficulty==="hard" || ["full","deep"].includes(s.length); }
 
 function nextSlot(s){
   const bp=s.blueprint||[]; const i=s.asked.length;
@@ -489,7 +503,7 @@ function nextSlot(s){
 function deepStable(s){ const last=s.answers.slice(-4).map(a=>a.score); return last.length===4 && (last.every(v=>v>=78)||last.every(v=>v<50)); }
 
 function pickNext(s){
-  const p=getProfession(s.profession.id); if(!p) return null;
+  const p=sessionProfession(s); if(!p) return null;
   const slot=nextSlot(s);
   if(slot==="final") return finalQuestion(p, s.interviewType);
   const usedConcepts=new Set(s.asked.map(q=>q.concept).filter(Boolean));

@@ -156,12 +156,21 @@ function generateDrafts(o){
 }
 
 /* ---------- Local role overrides + Alex settings (applied at boot) -------- */
+const DERIVED_PROF_KEYS=["core_competencies","technical_competencies","professional_competencies","typical_interview_types","recommended_interview_type","profession_family","subcategory","interview_areas","recommended_practice","domain_keywords"];
+/* Local Content Studio professions: patches to existing records, or new records built from a family template. */
 function applyRoleOverrides(){
   Object.entries(Repo.roleOverrides.all()).forEach(([id,o])=>{
-    if(PROF[id]){ Object.assign(PROF[id], o); return; }
-    if(o.admin && o.title && o.group && GROUP[o.group]){
-      const g=GROUP[o.group], p=Object.assign({ id, ai:g.ai||null, set:g.set, comps:[] }, o); PROFESSIONS.push(p); PROF[id]=p;
+    let p=PROF[id];
+    if(!p){
+      if(!(o.admin && o.title)) return;
+      const cat=o.category||"other", fam=o.family||CATEGORY_FAMILY[cat]||"generalist";
+      p=ProfessionLib.make(o.title, cat, fam, { id, seeded:true }); PROFESSIONS.push(p); PROF[id]=p;
     }
+    DERIVED_PROF_KEYS.forEach(k=>delete p[k]);
+    if(o.family && o.family!==p.family && !o.comps){ const f=PROFESSION_FAMILIES[o.family]; if(f){ p.comps=f.comps.slice(); p.group=o.group||f.group; } }
+    Object.assign(p, o);
+    if(!o.supported_practical_tasks) delete p.supported_practical_tasks;
+    ProfessionLib.normalize(p);
   });
 }
 const ALEX_DEFAULTS = { avatar:"A", introduction:"", tone:"neutral", voice:"", rate:1, completion:"" };

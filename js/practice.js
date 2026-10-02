@@ -249,6 +249,10 @@ function getRecommendations(ctx){
   const hasVoice = sessions.some(x=>x.mode==="voice");
   if(practiceStrong && (comm==null || comm<65 || !hasVoice))
     recs.unshift({ kind:"voice", because: comm!=null && comm<65 ? `Strong practice scores, but interview communication = ${comm}%` : "Strong practice scores. Now practise explaining your reasoning out loud." });
+  /* Profession-relevant practice (from the profession's family template) fills any remaining slots. */
+  const prof = s && typeof getProfession==="function" ? getProfession(s.profession&&s.profession.id) : null;
+  if(prof) (prof.recommended_practice||[]).filter(c=>PRACTICE_CATEGORY[c] && isCategoryAvailable(c)).forEach(c=>{
+    const pr=practiceProgression(c); recs.push({ kind:"practice", category:c, difficulty:pr?pr.difficulty:"easy", because:`recommended for ${prof.title}` }); });
   const seen=new Set();
   return recs.filter(r=>{ const k=r.kind+":"+(r.category||""); if(seen.has(k)) return false; seen.add(k); return true; }).slice(0,3);
 }

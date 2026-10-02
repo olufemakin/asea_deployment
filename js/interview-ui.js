@@ -119,7 +119,8 @@ function speechPlan(s){
   const ask={ text:q.questionText, lang:ql };
   if(s.phase==="followup" && s.pending && s.pending.followUp){ const f=s.pending.followUp; return { display:[f.lead], spoken:[{text:f.lead,lang:lineLang(f.lead)},{text:f.question,lang:ql}] }; }
   if(s.currentQuestion===0 && !s.answers.length){
-    const intro=ALEX.intro({ name:s.candidate.name, profession:s.profession.title, typeIntro:TYPES[s.interviewType].intro, healthcare:s.healthcare, bilingual:!!s.langBalance, cv:!!(s.cv&&s.cv.used) });
+    const lv=LEVELS[s.experienceLevel]&&s.experienceLevel!=="doctoral"?LEVELS[s.experienceLevel].label.toLowerCase().replace(" level",""):s.experienceLevel==="doctoral"?"doctoral":null;
+    const intro=ALEX.intro({ name:s.candidate.name, profession:s.profession.title, typeIntro:TYPES[s.interviewType].intro, level:lv, custom:!!s.profession.custom, specialty:s.profession.specialty, healthcare:s.healthcare, bilingual:!!s.langBalance, cv:!!(s.cv&&s.cv.used) });
     return { display:intro, spoken:intro.map(t=>({text:t,lang:lineLang(t)})).concat(lead,[ask]) };
   }
   const t=s.lastTransition?[s.lastTransition]:[];

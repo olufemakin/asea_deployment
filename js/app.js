@@ -11,7 +11,7 @@ const H = s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;"
 const fmtDate = t=>{ try{ return new Date(t).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"}); }catch(e){ return ""; } };
 
 const DEFAULT_SETUP = { step:1, professionId:null, mode:Speech.sttAvailable?"voice":"text", type:"ai_domain", typeChosen:false,
-  level:"experienced", difficulty:"adaptive", length:"standard", name:"", platform:"", langBalance:"balanced", useCv:false };
+  level:"experienced", difficulty:"adaptive", length:"standard", name:"", platform:"", langBalance:"balanced", useCv:false, specialty:"" };
 const App = { setup:null, session:null, ui:{ search:"", group:"all", customOpen:false }, practice:{}, closing:null };
 
 function loadSetup(){
@@ -30,6 +30,9 @@ function normalizeSetup(){
   if(!LENGTHS[S.length]) S.length="standard";
   if(!LANG_BALANCE[S.langBalance]) S.langBalance="balanced";
   const p=S.professionId && getProfession(S.professionId);
+  if(S.professionId && p && p.status==="archived") S.professionId=null;
+  if(p && S.specialty && !(p.specialties||[]).includes(S.specialty) && !p.custom) S.specialty="";
+  if(!p || (S.level==="doctoral" && !p.academic)) { if(S.level==="doctoral") S.level="experienced"; }
   /* selected type (S.type) vs the profession's recommendation: the recommendation only fills the
      selection while the user hasn't chosen one, or when their choice isn't offered for this profession. */
   if(p && (!S.typeChosen || !typeAvailability(p)[S.type].ok)){
@@ -60,6 +63,10 @@ const ROUTES = [
   [/^progress$/, scrDashboard],
   [/^progress\/readiness$/, scrReadinessDetail],
   [/^profile$/, scrProfile],
+  [/^profile\/careers$/, scrCareers],
+  [/^professions$/, scrProfessions],
+  [/^professions\/([\w-]+)$/, id=>scrProfessionProfile(id)],
+  [/^professions\/([\w-]+)\/skills$/, id=>scrProfessionProfile(id,"skills")],
   [/^cv$/, scrCV],
   [/^cv\/mapper$/, scrMapper],
   [/^admin$/, ()=>scrAdmin()],
@@ -106,7 +113,7 @@ function closeMenus(keepPanel){
   if(!keepPanel){ const n=document.getElementById("mainNav"); if(n) n.classList.remove("open"); const t=document.getElementById("navToggle"); if(t) t.setAttribute("aria-expanded","false"); }
 }
 function markNav(path){
-  const t0=path.split("/")[0]||"home", top=({ cv:"profile", privacy:"about", admin:"about" })[t0]||t0;
+  const t0=path.split("/")[0]||"home", top=({ cv:"profile", privacy:"about", admin:"about", professions:"interview" })[t0]||t0;
   document.querySelectorAll("#mainNav [data-nav]").forEach(n=>n.classList.toggle("active", n.dataset.nav===top));
   document.querySelectorAll("#mainNav a[href]").forEach(a=>a.classList.toggle("active", a.getAttribute("href")==="#/"+path));
 }
@@ -266,84 +273,7 @@ function optCard(o){
     ${o.tag?`<span class="tag">${o.tag}</span>`:""}<div class="t">${o.title}</div>${o.d?`<div class="d">${o.d}</div>`:""}${o.why?`<div class="why">${o.why}</div>`:""}</button>`;
 }
 
-/* Step 1 — profession */
-function stepProfession(p){
-  return `<h2>Step 1 · Choose your profession</h2>
-    ${p?`<div class="selected">✓ Selected: <b>${H(p.title)}</b> <span class="faint">· ${H(groupOf(p).label)}</span></div>`:""}
-    <div class="search"><input id="profSearch" type="search" autocomplete="off" placeholder="Search nurse, accountant, teacher, engineer..." aria-label="Search professions" value="${H(App.ui.search)}" oninput="onProfSearch(this.value)"></div>
-    <div class="chips" id="groupChips">${groupChipsHTML()}</div>
-    <div class="proflist" id="profList">${profListHTML()}</div>
-    <div class="custombox" id="customBox">${customHTML()}</div>
-    ${wizFoot(!!p)}`;
-}
-function groupChipsHTML(){
-  const gs=[{id:"all",label:"All"}].concat(Repo.customProfessions.all().length?[CUSTOM_GROUP]:[], GROUPS);
-  return gs.map(g=>`<button class="chip ${App.ui.group===g.id?"sel":""}" onclick="setGroupFilter('${g.id}')">${g.icon?g.icon+" ":""}${H(g.label)}</button>`).join("");
-}
-function profMatches(p, q){
-  if(!q) return true;
-  const hay=(p.title+" "+(p.kw||"")+" "+groupOf(p).label).toLowerCase();
-  return q.toLowerCase().split(/\s+/).filter(Boolean).every(t=>hay.includes(t));
-}
-function profListHTML(){
-  const q=App.ui.search.trim(), sel=App.setup.professionId;
-  const list=allProfessions().filter(p=>(App.ui.group==="all"||groupOf(p).id===App.ui.group) && profMatches(p,q));
-  if(!list.length) return `<p class="muted" style="margin:14px 0">No professions match "<b>${H(q)}</b>". You can add it below as a custom profession.</p>`;
-  const groups=[CUSTOM_GROUP].concat(GROUPS).map(g=>({ g, items:list.filter(p=>groupOf(p).id===g.id) })).filter(x=>x.items.length);
-  return `<div class="small faint">${list.length} profession${list.length===1?"":"s"}</div>` + groups.map(({g,items})=>`
-    <div class="pgroup"><h4>${g.icon} ${H(g.label)}</h4><div class="pchips">${items.map(p=>`
-      <button class="pchip ${sel===p.id?"sel":""}" onclick="pickProfession('${p.id}')" aria-pressed="${sel===p.id}">${H(p.title)}${p.custom?`<span class="x" role="button" title="Remove" aria-label="Remove ${H(p.title)}" onclick="event.stopPropagation();removeCustom('${p.id}')">×</span>`:""}</button>`).join("")}
-    </div></div>`).join("");
-}
-function onProfSearch(v){ App.ui.search=v; document.getElementById("profList").innerHTML=profListHTML(); }
-function setGroupFilter(g){ App.ui.group=g; document.getElementById("groupChips").innerHTML=groupChipsHTML(); document.getElementById("profList").innerHTML=profListHTML(); }
-function pickProfession(id){
-  const list=document.getElementById("profList"), top=list?list.scrollTop:0;
-  App.ui.typeNote="";
-  App.setup.professionId=id;
-  const p=getProfession(id);
-  normalizeSetup(); saveSetup(); renderStep();
-  const l2=document.getElementById("profList"); if(l2) l2.scrollTop=top;
-}
-function removeCustom(id){
-  const p=getProfession(id); if(!p || !confirm(`Remove your custom profession "${p.title}"?`)) return;
-  Repo.customProfessions.remove(id); if(App.setup.professionId===id) App.setup.professionId=null;
-  if(App.ui.group==="custom" && !Repo.customProfessions.all().length) App.ui.group="all";
-  saveSetup(); renderStep();
-}
-function customHTML(){
-  if(!App.ui.customOpen) return `<div class="row between center wrapw"><div><h3 style="margin:0 0 4px">Can't find your profession?</h3>
-    <div class="small muted">Create a private interview profile from your own role. It stays in this browser and is never published.</div></div>
-    <button class="btn" onclick="toggleCustom(true)">＋ Add My Profession</button></div>`;
-  const yrs=["","Less than 1 year","1–3 years","3–5 years","5–10 years","10+ years"];
-  return `<h3>Add my profession</h3>
-    <div class="grid g2">
-      <div><label class="fld" for="cpTitle">Job title <span class="req">*</span></label><input id="cpTitle" maxlength="80" placeholder="e.g. Veterinary Technician"></div>
-      <div><label class="fld" for="cpIndustry">Industry</label><input id="cpIndustry" maxlength="80" placeholder="e.g. Animal health"></div>
-      <div><label class="fld" for="cpYears">Years of experience</label><select id="cpYears">${yrs.map(y=>`<option value="${y}">${y||"Select…"}</option>`).join("")}</select></div>
-      <div><label class="fld" for="cpEdu">Education</label><input id="cpEdu" maxlength="120" placeholder="e.g. Diploma in Veterinary Nursing"></div>
-    </div>
-    <div class="field"><label class="fld" for="cpResp">Main responsibilities <span class="req">*</span> <span class="faint">(one per line or comma-separated)</span></label>
-      <textarea id="cpResp" style="min-height:90px" placeholder="e.g. Monitoring anaesthesia, Preparing surgical equipment, Client education"></textarea></div>
-    <div class="field"><label class="fld" for="cpSkills">Skills</label><input id="cpSkills" maxlength="300" placeholder="e.g. Sterile technique, Record keeping"></div>
-    <div class="field"><label class="fld" for="cpCred">Credentials (if relevant)</label><input id="cpCred" maxlength="160" placeholder="e.g. Registered Veterinary Technician"></div>
-    <div class="field"><label class="check"><input type="checkbox" id="cpTransferable"> This is a hands-on or service role. Use a Transferable Skills Interview instead of a profession-specific AI interview.</label></div>
-    <div id="cpErr" class="small" style="color:#ffb4b4;margin-top:10px" role="alert"></div>
-    <div class="row wrapw" style="margin-top:14px;gap:10px"><button class="btn primary" onclick="saveCustom()">Create my interview profile</button><button class="btn ghost" onclick="toggleCustom(false)">Cancel</button></div>`;
-}
-function toggleCustom(open){ App.ui.customOpen=open; document.getElementById("customBox").innerHTML=customHTML(); if(open){ const t=document.getElementById("cpTitle"); if(t) t.focus(); } }
-function saveCustom(){
-  const v=id=>(document.getElementById(id)||{}).value||"";
-  const f={ title:v("cpTitle").trim(), industry:v("cpIndustry").trim(), years:v("cpYears"), responsibilities:v("cpResp").trim(),
-    skills:v("cpSkills").trim(), education:v("cpEdu").trim(), credentials:v("cpCred").trim(), transferable:document.getElementById("cpTransferable").checked };
-  const err=document.getElementById("cpErr");
-  if(f.title.length<2){ err.textContent="Please enter your job title."; return; }
-  if(f.responsibilities.length<4){ err.textContent="Please list at least one main responsibility. Alex builds your questions from them."; return; }
-  const p=buildCustomProfession(f);
-  Repo.customProfessions.save(p);
-  App.ui.customOpen=false; App.ui.search=""; App.ui.group="all";
-  App.setup.professionId=p.id; normalizeSetup(); saveSetup(); renderStep();
-}
+/* Step 1 (profession search, browse, custom) lives in js/profession-ui.js. */
 
 /* Steps 2–6 */
 function stepMode(p){
@@ -368,10 +298,11 @@ function stepType(p){
       <div class="opts" id="langBalance">${Object.entries(LANG_BALANCE).map(([k,b])=>optCard({ sel:S.langBalance===k, onclick:`setField('langBalance','${k}')`, title:b.label, d:b.d, tag:k==="balanced"?"Default":"" })).join("")}</div>`:""}
     ${wizFoot(true)}`;
 }
-function stepLevel(){
+function stepLevel(p){
   const S=App.setup;
   return `<h2>Step 4 · Experience level</h2><p class="muted">Question depth and the expected length of answers change with your level.</p>
-    <div class="opts">${Object.entries(LEVELS).map(([k,l])=>optCard({ sel:S.level===k, onclick:`setField('level','${k}')`, title:l.label, d:l.d })).join("")}</div>
+    <div class="opts">${Object.entries(LEVELS).filter(([,l])=>!l.academicOnly || (p&&p.academic)).map(([k,l])=>optCard({ sel:S.level===k, onclick:`setField('level','${k}')`, title:l.label, d:l.d })).join("")}</div>
+    ${p&&p.academic?`<p class="note">Doctoral / Research Expert is offered because this profession can involve research-level work. It is never assumed: choose it only if it applies to you.</p>`:""}
     ${wizFoot(true)}`;
 }
 function stepDifficulty(){
@@ -390,7 +321,7 @@ function stepLength(){
 }
 function stepSummary(p){
   const S=App.setup, L=LENGTHS[S.length];
-  const rows=[["Profession",H(p.title),1],["Interviewer","Alex · BSP AI Interviewer",0],["Mode",MODES[S.mode].label,2],["Interview",TYPES[S.type].label.replace(/ Interview$/,""),3],
+  const rows=[["Profession",H(p.title)+(S.specialty?` <span class="faint">· ${H(S.specialty)}</span>`:""),1],["Interviewer","Alex · BSP AI Interviewer",0],["Mode",MODES[S.mode].label,2],["Interview",TYPES[S.type].label.replace(/ Interview$/,""),3],
     ...(S.type==="bilingual"&&isFrenchBilingual(p)?[["Language balance",LANG_BALANCE[S.langBalance].label,3]]:[]),
     ["Experience",LEVELS[S.level].label,4],["Difficulty",DIFFS[S.difficulty].label,5],["Questions",S.length==="deep"?`${L.min}–${L.max} (adaptive)`:L.n,6]];
   return `<h2 style="text-transform:uppercase;letter-spacing:1px">Your interview</h2>
@@ -414,7 +345,7 @@ function stepSummary(p){
 function startFromSetup(){
   const S=App.setup; if(!S.professionId){ setStep(1); return; }
   let s;
-  try{ s=createSession({ professionId:S.professionId, mode:S.mode, type:S.type, level:S.level, difficulty:S.difficulty, length:S.length, name:S.name, platform:S.platform, langBalance:S.langBalance, useCv:!!S.useCv && CV.hasConfirmed() }); }
+  try{ s=createSession({ professionId:S.professionId, mode:S.mode, type:S.type, level:S.level, difficulty:S.difficulty, length:S.length, name:S.name, platform:S.platform, langBalance:S.langBalance, useCv:!!S.useCv && CV.hasConfirmed(), specialty:S.specialty||"" }); }
   catch(e){ console.error(e); el.innerHTML=errorCard("Alex couldn't prepare this interview","The interview engine couldn't build questions for these settings. Try another interview type or profession, or reload the page.", e); return; }
   startSession(s); App.session=s; Repo.prefs.set({ activeSessionId:s.sessionId });
   go(needsMicCheck(s) ? "interview/mic-check" : "interview/session");
@@ -465,9 +396,9 @@ function exportData(){
 }
 /* ---------- Privacy & Clear My Data --------------------------------------- */
 const CLEAR_LABELS={ interviews:["Interview History","Every interview, transcript text and report"], practice:["Practice History","Practice Lab sessions, legacy attempts and question-usage counts"],
-  cv:["CV Data","Your CV text, extracted items and experience mappings"], preferences:["Preferences","Setup choices, voice settings and custom professions"] };
+  cv:["CV Data","Your CV text, extracted items and experience mappings"], preferences:["Preferences & professional profile","Setup choices, voice settings, custom professions and your list of professions"] };
 function scrPrivacy(){
-  const counts={ interviews:Repo.sessions.all().length, practice:Repo.practiceSessions.all().length+Repo.practice.all().length, cv:Repo.cv.get()?1:0, preferences:Object.keys(Repo.prefs.get()).length+Repo.customProfessions.all().length };
+  const counts={ interviews:Repo.sessions.all().length, practice:Repo.practiceSessions.all().length+Repo.practice.all().length, cv:Repo.cv.get()?1:0, preferences:Object.keys(Repo.prefs.get()).length+Repo.customProfessions.all().length+Repo.careers.all().length };
   el.innerHTML=pageHead("About","Privacy & your data","What Interview IQ stores, where, and how to remove it.")
   + `<div class="grid g2">
     <div class="card"><h3>Voice processing</h3><p class="small muted">Alex's voice uses your browser's built-in speech synthesis. When you answer by voice, your browser's speech-recognition service turns speech into text. In some browsers (for example Chrome and Edge) that service may send the audio to the browser maker's servers to transcribe it; that is controlled by your browser, not by Interview IQ. Interview IQ itself never records, stores, uploads or analyses raw audio, and the microphone level meter only reads volume live. Accent and voice are never scored.</p></div>

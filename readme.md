@@ -11,8 +11,9 @@ Live: **https://strong-dragon-d8b60f.netlify.app**
 ## Features
 - 🎙️ **Voice or text interviews.** Alex speaks each question, and in voice mode listens to your answer (Web Speech API), with automatic fallback to typing.
 - 🧑‍💼 **Alex, the official interviewer.** Alex is professional, calm and neutral, uses a consistent introduction tailored to your profession, and asks adaptive follow-ups.
-- 🔎 **Searchable profession library.** 145 professions in 13 groups (General AI, Business, Finance, Healthcare, Education, Science, Engineering, Software/Data, Marketing, Language, Writing, Legal, Transferable Skills). Each has its own competency model.
-- ➕ **Add My Profession.** Build a private interview profile from your own job title, responsibilities and skills.
+- 🔎 **Profession Library.** 445 professions in 59 categories, searchable by title, partial title, alias (RN, VA, MD, HVAC…), specialty, industry or profession family. Ambiguous abbreviations like "PM" show the choices instead of guessing. Browse by category chips, Recent and Recommended for You. Every profession has a profile page: competencies, interview areas, transferable AI skills, recommended interview types and practice. Practising for a profession never implies a paid AI role exists for it ("No Current Opportunity Verified").
+- ➕ **Add Your Profession.** Not listed? Describe it (industry, specialty, responsibilities, skills, education, credentials, interview goal) and Interview IQ builds a private, dynamic interview profile from a matching profession-family template. Nothing about you is invented.
+- 👥 **My Professions.** Keep several careers (primary, secondary, additional), each with its own experience, interview scores and readiness, and choose which one Alex uses. Roles in your confirmed CV can be suggested for you to add; nothing is added silently.
 - 🧭 **Step-by-step setup:**
   1. Profession
   2. Mode: Voice or Text
@@ -71,7 +72,7 @@ The microphone needs `localhost` or HTTPS.
 ```bash
 node tests/engine-check.js     # every profession × interview type + practice bank, headless (≈5 s)
 python3 tests/spa-server.py 4556 &   # Netlify-style SPA fallback for the deep-link test
-SPA_URL=http://localhost:4556/ node tests/regression.mjs   # 283 browser checks, incl. Prompt 3 journeys 1–6
+SPA_URL=http://localhost:4556/ node tests/regression.mjs   # 334 browser checks, incl. journeys 1–6 and the profession library
 ```
 
 ## Live site & auto-deploy
@@ -87,7 +88,7 @@ host works, but it must serve over HTTPS for microphone access.
 > Safari and Firefox can still speak questions aloud; you type your answers.
 
 ## Customise
-- **Professions:** add a `P(group, title, comps, extra)` line in `js/data/professions.js`.
+- **Professions:** add a title to `PROFESSION_SEED` in `js/data/profession-catalog.js` (it inherits its category's family template), or add/bulk-import professions in the Local Content Studio (`#/admin` → Professions) and export them.
 - **Competencies:** add a `C(...)` entry in `js/data/competencies.js` (signals plus knowledge, scenario and behavioral prompts).
 - **Field question items:** edit `ITEM_SETS` in `js/data/items.js`.
 - **Alex's script:** edit `ALEX` in `js/data/items.js`.

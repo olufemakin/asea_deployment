@@ -12,7 +12,8 @@ const ALEX = {
     return [
       `${hi} your AI interviewer from BSP AI WorkReady.`,
       ALEX.customIntro || `I'll be guiding you through today's interview.`,
-      `Today we'll be completing ${aOrAn(o.profession)} ${o.profession} ${o.typeIntro}.`,
+      o.custom ? `Today we'll be completing an interview focused on your experience as ${aOrAn(o.profession)} ${o.profession}${o.specialty?`, with a focus on ${o.specialty}`:""}.`
+        : `Today we'll be completing ${o.level?`${aOrAn(o.level)} ${o.level}-level `:`${aOrAn(o.profession)} `}${o.profession} ${o.typeIntro}${o.specialty?`, with a focus on ${o.specialty}`:""}.`,
       `I'll ask questions about your professional experience, reasoning and, where relevant, your ability to evaluate AI-generated work.`,
       `Some of my follow-up questions will depend on your answers, so take your time and explain your reasoning clearly.`,
     ].concat(o.healthcare?[ALEX.healthcare]:[], o.bilingual?[ALEX.bilingual]:[], o.cv?["I'll use only the details you confirmed from your CV, and I won't assume anything you haven't told me."]:[], [`When you're ready, let's begin.`]);
@@ -82,6 +83,8 @@ const LEVELS = {
   experienced: { label:"Experienced",  d:"Solid, independent practice", words:90,  target:2, suffix:" Draw on a specific example from your own work." },
   senior:      { label:"Senior",       d:"Lead others and own outcomes", words:110, target:2, suffix:" Include how you would lead others through it and the trade-offs you would weigh." },
   expert:      { label:"Expert",       d:"Set the standard in your field", words:120, target:3, suffix:" Address the edge cases and the standard you would expect others to meet." },
+  doctoral:    { label:"Doctoral / Research Expert", d:"PhD-level or equivalent research expertise (only offered where relevant)", words:130, target:3, academicOnly:true,
+                 suffix:" Address the evidence, methods and limitations a research expert would weigh." },
 };
 
 const DIFFS = {

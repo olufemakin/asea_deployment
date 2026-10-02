@@ -7,9 +7,14 @@
 let pTimer=null, pShownAt=0, pSaveT=null;
 const fmtClock=ms=>{ const s=Math.ceil(ms/1000), m=Math.floor(s/60); return `${String(m).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`; };
 const fmtDur=sec=>sec>=60?`${Math.floor(sec/60)} min ${sec%60} s`:`${sec} s`;
+/* One in-memory object per active session, so every handler (including the debounced text
+   autosave) mutates and saves the same state; re-reading storage per call let a pending save
+   from an older copy overwrite a flag or answer made a moment later. */
+let PS_CACHE=null;
 function activePractice(){
-  const id=Repo.prefs.get().activePracticeId, ps=id && Repo.practiceSessions.get(id);
-  return ps && ps.status==="in_progress" ? ps : null;
+  const id=Repo.prefs.get().activePracticeId; if(!id){ PS_CACHE=null; return null; }
+  if(!PS_CACHE || PS_CACHE.id!==id) PS_CACHE=Repo.practiceSessions.get(id);
+  return PS_CACHE && PS_CACHE.status==="in_progress" ? PS_CACHE : null;
 }
 
 /* ---------- Recommendations card (used on reports, progress and the lab) --- */
@@ -105,7 +110,7 @@ function scrPracticeRun(){
   }, 1000);
 }
 function accountTime(ps){ if(!pShownAt) return; const q=ps.questions[ps.current]; if(q){ ps.timeSpent[q.id]=(ps.timeSpent[q.id]||0)+Math.round((Date.now()-pShownAt)/1000); } pShownAt=Date.now(); }
-function leavePractice(){ clearInterval(pTimer); pTimer=null; const ps=activePractice(); if(ps){ accountTime(ps); Repo.practiceSessions.save(ps); } pShownAt=0; Speech.stop(); }
+function leavePractice(){ clearInterval(pTimer); pTimer=null; clearTimeout(pSaveT); const ps=activePractice(); if(ps){ accountTime(ps); Repo.practiceSessions.save(ps); } pShownAt=0; PS_CACHE=null; Speech.stop(); }
 function renderPracticeRun(ps){
   const q=ps.questions[ps.current], r=ps.responses[q.id]||{}, c=practiceCat(ps.category), D=PRACTICE_DIFF[ps.difficulty];
   const answered=ps.questions.filter(x=>isAnswered(x, ps.responses[x.id])).length, flagged=ps.flags.includes(q.id);

@@ -108,3 +108,14 @@ Done:
 - [x] Local Content Studio (#/admin): question manager, draft generator, role manager, Alex settings, export/import — local-only by design
 - [x] Privacy page + granular Clear My Data, integrity notice, error/empty/loading states, storage-blocked banner, mobile polish, Netlify SPA fallback
 - [x] Tests: regression 283/283 (journeys 1–6 + feature/QA checks), engine-check OK (614 combos, 144 strict practice sessions)
+
+## 2026-10-02 — Profession Library expansion (unlimited professions + dynamic domain interviews)
+- [x] Config-driven profession records (445: 145 existing + seeded), 59 categories, 50+ family templates; full data model with optional fields
+- [x] Search by title / partial / alias / specialty / category / family; ambiguous aliases (PM, Doctor, Teacher) shown as choices; browse chips; recent + recommended
+- [x] Specialties (incl. alias→specialty, e.g. "Corporate Lawyer" → Lawyer · Corporate); doctoral level only for academic professions
+- [x] Custom professions v2 (specialty, goal) with family inference → dynamic competency profile; dynamic domain interviews for every profession
+- [x] Profession profile pages; practice available vs opportunity verified kept separate; pay seed with verification metadata, never on cards or in matching
+- [x] My Professions (multi-career) + CV profession detection (confirm before adding); profession-relevant practice recommendations; Alex intro uses level/specialty/custom wording
+- [x] Admin → Professions (add/edit/archive, aliases, category, family, specialties, competencies, types, tasks, pay + verification, verified opportunities) + CSV bulk import
+- [x] Fixed a practice autosave race (flag within 250 ms of typing could be lost) with an in-memory active session
+- [x] Tests: regression 334/334 (3 consecutive runs), engine-check 1,894 profession × type combos, 0 issues

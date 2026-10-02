@@ -24,7 +24,20 @@ The owner is delivering a 3-part upgrade brief. **Prompt 1** (foundation, Alex, 
 integration) are done, plus the **Prompt 2 correction pass** (question-bank integrity, recommended-vs-selected
 interview types, competency evidence) and **Prompt 3** (rubric scoring + evidence, premium report, history/trends,
 skills/readiness/dashboard, CV intelligence, AI Work Profile, interview question bank + variants, local admin studio,
-privacy, error states, Netlify hardening) are done. See `docs/PROMPT3_COMPLETION.md`. Extend these systems; don't replace them.
+privacy, error states, Netlify hardening) are done. See `docs/PROMPT3_COMPLETION.md`. The **Profession Library expansion**
+(445 config-driven professions, 59 categories, family templates, search + aliases, specialties, custom/dynamic professions,
+multi-career profile, CV profession detection, pay metadata, admin profession manager + bulk import) is done; see
+`docs/PROFESSION_LIBRARY.md`. Extend these systems; don't replace them.
+
+Profession rules that must hold:
+- **No profession-specific code.** Professions come from `js/data/professions.js` (hand-built), `js/data/profession-catalog.js`
+  (categories, family templates, seed list, aliases, specialties, pay seed) and Local Content Studio overrides. Never add
+  `if (profession === "X")` logic; add config.
+- **Practice available ≠ opportunity verified.** `p.opportunities` stays empty unless a verified opportunity (with date) is added.
+  Never advertise "<profession> AI Trainer" roles.
+- **Pay is seed data:** shown only on the profession profile as "Indicative / unverified range" with source/status/last verified,
+  hidden from cards, and never used for matching or recommendations.
+- Ambiguous aliases (PM, Doctor, Teacher) are shown as choices; nothing is ever auto-selected.
 
 Prompt 3 rules that must hold:
 - **Scoring is rubric-first** (`js/scoring.js`): per-answer 0–4 levels per dimension, then % = level ÷ 4; overall = weighted
@@ -66,6 +79,11 @@ Correction-pass rules that must hold:
 | `js/data/professions.js` | `GROUPS`, `PROFESSIONS` (145), `PROF` lookup, `TRANSFERABLE_HINTS` |
 | `js/data/items.js` | `ALEX` script, `TYPES` (+stage `weights`), `MODES`, `LEVELS`, `DIFFS`, `LENGTHS`, `FOLLOWUP` (7 types), `LANG_BALANCE`, `FINALS`, `ITEM_SETS`, `LEGACY_MAP`, `PRACTICE_TASKS` (v1, unused) |
 | `js/data/roles.js` | `ROLE_MODELS` (18 role models → 54 professions): curated questions with follow-ups, artifacts, memory triggers, finals; FR-EN bilingual bank; extra competencies |
+| `js/data/profession-catalog.js` | `PROFESSION_CATEGORIES` (59, grouped into browse chips), `PROFESSION_FAMILIES` (templates: competencies, item set, AI comp, types, recommended type, practical tasks, recommended practice, interview areas), `PROFESSION_SEED`, `PROFESSION_ALIASES` (incl. alias→specialty), `PROFESSION_SPECIALTIES`, `PROFESSION_PAY_SEED` |
+| `js/data/competencies-ext.js` | Competencies for the new families (trades, logistics, hospitality, sales, HR, property, insurance, energy, agriculture, animal care, manufacturing, security, design, policy, media, telecom, care) + generic `ai_general` |
+| `js/data/items-ext.js` | Practical-task item sets for the new families (work instructions, troubleshooting, inventory, scheduling/email, allergen checks, …) |
+| `js/profession-library.js` | `ProfessionLib`: builds/normalises every record (full data model), search (title/partial/alias/specialty/category/family, ambiguity), `withSpecialty`, `inferCustom`, `detectFromCV` |
+| `js/profession-ui.js` | Setup step 1 (search, recent, recommended, browse, add your profession), Profession Library, profession profile, My Professions (careers), CV detection |
 | `js/data/concepts.js` | Interview `CONCEPTS`, each with 5 meaningfully different variants (e.g. Project Schedule Risk: vendor delay, resource absence, regulatory delay, technical dependency, budget freeze) |
 | `js/data/bank-critique.js` | Response Critique generator (select accurate + specific critiques) |
 | `js/scoring.js` | `RUBRIC_LEVELS`, `ROLE_DIMS`, `TYPE_DIMS`, `rubricFor`, `computeRoleScore`, `strongerStructure`, `responseAnalytics`, `nextInterviewFor` |
@@ -85,7 +103,7 @@ Correction-pass rules that must hold:
 | `js/storage.js` | `StorageAdapter` (localStorage → memory fallback) + `Repo` (sessions, practice [legacy], practiceSessions, questionStats, bankOverrides, prefs, customProfessions, cv, interviewBank, roleOverrides, alexSettings, admin; `clearGroups`), v1 migration |
 | `js/engine.js` | `Speech` (lang/rate/mute), `scoreAnswer` (+communication, stem match, filler strip, language check), question architecture, blueprint (stage flow + weights), same-session memory, follow-ups, session model, area-weighted reports |
 | `js/app.js` | Hash router, nav, home, setup wizard, results/report, history, progress, about, boot (loads last) |
-| `tests/regression.mjs` | Playwright browser regression suite (283 checks incl. Prompt 3 journeys 1–6; voice flows mocked) |
+| `tests/regression.mjs` | Playwright browser regression suite (334 checks incl. Prompt 3 journeys 1–6 and the profession library; voice flows mocked) |
 | `tests/spa-server.py` | Local stand-in for Netlify's `/* → /index.html` fallback (deep-link test) |
 | `tests/engine-check.js` | Headless sweep: every profession × allowed type builds a pool and finishes an interview |
 | `logo.png` / `logo.svg` | Header logo + fallback; `log.png.jpeg` is the source logo asset (unused) |
@@ -128,7 +146,8 @@ Top-level `function` declarations are global, which is what inline `onclick` han
 `#/` home · `#/interview` hub · `/interview/start` (7-step wizard) · `/interview/alex` · `/interview/domain` ·
 `/interview/ai-evaluation` · `/interview/history` · `/interview/mic-check` · `/interview/session` · `#/practice` ·
 `/practice/setup/:category` · `/practice/run` · `/practice/results/:id` · `/practice/history` · `#/results` · `/results/:id` · `#/progress` (dashboard) ·
-`/progress/readiness` · `/progress/skills` · `/progress/trends[/:professionId]` · `/progress/activity` · `#/profile` · `#/cv` · `/cv/mapper` · `#/privacy` · `#/about` ·
+`/progress/readiness` · `/progress/skills` · `/progress/trends[/:professionId]` · `/progress/activity` · `#/profile` · `/profile/careers` · `#/cv` · `/cv/mapper` ·
+`#/professions` · `/professions/:id[/skills]` · `#/privacy` · `#/about` ·
 `#/admin[/:tab]` (local studio, not in nav). `netlify.toml` serves index.html for any path; index.html turns `/path` into `#/path`.
 Unknown routes fall back to home. Add new nav links only with a working route.
 

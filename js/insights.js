@@ -80,8 +80,8 @@ function skillEvidence(){
 
 /* ---------- BSP Interview Readiness -------------------------------------- */
 const READINESS_COMPONENTS=[["experience","Interview Experience",10],["domain","Domain Performance",20],["reasoning","Reasoning",20],["communication","Communication",15],["ai","AI Evaluation",15],["practice","Practice Performance",20]];
-function readinessModel(){
-  const done=Repo.sessions.completed().map(reportOf), last=done.slice(0,3), w=[3,2,1];
+function readinessModel(professionId){
+  const done=Repo.sessions.completed().filter(s=>!professionId||s.profession.id===professionId).map(reportOf), last=done.slice(0,3), w=[3,2,1];
   const dimAvg=id=>{ let t=0, tw=0, n=0; last.forEach((s,i)=>{ const d=((s.scores.role||{}).dims||{})[id]; if(d){ t+=d.pct*w[i]; tw+=w[i]; n++; } }); return tw?{ pct:Math.round(t/tw), n }:null; };
   const prac=standardPracticeSessions().sort((a,b)=>b.submittedAt-a.submittedAt).slice(0,5);
   const comps=READINESS_COMPONENTS.map(([id,label,weight])=>{
@@ -233,4 +233,4 @@ function scrProfile(){
       <div class="m">${p.inputs.length?"Inputs: "+H(p.inputs.join(" · ")):"No evidence for this path yet."}</div></div>
       ${isCategoryAvailable(p.cat)?`<button class="btn sm" onclick="openPracticeSetup('${p.cat}','${(practiceProgression(p.cat)||{}).difficulty||"easy"}')">Build evidence</button>`:""}</div>`).join("")}</div></div>`);
 }
-const PROFILE_TABS=[["#/profile","AI Work Profile"],["#/cv","My CV"],["#/cv/mapper","AI Experience Mapper"]];
+const PROFILE_TABS=[["#/profile","AI Work Profile"],["#/profile/careers","My Professions"],["#/cv","My CV"],["#/cv/mapper","AI Experience Mapper"]];
