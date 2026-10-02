@@ -1,80 +1,94 @@
-# Interview IQ — by BSP · Business Startup Powerhouse
+# BSP AI WorkReady · Interview IQ
 
-> A free AI Interview Simulator from **Business Startup Powerhouse (BSP)**.
+**AI Interview Lab — Powered by Business Startup Powerhouse (BSP)**
 
-A free, voice-enabled AI interview simulator that mirrors the AI screening "gate"
-used by data-work platforms (**Outlier**, **Mercor**, **Micro1**). Built for a
-community that trains people to pass those interviews.
+Practice realistic AI-led interviews with **Alex, your BSP AI Interviewer**. The lab covers
+professional, domain-expert, AI-evaluation, behavioral and transferable-skills interviews for
+more than 140 professions. It's free, needs no sign-up, and runs entirely in your browser.
 
-Everything runs in the browser — **zero cost, zero accounts, no API keys**.
+Live: **https://strong-dragon-d8b60f.netlify.app**
 
-## What it does
-- 👋 **Candidate intro** — captures the candidate's name, target platform
-  (Outlier / Mercor / Micro1), and experience level. The AI interviewer greets
-  them by name and tailors difficulty — just like a real HR screen.
-- 🎙️ **Real voice interview** — the interviewer *speaks* each question
-  (browser text-to-speech) and *listens* to spoken answers (browser
-  speech-to-text). Falls back to typing automatically when a browser lacks
-  speech support.
-- 🧪 **17 profession tracks** — Software, Data/ML, Math, Physics, Chemistry,
-  Biology, Medicine, Law, Finance, Economics, Business, Writing, Linguistics,
-  Engineering, Psychology, Education, plus General. Each blends universal
-  AI-trainer screening questions (instruction-following, spotting subtle errors,
-  quality/consistency, handling feedback) with 6 domain-specific questions each
-  — 108 questions in total; any interview draws up to 12.
-- 🤖 **Adaptive** — asks a probing follow-up when an answer is thin.
-- 📊 **Transparent scoring** — every answer scored 0–100 on **Relevance, Depth,
-  Structure, Specificity**, with a per-question report and concrete "how to
-  improve" tips. Personalised report header + printable.
-- ⏱️ Difficulty levels, adjustable length, per-question timer.
-- 🔒 **100% private** — no backend, no keys, no sign-up. Saves recent sessions
-  locally.
+## Features
+- 🎙️ **Voice or text interviews.** Alex speaks each question, and in voice mode listens to your answer (Web Speech API), with automatic fallback to typing.
+- 🧑‍💼 **Alex, the official interviewer.** Alex is professional, calm and neutral, uses a consistent introduction tailored to your profession, and asks adaptive follow-ups.
+- 🔎 **Searchable profession library.** 145 professions in 13 groups (General AI, Business, Finance, Healthcare, Education, Science, Engineering, Software/Data, Marketing, Language, Writing, Legal, Transferable Skills). Each has its own competency model.
+- ➕ **Add My Profession.** Build a private interview profile from your own job title, responsibilities and skills.
+- 🧭 **Step-by-step setup:**
+  1. Profession
+  2. Mode: Voice or Text
+  3. Interview type: Domain Expert, AI Domain Expert, AI Training Readiness, Behavioral, Technical, Bilingual, Transferable Skills, or Full Mock
+  4. Experience: Entry to Expert
+  5. Difficulty: Easy, Medium, Hard, or Adaptive
+  6. Length: Quick (5), Standard (10), Full (15), or Deep Expert (12–20, adaptive)
+  7. Summary
+- 🔀 **Adaptive engine.** Strong answers lead to deeper follow-ups and harder scenarios. Vague answers get a request to clarify, and competencies you haven't shown yet get explored.
+- 📊 **Evidence-based reports (BSP Role Interview Score).** Each answer is rated on an explicit 0–4 rubric per dimension (Domain Knowledge, Professional Reasoning, Professional Judgment, AI Evaluation Ability, Communication, Instruction Following, Attention to Detail), and only then converted to a score. Every score has a **Why did I get this score?** panel: evidence found, evidence missing, excerpts from your own answers, and how to improve. The report covers overall performance, competency breakdown, what you did well, where to improve, an answer-by-answer review (with "A stronger structure could be:"), time/response analytics, recommended practice and the recommended next interview.
+- 🗂️ **Interview history and score trends.** View, retry and compare attempts; per-profession trend lines for Reasoning, Domain Expertise, AI Evaluation and Communication.
+- 🧾 **CV Intelligence.** Paste your CV, upload a .txt/.md file, or build it from a short form. Every extracted item shows the exact line it came from and must be confirmed, edited or deleted before it's trusted. The **AI Experience Mapper** labels each transferable skill as Evidence supported, Potentially supported or Evidence required; you accept, edit or ignore each one. Switch on **Use my confirmed CV** and Alex personalises questions using only confirmed facts. PDF/Word parsing isn't attempted in the browser: paste the text instead.
+- 🧭 **Skills, readiness and your AI Work Profile.** Skills combine Practice, Alex interview and CV evidence, each showing its inputs. BSP Interview Readiness shows its six components and inputs. The AI Work Profile shows strengths, development areas and potential AI-work paths labelled "BSP Internal Fit" (never an employment probability). The Progress Dashboard suggests a deterministic **next best action**.
+- 🧠 **Same-session memory.** Alex remembers your earlier answers ("You mentioned that vendor delays affected your software implementation…") and builds on them instead of asking you to repeat yourself.
+- 🧭 **Realistic interview flow.** Background → domain knowledge → reasoning → scenario → AI evaluation → a harder follow-up → final question, weighted 20/25/20/20/15 (adjusted per interview type).
+- 🖼️ **Practical exhibits.** Risk registers, reconciliations, code, dashboards, lesson plans, captions, and source text with two translations, to evaluate out loud or in text.
+- 🇫🇷 **French-English bilingual interviews.** Mostly English, Mostly French or Balanced (40/40/20). Alex switches languages naturally.
+- 🎤 **Voice interview.** A microphone check with level meter and sample transcript, and Alex speaking/listening/reviewing statuses. Controls: replay, mute and playback speed, plus start/pause/finish answer. You can review and correct the transcript before submitting, and both mic and transcription failures fall back to text. Audio is never stored, and accent is never scored.
+- 🧭 **Recommended, never forced.** Your profession recommends an interview type ("Recommended for Your Background"); you can still pick any type offered for that role. Bilingual interviews need two configured languages; single-language evaluators get a Language Evaluation Interview.
+- ⏱️ **Timed Practice Lab.** 24 AI-evaluation categories (preference ranking, factuality, hallucination detection, spreadsheets, image labelling, transcription, coding, French-English, …). All 24 are available; a category would show **Coming soon** if it ever dropped below 10 published Easy, Medium or Hard questions.
+  - Every session is exactly 10 questions: Easy 15 minutes, Medium 20 minutes, Hard 25 minutes.
+  - All 10 questions come from the category and difficulty you chose. Questions are never borrowed from another category or level.
+  - Results are broken down by competency, with the evidence each score is based on.
+  - Navigation: previous/next, flag for review, autosave, and auto-submit when time runs out.
+  - Results include a full question review: expected outcome, what was correct, what was missed, the rubric, and a strong example.
+  - Difficulty progression is recommended, never locked.
+- 🔗 **Interview ↔ practice.** A weak interview area leads to targeted practice (e.g. AI Evaluation 58% → AI Response Evaluation · Medium · 10 questions · 20 min). Strong practice with weak spoken explanation leads to a Voice Interview With Alex.
+- 🔒 **Guest mode and privacy.** No sign-up. History, practice, CV and preferences stay in your browser; **Clear my data** (Privacy page) removes interview history, practice history, CV data and preferences separately. The Privacy page explains voice processing, transcripts, CV data and browser storage honestly.
+- 🛠️ **Local Content Studio** at `#/admin` (not linked publicly, PIN-gated): question manager (create, edit, duplicate, publish, archive; filters), template-based question generator (drafts only), role manager and Alex settings. Changes affect only that browser and are exported as JSON for the site owner to commit, because there is no secure server-side admin.
+- ⚖️ **Integrity.** Interview IQ is for interview practice and professional development. Do not use it to obtain real-time answers during an active external employer interview or qualification assessment.
 
-## Branding (baked in for BSP)
-The brand is **permanently set** (not user-editable): the app is **Interview IQ
-by BSP · Business Startup Powerhouse**, on the Ocean-Blue theme that matches the
-BSP logo. It shows in the header, page title, and footer.
+All interview and practice questions are **original BSP practice content**. Interview IQ is not
+affiliated with any hiring or AI-training platform.
 
-**Logo:** the header loads, in order, `logo.png` → `logo.svg` → an emoji mark.
-- A placeholder **`logo.svg`** (silver "bsp" badge) ships so it looks branded
-  out of the box.
-- **To use your exact logo:** save your BSP image as **`logo.png`** in this
-  folder (next to `index.html`). The header picks it up automatically — no code
-  change. A square image (e.g. 512×512) looks best.
-
-To change the baked brand text, edit the `BRAND` object near the top of the
-`<script>` in `index.html` (`name`, `community`, `tagline`).
-
-## How it works (no API key, by design)
-- **Voice** uses the built-in [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API).
-- **The "brain"** is a built-in question bank with rubric metadata plus a
-  deterministic scorer (concept coverage, depth, reasoning structure,
-  specificity). No LLM, so it's free forever and works offline.
-- Everything is one self-contained `index.html`.
-
-> **Best experience:** Chrome or Edge (desktop or Android) for full speech-to-text.
-> Safari/Firefox can still hear the interviewer and you type your answers.
+## Project structure
+Static site with no build step. See `CLAUDE.md` for the full architecture map.
+```
+index.html            shell + navigation
+css/app.css           styles
+js/data/*.js          competencies, professions, interview config, practice tasks, original v1 bank
+js/storage.js         storage adapter + repositories (guest mode; cloud-ready)
+js/engine.js          speech, scoring, question architecture, adaptive session engine
+js/app.js             router + screens
+tests/                Playwright regression suite + headless engine check
+```
 
 ## Run it locally
-Open `index.html` in a browser. If your browser blocks the mic on `file://`,
-serve it:
 ```bash
-cd "/Users/olufemakin/AI Interviewer"
+# from this folder
 python3 -m http.server 4555
 # visit http://localhost:4555
 ```
+The microphone needs `localhost` or HTTPS.
 
-## Deploy it free (get a public URL like the reference app)
-One static file → any free static host works:
-1. **Netlify Drop** (no CLI): https://app.netlify.com/drop — drag this folder on.
-   Instant live URL; sign in (free) to keep/rename it.
-2. **Cloudflare Pages**: free account → Pages → "Upload assets" → drag the folder.
-3. **GitHub Pages**: push to a repo → Settings → Pages → deploy from `main`/root.
-4. **Vercel**: `npx vercel` in this folder.
+## Tests
+```bash
+node tests/engine-check.js     # every profession × interview type + practice bank, headless (≈5 s)
+python3 tests/spa-server.py 4556 &   # Netlify-style SPA fallback for the deep-link test
+SPA_URL=http://localhost:4556/ node tests/regression.mjs   # 283 browser checks, incl. Prompt 3 journeys 1–6
+```
 
-All four are free and serve over HTTPS (required for microphone access).
+## Live site & auto-deploy
+The source of truth is this GitHub repo (`olufemakin/asea_deployment`). To deploy automatically, open
+Netlify → Site configuration → Build & deploy → **Link repository**, then pick this repo and the `main`
+branch. `netlify.toml` already sets the publish directory to `.` with no build command, so every merge
+to `main` redeploys.
 
-## Customize questions
-Edit the `CORE` and `DOMAINS` objects near the top of the `<script>` in
-`index.html`. Each question lists `concepts` (keywords the scorer rewards) and a
-`hint` (what a top answer shows). Scoring weights live in `scoreAnswer()`.
+Manual alternative: drag this folder onto **Netlify Drop** (https://app.netlify.com/drop). Any static
+host works, but it must serve over HTTPS for microphone access.
+
+> **Best experience:** Chrome or Edge (desktop or Android) for full speech-to-text.
+> Safari and Firefox can still speak questions aloud; you type your answers.
+
+## Customise
+- **Professions:** add a `P(group, title, comps, extra)` line in `js/data/professions.js`.
+- **Competencies:** add a `C(...)` entry in `js/data/competencies.js` (signals plus knowledge, scenario and behavioral prompts).
+- **Field question items:** edit `ITEM_SETS` in `js/data/items.js`.
+- **Alex's script:** edit `ALEX` in `js/data/items.js`.
+- **Scoring weights:** edit `scoreAnswer()` in `js/engine.js`.

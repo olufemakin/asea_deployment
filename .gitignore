@@ -1,0 +1,4 @@
+# Local test artifacts (screenshots, logs, zips) — regenerate with the test suites
+test-output/
+test-results.zip
+interview-iq-deploy.zip
