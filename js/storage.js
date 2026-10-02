@@ -63,6 +63,7 @@ const Repo = (()=>{
   const bankOverrides = {
     all(){ return A.get("bankOverrides", {}); },
     set(id, patch){ const o=bankOverrides.all(); o[id]=Object.assign(o[id]||{}, patch, { updatedAt:new Date().toISOString() }); A.set("bankOverrides", o); return o[id]; },
+    clear(){ A.remove("bankOverrides"); },
   };
   const prefs = {
     get(){ return A.get("prefs", {}); },
@@ -73,6 +74,20 @@ const Repo = (()=>{
     save(p){ const list = customProfessions.all().filter(x=>x.id!==p.id); list.push(p); A.set("customProfessions", list); return p; },
     remove(id){ A.set("customProfessions", customProfessions.all().filter(p=>p.id!==id)); },
   };
+
+  /* Candidate CV: raw text the user supplied, extracted items (each with the exact source excerpt),
+     their review status, and AI-experience mappings. Only "confirmed" items are trusted. */
+  const cv = {
+    get(){ return A.get("cv", null); },
+    save(c){ c.updatedAt=Date.now(); A.set("cv", c); return c; },
+    clear(){ A.remove("cv"); },
+  };
+  /* Local content studio (admin) data: stays on this device; exported as JSON for the site owner. */
+  const kv = name => ({ all(){ return A.get(name, {}); }, set(id, v){ const o=A.get(name, {}); if(v==null) delete o[id]; else o[id]=v; A.set(name, o); return v; }, replace(o){ A.set(name, o||{}); }, clear(){ A.remove(name); } });
+  const interviewBank = kv("interviewBank");     // id → patch (built-in) or full record (admin-created)
+  const roleOverrides = kv("roleOverrides");     // profession id → patch | full new profession
+  const alexSettings = { get(){ return A.get("alexSettings", {}); }, set(o){ A.set("alexSettings", o||{}); }, clear(){ A.remove("alexSettings"); } };
+  const admin = { get(){ return A.get("admin", {}); }, set(p){ A.set("admin", Object.assign(A.get("admin", {}), p)); } };
 
   /* One-time import of v1 history (localStorage "ia_history") into sessions. */
   function migrate(){
@@ -100,9 +115,13 @@ const Repo = (()=>{
 
   function exportAll(){
     return { exportedAt:new Date().toISOString(), storage:A.kind,
-      sessions:sessions.all(), practiceSessions:practiceSessions.all(), practice:practice.all(), questionStats:questionStats.all(), prefs:prefs.get(), customProfessions:customProfessions.all() };
+      sessions:sessions.all(), practiceSessions:practiceSessions.all(), practice:practice.all(), questionStats:questionStats.all(), prefs:prefs.get(), customProfessions:customProfessions.all(), cv:cv.get() };
   }
-  function clearAll(){ ["sessions","practice","practiceSessions","questionStats","prefs","customProfessions"].forEach(k=>A.remove(k)); }
+  /* Granular "Clear my data" groups. Local content-studio edits are separate (cleared from the studio). */
+  const CLEAR_GROUPS = { interviews:["sessions"], practice:["practiceSessions","practice","questionStats"], cv:["cv"], preferences:["prefs","customProfessions"] };
+  function clearGroups(groups){ groups.forEach(g=>(CLEAR_GROUPS[g]||[]).forEach(k=>A.remove(k))); }
+  function clearAll(){ clearGroups(Object.keys(CLEAR_GROUPS)); }
 
-  return { sessions, practice, practiceSessions, questionStats, bankOverrides, prefs, customProfessions, migrate, exportAll, clearAll, kind:A.kind };
+  return { sessions, practice, practiceSessions, questionStats, bankOverrides, prefs, customProfessions, cv, interviewBank, roleOverrides, alexSettings, admin,
+    migrate, exportAll, clearAll, clearGroups, CLEAR_GROUPS, kind:A.kind };
 })();

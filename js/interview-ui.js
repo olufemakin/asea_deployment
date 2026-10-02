@@ -105,6 +105,10 @@ function closeMicCheck(){ if(sampleRec){ sampleRec.stop(); sampleRec=null; } cle
 function scrSession(){
   const s=activeSession();
   if(!s){ el.innerHTML=emptyCard("🎙️","No interview in progress","Set up a new interview with Alex, or resume one from your history.","#/interview/start","Start interview"); return; }
+  if(!Array.isArray(s.asked) || !s.asked.length || !currentQ(s) || !Array.isArray(s.answers) || !TYPES[s.interviewType] || !getProfession(s.profession&&s.profession.id)){
+    el.innerHTML=`<div class="card empty" role="alert"><div class="ic">⚠️</div><h2>Session restore failed</h2><p class="muted">This interview couldn't be restored (its saved data is incomplete or its profession is no longer available).</p>
+      <div class="row wrapw" style="gap:10px;justify-content:center">${s.answers&&s.answers.length?`<button class="btn primary" onclick="salvageSession()">End it and see the report</button>`:""}<button class="btn" onclick="discardSession()">Discard it</button><a class="btn ghost" href="#/interview/start">Start a new interview</a></div></div>`; return;
+  }
   if(needsMicCheck(s)){ go("interview/mic-check"); return; }
   renderInterview(s);
 }
@@ -115,7 +119,7 @@ function speechPlan(s){
   const ask={ text:q.questionText, lang:ql };
   if(s.phase==="followup" && s.pending && s.pending.followUp){ const f=s.pending.followUp; return { display:[f.lead], spoken:[{text:f.lead,lang:lineLang(f.lead)},{text:f.question,lang:ql}] }; }
   if(s.currentQuestion===0 && !s.answers.length){
-    const intro=ALEX.intro({ name:s.candidate.name, profession:s.profession.title, typeIntro:TYPES[s.interviewType].intro, healthcare:s.healthcare, bilingual:!!s.langBalance });
+    const intro=ALEX.intro({ name:s.candidate.name, profession:s.profession.title, typeIntro:TYPES[s.interviewType].intro, healthcare:s.healthcare, bilingual:!!s.langBalance, cv:!!(s.cv&&s.cv.used) });
     return { display:intro, spoken:intro.map(t=>({text:t,lang:lineLang(t)})).concat(lead,[ask]) };
   }
   const t=s.lastTransition?[s.lastTransition]:[];
@@ -138,7 +142,7 @@ function renderInterview(s){
     <div class="progress" style="margin:10px 0 4px" role="progressbar" aria-label="Interview progress" aria-valuenow="${pr.pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pr.pct}%"></i></div>
     <div class="row between wrapw small faint"><span id="qcount">Question ${pr.n} / ${pr.total}</span><span>${s.difficulty==="adaptive"?`Adaptive depth <span title="Current depth ${t} of 3">${"●".repeat(t)}${"○".repeat(3-t)}</span>`:H(DIFFS[s.difficulty].label)} · ${voice?"Voice":"Text"} mode</span></div>
     <div class="stage">
-      <div class="orb" id="orb" aria-hidden="true"><span class="face">A</span></div>
+      <div class="orb" id="orb" aria-hidden="true"><span class="face">${H(ALEX.avatar||"A")}</span></div>
       <div class="eq" id="eq" style="visibility:hidden" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
       <div class="alexname" style="font-size:15px;margin-top:4px">ALEX</div><div class="alextitle">${ALEX.title}</div>
       <div class="status" id="status" role="status" style="margin-top:8px">&nbsp;</div>
@@ -148,7 +152,9 @@ function renderInterview(s){
         <label class="small muted">Speed <select id="rateSel" onchange="setRate(this.value)" aria-label="Playback speed">${[0.8,1,1.2,1.5].map(r=>`<option value="${r}" ${st.rate==r?"selected":""}>${r}×</option>`).join("")}</select></label>
       </div>`:""}
     </div>
-    ${plan.display.length?`<div class="alexsay"><span class="who">Alex</span>${plan.display.map(l=>`<p>${H(l)}</p>`).join("")}</div>`:""}
+    ${plan.display.length>2 && window.innerWidth<=600
+      ? `<details class="alexsay introfold"><summary><span class="who" style="display:inline">${H(ALEX.name)}</span> · ${H(plan.display[0])} <span class="faint small">(show full introduction)</span></summary>${plan.display.slice(1).map(l=>`<p>${H(l)}</p>`).join("")}</details>`
+      : plan.display.length?`<div class="alexsay"><span class="who">${H(ALEX.name)}</span>${plan.display.map(l=>`<p>${H(l)}</p>`).join("")}</div>`:""}
     <div class="qbox">
       <div class="qmeta">Alex asks · ${H(QTYPE_LABEL[q.questionType]||"Question")} · ${H(q.compLabel)}${q.lang==="fr"?" · En français":q.lang==="x"?" · English or French":""}</div>
       ${renderArtifact(q.artifact)}
@@ -187,7 +193,7 @@ function renderAnswerArea(){
       <div class="row wrapw center" style="gap:10px"><button class="btn good" id="micBtn" onclick="startAnswer()">🎙️ Start answer</button><button class="btn ghost" onclick="useTyping()">⌨️ Type instead</button>${langPick}</div></div>`; break;
     case "recording": case "paused": h=`<div class="voicebox ${V.state}">
       <div class="row between center wrapw"><span class="rec ${V.state==="paused"?"paused":""}">${V.state==="paused"?"⏸ Paused":"● Recording"}</span><span class="small muted">Answer time <b id="ansTime">${fmtSecs(V.ansElapsed)}</b></span></div>
-      <div class="meter ${Mic.analyser?"":"fake"}" id="ansMeter" aria-hidden="true"><i></i></div>
+      ${Mic.analyser?`<div class="meter" id="ansMeter" aria-hidden="true"><i></i></div>`:`<div class="meter nolevel" id="ansMeter" aria-hidden="true"><i></i></div><div class="small faint">Input level isn't available in this browser; your words still appear in the transcript.</div>`}
       ${V.showLive?`<div class="transcript ${V.text||V.interim?"":"empty"}" id="transcript" aria-live="polite">${V.text||V.interim?H(V.text)+(V.interim?` <span class="interim">${H(V.interim)}</span>`:""):"Your words will appear here as you speak…"}</div>`:`<div class="small faint" style="margin:8px 0">Live transcript hidden.</div>`}
       <div class="row wrapw" style="gap:10px;margin-top:12px">
         ${V.state==="recording"?`<button class="btn" onclick="pauseAnswer()">⏸ Pause</button>`:`<button class="btn" onclick="resumeAnswer()">▶ Resume</button>`}
@@ -295,7 +301,9 @@ function submitCurrent(){
   const token=++renderToken, secs=elapsed;
   setTimeout(()=>{
     if(token!==renderToken) return;
-    const res=submitAnswer(s, ans, secs);
+    let res;
+    try{ res=submitAnswer(s, ans, secs); }
+    catch(e){ console.error(e); engineError(s, ans, e); return; }
     if(res.kind==="done"){ finishToReport(s); return; }
     renderInterview(s);
     window.scrollTo({top:0,behavior:"smooth"});
@@ -304,8 +312,22 @@ function submitCurrent(){
 function finishToReport(s){
   Repo.prefs.set({ activeSessionId:null });
   App.closing={ id:s.sessionId, text:ALEX.closing(s.candidate.name), speak:s.mode==="voice" && Speech.ttsAvailable && !Speech.settings.muted };
-  App.session=null; go("results/"+s.sessionId);
+  App.session=null;
+  el.innerHTML=`<div class="card empty" id="preparing" role="status"><div class="orb reviewing" style="margin:0 auto 14px" aria-hidden="true"><span class="face">${H(ALEX.avatar||"A")}</span></div><h2>Preparing your interview report…</h2><p class="muted">${H(ALEX.name)} is scoring each answer against the rubric.</p></div>`;
+  const from=location.hash;
+  setTimeout(()=>{ if(location.hash===from && document.getElementById("preparing")) go("results/"+s.sessionId); }, 450);   // never yank the user back if they navigated away
 }
+/* "AI unavailable": the in-browser engine failed on this answer. The answer text is kept so nothing is lost. */
+function engineError(s, ans, e){
+  orbMode("idle"); setStatus("");
+  const box=document.getElementById("answerArea"); document.querySelectorAll(".interview button").forEach(b=>b.disabled=false);
+  if(box) box.innerHTML=`<div class="voicebox err-box" role="alert"><b>${H(ALEX.name)} couldn't prepare the next question.</b>
+    <p class="small muted">Your answer is kept below. Try again, or end the interview and get a report for the questions you've answered.</p>
+    <textarea id="typeBox" aria-label="Your answer">${H(ans)}</textarea>
+    <div class="row wrapw" style="gap:10px;margin-top:10px"><button class="btn primary" onclick="V.state='typing';submitCurrent()">Try again</button><button class="btn" onclick="salvageSession()">End and see report</button></div></div>`;
+}
+function salvageSession(){ const s=App.session||activeSession(); if(!s){ go("interview/history"); return; } leaveInterview(); try{ endSessionEarly(s); }catch(e){ s.status="abandoned"; Repo.sessions.save(s); } App.session=s; finishToReport(s); }
+function discardSession(){ const s=App.session||activeSession(); if(s){ Repo.sessions.remove(s.sessionId); } Repo.prefs.set({ activeSessionId:null }); App.session=null; go("interview/start"); }
 function endInterviewEarly(){
   const s=App.session; if(!s) return;
   const has=s.answers.length || (s.pending && s.pending.answer);

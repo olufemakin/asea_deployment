@@ -42,7 +42,7 @@ This page shows, for each feature, which data and flows already exist for it to 
 | Progress Dashboard | Standard practice sessions, interview sessions, competency evidence | Dashboard layout |
 
 ## Known limits and risks
-- **Response Critique** has no questions yet, so it shows COMING SOON. It isn't one of the 12 priority categories.
+- **Response Critique** had no questions at the time of this audit (COMING SOON). It was completed in Prompt 3 (36 questions), so all 24 categories are now available.
 - **Content review:** all question content is original but was written without review by subject experts. Plan to have an expert review it, using the Review status, before calling the bank final.
 - **AI Training Readiness** is no longer offered to Project Managers, Software Engineers and similar roles. This follows the "can choose" lists in the correction brief; restore it in `allowedTypes()` if that wasn't intended.
 - **Storage** is localStorage only (guest mode). Every read and write goes through `Repo`, so a cloud adapter can be added without touching screens.

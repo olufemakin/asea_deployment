@@ -1,4 +1,4 @@
-# Static single-file site — no build step.
+# Static site (no build step). Hash-routed SPA: index.html handles every route.
 [build]
   publish = "."
   command = ""
@@ -16,3 +16,10 @@
   for = "/index.html"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
+
+# SPA fallback: any path that isn't a real file serves index.html (status 200), so a refresh or a shared
+# deep link never 404s; index.html then converts the path into its hash route.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

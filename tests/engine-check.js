@@ -7,8 +7,8 @@ const store={};
 const ctx={ window:{ localStorage:{ getItem:k=>store[k]??null, setItem:(k,v)=>store[k]=String(v), removeItem:k=>delete store[k] } }, console, Math, Date, JSON };
 ctx.window.window=ctx.window; ctx.store=store; vm.createContext(ctx);
 const files=["legacy-bank","competencies","professions","items","roles","practice-core","bank-ranking","bank-evaluation","bank-facts",
-  "bank-annotation","bank-language","bank-generalist","bank-coding","bank-generated"].map(f=>"js/data/"+f+".js")
-  .concat(["js/storage.js","js/engine.js","js/question-bank.js","js/practice.js"]);
+  "bank-annotation","bank-language","bank-generalist","bank-coding","bank-generated","bank-critique","concepts"].map(f=>"js/data/"+f+".js")
+  .concat(["js/storage.js","js/engine.js","js/question-bank.js","js/scoring.js","js/interview-bank.js","js/practice.js","js/cv.js"]);
 vm.runInContext(files.map(f=>fs.readFileSync(f,"utf8")).join("\n;\n"), ctx);
 const R=src=>vm.runInContext(src, ctx);
 R(`

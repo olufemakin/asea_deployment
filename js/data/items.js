@@ -6,16 +6,16 @@
 
 /* ---------- Alex ----------------------------------------------------------- */
 const ALEX = {
-  name:"Alex", title:"BSP AI Interviewer", subtitle:"Your AI Interview Coach",
+  name:"Alex", title:"BSP AI Interviewer", subtitle:"Your AI Interview Coach", avatar:"A", customIntro:"", completion:"",
   intro(o){
     const hi = o.name ? `Hi ${o.name}, I'm Alex,` : "Hi, I'm Alex,";
     return [
       `${hi} your AI interviewer from BSP AI WorkReady.`,
-      `I'll be guiding you through today's interview.`,
+      ALEX.customIntro || `I'll be guiding you through today's interview.`,
       `Today we'll be completing ${aOrAn(o.profession)} ${o.profession} ${o.typeIntro}.`,
       `I'll ask questions about your professional experience, reasoning and, where relevant, your ability to evaluate AI-generated work.`,
       `Some of my follow-up questions will depend on your answers, so take your time and explain your reasoning clearly.`,
-    ].concat(o.healthcare?[ALEX.healthcare]:[], o.bilingual?[ALEX.bilingual]:[], [`When you're ready, let's begin.`]);
+    ].concat(o.healthcare?[ALEX.healthcare]:[], o.bilingual?[ALEX.bilingual]:[], o.cv?["I'll use only the details you confirmed from your CV, and I won't assume anything you haven't told me."]:[], [`When you're ready, let's begin.`]);
   },
   ack:["Thank you.","Thank you for that.","Understood.","Thank you. Noted."],
   transition:{
@@ -29,7 +29,7 @@ const ALEX = {
   },
   stayWith:hit=>`You mentioned ${hit}. Let's stay with that for a moment.`,
   explore:"Thank you. I'd like to explore that further.",
-  closing:name=>`Thank you${name?", "+name:""}. That concludes today's interview. Your report is ready.`,
+  closing:name=>ALEX.completion ? ALEX.completion.replace(/\{name\}/g, name||"") .replace(/\s+([,.])/g,"$1") : `Thank you${name?", "+name:""}. That concludes today's interview. Your report is ready.`,
   healthcare:"All scenarios today are fictional and for education only. Please don't share any real patient information.",
   bilingual:"We'll move between English and French during this interview. Nous alternerons entre l'anglais et le français.",
   toFrench:"Passons maintenant au français.", toEnglish:"Let's switch back to English.", toCross:"Now a translation task. You may answer in English or French.",

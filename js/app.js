@@ -5,12 +5,13 @@
 "use strict";
 
 const BRAND = { line:"BSP AI WorkReady", name:"Interview IQ", product:"AI Interview Lab", community:"Business Startup Powerhouse" };
+const INTEGRITY_NOTICE = "BSP AI WorkReady Interview IQ is for interview practice and professional development. Do not use it to obtain real-time answers during an active external employer interview or qualification assessment.";
 const el = document.getElementById("app");
 const H = s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmtDate = t=>{ try{ return new Date(t).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"}); }catch(e){ return ""; } };
 
 const DEFAULT_SETUP = { step:1, professionId:null, mode:Speech.sttAvailable?"voice":"text", type:"ai_domain", typeChosen:false,
-  level:"experienced", difficulty:"adaptive", length:"standard", name:"", platform:"", langBalance:"balanced" };
+  level:"experienced", difficulty:"adaptive", length:"standard", name:"", platform:"", langBalance:"balanced", useCv:false };
 const App = { setup:null, session:null, ui:{ search:"", group:"all", customOpen:false }, practice:{}, closing:null };
 
 function loadSetup(){
@@ -56,10 +57,19 @@ const ROUTES = [
   [/^practice\/history$/, scrPracticeHistory],
   [/^results$/, scrResults],
   [/^results\/([\w-]+)$/, scrReport],
-  [/^progress$/, scrReadiness],
+  [/^progress$/, scrDashboard],
+  [/^progress\/readiness$/, scrReadinessDetail],
+  [/^profile$/, scrProfile],
+  [/^cv$/, scrCV],
+  [/^cv\/mapper$/, scrMapper],
+  [/^admin$/, ()=>scrAdmin()],
+  [/^admin\/(\w+)$/, scrAdmin],
   [/^progress\/skills$/, scrSkills],
   [/^progress\/activity$/, scrActivity],
+  [/^progress\/trends$/, ()=>scrTrends()],
+  [/^progress\/trends\/([\w-]+)$/, scrTrends],
   [/^about$/, scrAbout],
+  [/^privacy$/, scrPrivacy],
 ];
 let currentPath = null;
 function pathNow(){ return location.hash.replace(/^#\/?/,"").split("?")[0].replace(/\/+$/,""); }
@@ -75,7 +85,7 @@ function route(){
   if(!fn){ go(""); return; }
   closeMenus();
   try{ fn(...m.slice(1)); }
-  catch(e){ console.error(e); el.innerHTML=emptyCard("⚠️","Something went wrong","This page couldn't load. Your saved data is safe.","#/","Back to home"); }
+  catch(e){ console.error(e); el.innerHTML=errorCard("Something went wrong","This page couldn't load. Your saved data is safe, and you can try again or go back to the home page.", e); }
   markNav(path);
   window.scrollTo(0,0);
 }
@@ -96,14 +106,19 @@ function closeMenus(keepPanel){
   if(!keepPanel){ const n=document.getElementById("mainNav"); if(n) n.classList.remove("open"); const t=document.getElementById("navToggle"); if(t) t.setAttribute("aria-expanded","false"); }
 }
 function markNav(path){
-  const top=path.split("/")[0]||"home";
+  const t0=path.split("/")[0]||"home", top=({ cv:"profile", privacy:"about", admin:"about" })[t0]||t0;
   document.querySelectorAll("#mainNav [data-nav]").forEach(n=>n.classList.toggle("active", n.dataset.nav===top));
   document.querySelectorAll("#mainNav a[href]").forEach(a=>a.classList.toggle("active", a.getAttribute("href")==="#/"+path));
 }
 
 /* ---------- Shared bits --------------------------------------------------- */
 function pageHead(kicker, title, sub){ return `<div class="pagehead"><span class="kicker">${kicker}</span><h1>${title}</h1>${sub?`<p class="lead">${sub}</p>`:""}</div>`; }
-function alexBlock(){ return `<div class="alexrow"><div class="alexav" aria-hidden="true">A</div><div><div class="alexname">ALEX</div><div class="alextitle">${ALEX.title}</div><div class="alexsub">${ALEX.subtitle}</div></div></div>`; }
+function alexBlock(){ return `<div class="alexrow"><div class="alexav" aria-hidden="true">${H(ALEX.avatar||"A")}</div><div><div class="alexname">ALEX</div><div class="alextitle">${ALEX.title}</div><div class="alexsub">${ALEX.subtitle}</div></div></div>`; }
+function errorCard(title, text, err){
+  return `<div class="card empty" role="alert"><div class="ic">⚠️</div><h2>${H(title)}</h2><p class="muted">${H(text)}</p>
+    <div class="row wrapw" style="gap:10px;justify-content:center"><button class="btn primary" onclick="route()">Try again</button><a class="btn" href="#/">Back to home</a><a class="btn ghost" href="#/privacy">Clear damaged data</a></div>
+    ${err?`<p class="small faint" style="margin-top:12px">Details: ${H(String(err.message||err).slice(0,160))}</p>`:""}</div>`;
+}
 function emptyCard(icon, title, text, href, label){
   return `<div class="card empty"><div class="ic">${icon}</div><h2>${title}</h2><p class="muted">${text}</p>${href?`<a class="btn primary" href="${href}">${label}</a>`:""}</div>`;
 }
@@ -156,6 +171,8 @@ function scrHome(){
       <a href="#/interview/alex">Meet Alex →</a></div>
     <div class="card">${side}</div>
   </div>
+  ${!Repo.sessions.withReports().length?`<p class="note">Practice your first interview with ${H(ALEX.name)}: choose your profession and you'll get an evidence-based report at the end.</p>`:""}
+  <p class="note integrity">${INTEGRITY_NOTICE}</p>
   ${!Speech.sttAvailable?`<p class="note">This browser can't transcribe speech, so you'll type your answers (Alex can still speak). For full voice, use Chrome or Edge on desktop or Android.</p>`:""}`;
 }
 
@@ -383,6 +400,11 @@ function stepSummary(p){
       <div><label class="fld" for="candPlat">Preparing for (optional)</label><select id="candPlat" onchange="App.setup.platform=this.value;saveSetup()">
         ${[["","General practice"],["ai-training","AI training / evaluation work"],["job","A job interview"],["other","Something else"]].map(([v,l])=>`<option value="${v}" ${S.platform===v?"selected":""}>${l}</option>`).join("")}</select></div>
     </div>
+    <div class="cvtoggle" id="cvToggleBox">${CV.hasConfirmed()
+      ? `<label class="switch"><input type="checkbox" id="useCv" ${S.useCv?"checked":""} onchange="App.setup.useCv=this.checked;saveSetup()"> <b>USE MY CONFIRMED CV FOR THIS INTERVIEW</b></label>
+         <div class="small muted">${H(ALEX.name)} may personalise questions using only the ${CV.confirmed().length} facts you confirmed (for example your roles and responsibilities). Nothing is invented. <a href="#/cv">Review CV</a></div>`
+      : `<div class="small muted">Add your experience to personalize your interviews. <a href="#/cv">Add my CV</a> (optional).</div>`}</div>
+    <p class="note integrity">${INTEGRITY_NOTICE}</p>
     <div class="row wrapw" style="margin-top:22px;gap:10px;justify-content:space-between">
       <button class="btn ghost" onclick="setStep(6)">← Back</button>
       <button class="btn primary lg upper" onclick="startFromSetup()">Start interview with Alex</button>
@@ -391,7 +413,9 @@ function stepSummary(p){
 }
 function startFromSetup(){
   const S=App.setup; if(!S.professionId){ setStep(1); return; }
-  const s=createSession({ professionId:S.professionId, mode:S.mode, type:S.type, level:S.level, difficulty:S.difficulty, length:S.length, name:S.name, platform:S.platform, langBalance:S.langBalance });
+  let s;
+  try{ s=createSession({ professionId:S.professionId, mode:S.mode, type:S.type, level:S.level, difficulty:S.difficulty, length:S.length, name:S.name, platform:S.platform, langBalance:S.langBalance, useCv:!!S.useCv && CV.hasConfirmed() }); }
+  catch(e){ console.error(e); el.innerHTML=errorCard("Alex couldn't prepare this interview","The interview engine couldn't build questions for these settings. Try another interview type or profession, or reload the page.", e); return; }
   startSession(s); App.session=s; Repo.prefs.set({ activeSessionId:s.sessionId });
   go(needsMicCheck(s) ? "interview/mic-check" : "interview/session");
 }
@@ -403,7 +427,7 @@ function resumeSession(id){
 /* ---------- Results ------------------------------------------------------- */
 function scrResults(){
   const list=Repo.sessions.withReports();
-  if(!list.length){ el.innerHTML=pageHead("Results","Your interview reports","")+emptyCard("📊","No reports yet","Complete an interview with Alex and your detailed report will appear here.","#/interview/start","Start interview"); return; }
+  if(!list.length){ el.innerHTML=pageHead("Results","Your interview reports","")+emptyCard("📊","No reports yet","Your completed sessions will appear here. Practice your first interview with Alex.","#/interview/start","Start interview"); return; }
   const latest=reportOf(list[0]);
   el.innerHTML=pageHead("Results","Your interview reports","Every completed interview produces a scored report with question-by-question feedback.")
   + `<div class="card"><h3>Latest report</h3><div class="row center wrapw" style="gap:22px">
@@ -415,154 +439,6 @@ function scrResults(){
     <div class="item"><div><div class="t">${sessionTitle(s)}</div><div class="m">${H(fmtDate(s.completedAt||s.startedAt))} · ${s.answers.length} answered ${statusBadge(s)}</div></div>
     <div class="row center" style="gap:10px">${scoreBadge(s.scores.overall)}<a class="btn sm" href="#/results/${s.sessionId}">View</a></div></div>`; }).join("")}</div></div>`;
 }
-function scrReport(id){
-  const s=Repo.sessions.get(id);
-  if(!s || !s.answers || !s.answers.length){ el.innerHTML=emptyCard("🔎","Report not found","This report may have been deleted, or the interview ended before any answers were recorded.","#/results","All results"); return; }
-  reportOf(s);
-  const sc=s.scores.overall, [bk,bl]=band(sc), nm=s.candidate&&s.candidate.name;
-  const closing = App.closing && App.closing.id===id ? App.closing : null;
-  if(closing){ App.closing=null; if(closing.speak) Speech.say(closing.text); }
-  const comps=Object.entries(s.scores.competencies||{}).sort((a,b)=>a[1]-b[1]);
-  const meta=[ s.profession.title, sessionTypeLabel(s), s.recommendedInterviewType && s.recommendedInterviewType!==s.interviewType && TYPES[s.recommendedInterviewType] ? `Recommended type: ${TYPES[s.recommendedInterviewType].label}` : "", s.mode?MODES[s.mode]&&MODES[s.mode].label+" mode":"",
-    LEVELS[s.experienceLevel]?LEVELS[s.experienceLevel].label:"", DIFFS[s.difficulty]?DIFFS[s.difficulty].label:"", `${s.answers.length} question${s.answers.length===1?"":"s"}`, fmtDate(s.completedAt||s.startedAt) ].filter(Boolean);
-  const canRepeat = s.version>=2 && getProfession(s.profession.id);
-  const areas=Object.entries((s.scores&&s.scores.areas)||{});
-  el.innerHTML=`
-  ${closing?`<div class="alexsay noprint"><span class="who">Alex</span><p>${H(closing.text)}</p></div>`:""}
-  <div class="card">
-    <div class="row between center wrapw"><h2 style="margin:0">${nm?H(nm)+"'s interview report":"Interview report"}</h2><span>${statusBadge(s)} <span class="badge ${bk}">${bl}</span></span></div>
-    <div class="row center wrapw" style="gap:26px;margin:18px 0 6px">
-      <div class="ring" style="--p:${sc}"><div><div class="scorebig">${sc}</div><div class="small muted">/ 100</div></div></div>
-      <div class="grow" style="min-width:240px"><p style="font-size:16px">${H(s.feedback?s.feedback.verdict:"")}</p>
-        <div class="small muted">${meta.map(H).join(" · ")}</div>
-        ${s.version>=2?`<div class="small faint" style="margin-top:4px">Interviewer: Alex · ${ALEX.title}</div>`:""}</div>
-    </div>
-    ${areas.length?`<div style="margin-top:14px"><h3>Interview areas <span class="faint" style="text-transform:none;letter-spacing:0">(weighted into your overall score)</span></h3>
-      ${areas.map(([k,v])=>barRow(k, v.score, `· ${v.weight}% weight`)).join("")}</div>`:""}
-    <div class="grid g2" style="margin-top:14px">
-      <div><h3>Rubric</h3>${["Relevance","Depth","Structure","Specificity"].map(n=>barRow(n, s.scores.dims[n])).join("")}</div>
-      <div><h3>Competencies</h3>${comps.length?comps.map(([k,v])=>barRow(k,v)).join(""):`<p class="small muted">Competency scores are available for interviews taken with Alex.</p>`}</div>
-    </div>
-    ${s.scores.competencyEvidence?`<details class="evidence" style="margin-top:10px"><summary><b>Competency evidence</b> <span class="small faint">(what each score is based on)</span></summary>
-      <div class="list" style="margin-top:10px">${Object.values(s.scores.competencyEvidence).sort((a,b)=>a.score-b.score).map(e=>`<div class="item"><div>
-        <div class="t">${H(e.name)} · ${e.score}/100 <span class="faint small">· ${e.n} answer${e.n>1?"s":""}</span></div>
-        ${e.found.length?`<div class="m">Evidence found: ${H(e.found.slice(0,8).join(", "))}</div>`:""}
-        ${e.missing.length?`<div class="m faint">Evidence missing: ${H(e.missing.slice(0,8).join(", "))}</div>`:""}</div></div>`).join("")}</div></details>`:""}
-    ${s.feedback&&(s.feedback.strengths.length||s.feedback.focus.length)?`<div class="grid g2" style="margin-top:8px">
-      <div><h3>Strengths</h3>${s.feedback.strengths.length?`<ul class="clean small">${s.feedback.strengths.map(x=>`<li>${H(x)}</li>`).join("")}</ul>`:`<p class="small muted">Build consistency: no competency scored 70+ yet.</p>`}</div>
-      <div><h3>Focus areas</h3>${s.feedback.focus.length?`<ul class="clean small">${s.feedback.focus.map(x=>`<li>${H(x)}</li>`).join("")}</ul>`:`<p class="small muted">No competency below 70. Keep going.</p>`}</div></div>`:""}
-    ${s.healthcare?`<p class="note">Educational practice with fictional scenarios only. This report is not medical advice and does not assess real patient care.</p>`:""}
-    ${s.langBalance?`<p class="note">This practice report scores your answers to these questions only. It does not label you as native, fluent or a certified translator.</p>`:""}
-    <div id="reportRecs">${typeof recommendationsHTML==="function"?recommendationsHTML({ session:s }):""}</div>
-    <div class="row wrapw noprint" style="margin-top:20px;gap:10px">
-      ${canRepeat?`<button class="btn primary" onclick="practiceAgain('${s.sessionId}')">↻ Practice again</button>`:""}
-      <a class="btn" href="#/interview/start">New interview</a>
-      <button class="btn" onclick="window.print()">⬇ Save / print report</button>
-      <a class="btn ghost" href="#/results">All results</a>
-    </div>
-  </div>
-  <div class="card">
-    <h2>Question-by-question feedback</h2>
-    ${s.answers.map((a,i)=>{ const [k,l]=band(a.score); return `
-      <div class="qresult">
-        <div class="row between center wrapw"><div class="qmeta" style="margin:0">Q${i+1}${a.questionType?` · ${H(QTYPE_LABEL[a.questionType]||"")}`:""}${a.compLabel?` · ${H(a.compLabel)}`:""} · ${a.seconds}s · ${a.wc} words</div><span class="badge ${k}">${a.score}/100 · ${l}</span></div>
-        ${a.artifact?renderArtifact(a.artifact):""}
-        ${a.scenario?`<div class="scenario ${a.code?"code":""}" style="margin-top:10px">${H(a.scenario)}</div>`:""}
-        <div style="font-weight:700;margin:8px 0">${H(a.q)}</div>
-        <div class="qa"><b>Your answer:</b> ${H(a.answer)}</div>
-        ${a.followUp?`<div class="qa"><b>Alex's follow-up${a.followUp.label?` (${H(a.followUp.label)})`:""}:</b> ${H(a.followUp.question)}<br><b>Your follow-up answer:</b> ${a.followUp.answer?H(a.followUp.answer):"<i>Not answered</i>"}</div>`:""}
-        <div class="row wrapw small" style="gap:14px;margin-bottom:8px">${Object.entries(a.dims).map(([n,v])=>`<span class="muted">${n}: <b style="color:${barColor(v)}">${v}</b></span>`).join("")}</div>
-        <div class="small"><b>How to improve:</b><ul class="tips">${(a.feedback||[]).map(t=>`<li>${H(t)}</li>`).join("")}</ul></div>
-      </div>`; }).join("")}
-  </div>
-  <div class="card"><h3>How scoring works</h3>
-    <p class="small muted">Each answer is scored 0–100 on four rubric dimensions: <b>Relevance</b> (did you cover what the question targets), <b>Depth</b> (substance relative to your experience level), <b>Structure</b> (clear, signposted reasoning) and <b>Specificity</b> (examples, numbers, concrete detail). Hedging phrases reduce the score slightly. Competency scores average the questions that tested each competency, and interview areas are weighted into your overall score.</p>
-    <p class="small muted"><b>Communication</b> is scored from the words of your answers only: relevance, clarity, logical organisation, explanation and appropriate detail. Hesitation sounds are removed first. <b>Accent, voice pitch, regional speech patterns, gender presentation and perceived ethnicity are never scored</b>; audio is never analysed or stored. Scoring runs entirely in your browser.</p></div>`;
-}
-function practiceAgain(id){
-  const o=Repo.sessions.get(id); if(!o || !getProfession(o.profession.id)){ go("interview/start"); return; }
-  const s=createSession({ professionId:o.profession.id, mode:o.mode, type:o.interviewType, level:o.experienceLevel, difficulty:o.difficulty, length:o.length||"standard", name:o.candidate&&o.candidate.name, platform:o.candidate&&o.candidate.platform, langBalance:o.langBalance });
-  startSession(s); App.session=s; Repo.prefs.set({ activeSessionId:s.sessionId }); go(needsMicCheck(s)?"interview/mic-check":"interview/session");
-}
-
-/* ---------- Interview history -------------------------------------------- */
-function scrHistory(){
-  const list=Repo.sessions.all();
-  el.innerHTML=pageHead("Interview","Interview history","Resume an interview in progress, reopen a report, or remove old sessions.")
-  + (list.length?`<div class="card"><div class="list">${list.map(s=>{ const has=s.answers&&s.answers.length; if(has) reportOf(s); return `
-    <div class="item"><div><div class="t">${sessionTitle(s)}</div>
-      <div class="m">${H(fmtDate(s.startedAt))} · ${has?s.answers.length+" answered":"no answers"} ${statusBadge(s)}</div></div>
-      <div class="row center wrapw" style="gap:8px">${has&&s.scores?scoreBadge(s.scores.overall):""}
-        ${s.status==="in_progress"?`<button class="btn sm primary" onclick="resumeSession('${s.sessionId}')">Resume</button>`:""}
-        ${has&&s.status!=="in_progress"?`<a class="btn sm" href="#/results/${s.sessionId}">Report</a>`:""}
-        <button class="btn sm ghost" onclick="deleteSession('${s.sessionId}')" aria-label="Delete this interview">Delete</button></div></div>`; }).join("")}</div></div>`
-  : emptyCard("🗂️","No interviews yet","Your interviews, including any you pause, will be listed here.","#/interview/start","Start interview"));
-}
-function deleteSession(id){
-  if(!confirm("Delete this interview and its report? This can't be undone.")) return;
-  Repo.sessions.remove(id); if(Repo.prefs.get().activeSessionId===id) Repo.prefs.set({ activeSessionId:null });
-  if(App.session && App.session.sessionId===id) App.session=null;
-  scrHistory();
-}
-
-/* ---------- Progress ------------------------------------------------------ */
-const PROGRESS_TABS=[["#/progress","Interview Readiness"],["#/progress/skills","Skills & Scores"],["#/progress/activity","Recent Activity"]];
-function readiness(){
-  const done=Repo.sessions.completed().map(reportOf).slice(0,3);
-  if(!done.length) return null;
-  const w=[3,2,1].slice(0,done.length), tot=w.reduce((a,b)=>a+b,0);
-  return Math.round(done.reduce((a,s,i)=>a+s.scores.overall*w[i],0)/tot);
-}
-function allAnswers(){ return [].concat(...Repo.sessions.withReports().map(s=>s.answers||[])); }
-function competencyStats(){
-  const m={}; allAnswers().forEach(a=>{ if(a.compLabel && a.questionType!=="intro"){ (m[a.compLabel]=m[a.compLabel]||[]).push(a.score); } });
-  return Object.entries(m).map(([k,v])=>({ label:k, score:avg(v), n:v.length })).sort((a,b)=>a.score-b.score);
-}
-function scrReadiness(){
-  const r=readiness(), done=Repo.sessions.completed().map(reportOf), prac=standardPracticeSessions(), weak=competencyStats()[0];
-  const label = r==null?"":r>=78?"Interview-ready":r>=55?"Nearly ready":"Building foundations";
-  el.innerHTML=pageHead("Progress","Interview readiness","Your readiness weighs your three most recent completed interviews, with the newest counting most.")+tabs(PROGRESS_TABS,"#/progress")
-  + (r==null ? emptyCard("🎯","No readiness score yet","Complete an interview with Alex to get your first readiness score.","#/interview/start","Start interview")
-  : `<div class="card"><div class="row center wrapw" style="gap:26px">
-      <div class="ring" style="--p:${r}"><div><div class="scorebig">${r}</div><div class="small muted">/ 100</div></div></div>
-      <div class="grow" style="min-width:240px"><span class="badge ${band(r)[0]}">${label}</span>
-        <p style="margin-top:10px">${r>=78?"You're consistently performing at the level strong candidates show. Keep practising different interview types to stay sharp."
-          :r>=55?"You're close. Target your weakest competencies and aim for consistency across sessions."
-          :"Focus on structured, specific answers. Practise your weakest competencies, then run another interview."}</p>
-        ${weak?`<p class="small muted">Suggested focus: <b>${H(weak.label)}</b> (average ${weak.score}/100).</p>`:""}
-        <div class="row wrapw" style="gap:10px"><a class="btn primary" href="#/interview/start">Start another interview</a><a class="btn" href="#/practice">Practice AI tasks</a></div></div></div></div>`)
-  + `<div class="grid g4">
-      <div class="card stat"><div class="l">Interviews completed</div><div class="v">${done.length}</div></div>
-      <div class="card stat"><div class="l">Best score</div><div class="v">${done.length?Math.max(...done.map(s=>s.scores.overall)):"–"}</div></div>
-      <div class="card stat"><div class="l">Practice sessions</div><div class="v">${prac.length}</div></div>
-      <div class="card stat"><div class="l">Practice average</div><div class="v">${prac.length?avg(prac.map(a=>a.results.score)):"–"}</div></div></div>
-    ${(done.length||prac.length)?`<div class="card">${recommendationsHTML()||`<p class="small muted" style="margin:0">No specific recommendations right now. Keep practising across categories.</p>`}</div>`:""}`;
-}
-function scrSkills(){
-  const A=allAnswers(), comps=competencyStats();
-  const pm={}; standardPracticeSessions().forEach(p=>{ const R=p.results, e=R.competencyEvidence;
-    (e ? Object.values(e).map(x=>[x.name,x.score]) : Object.entries(R.competencies||{})).forEach(([k,v])=>{ (pm[k]=pm[k]||[]).push(v); }); });
-  el.innerHTML=pageHead("Progress","Skills & scores","Averages across every interview answer and practice attempt.")+tabs(PROGRESS_TABS,"#/progress/skills")
-  + (!A.length && !Object.keys(pm).length ? emptyCard("📈","No scores yet","Complete an interview or a practice task to see your skill profile.","#/interview/start","Start interview")
-  : `<div class="grid g2">
-      <div class="card"><h3>Rubric dimensions</h3>${A.length?["Relevance","Depth","Structure","Specificity"].map(n=>barRow(n, avg(A.map(a=>a.dims[n])))).join(""):`<p class="small muted">No interview answers yet.</p>`}</div>
-      <div class="card"><h3>Practice Lab skills</h3>${Object.keys(pm).length?Object.entries(pm).map(([k,v])=>barRow(k, avg(v), `· ${v.length} session${v.length>1?"s":""}`)).join(""):`<p class="small muted">No practice sessions yet. <a href="#/practice">Start one</a>.</p>`}</div>
-    </div>
-    <div class="card"><h3>Competencies (weakest first)</h3>${comps.length?comps.map(c=>barRow(c.label, c.score, `· ${c.n} question${c.n>1?"s":""}`)).join(""):`<p class="small muted">Competency scores appear after your first interview with Alex.</p>`}</div>`);
-}
-function scrActivity(){
-  const items=[].concat(
-    Repo.sessions.all().map(s=>({ at:s.completedAt||s.startedAt, html:`<div><div class="t">🎙️ ${sessionTitle(s)}</div><div class="m">${H(fmtDate(s.completedAt||s.startedAt))} ${statusBadge(s)}</div></div>
-      <div class="row center" style="gap:10px">${s.answers&&s.answers.length?scoreBadge(reportOf(s).scores.overall):""}${s.status==="in_progress"?`<button class="btn sm" onclick="resumeSession('${s.sessionId}')">Resume</button>`:s.answers&&s.answers.length?`<a class="btn sm" href="#/results/${s.sessionId}">Report</a>`:""}</div>` })),
-    Repo.practiceSessions.all().map(p=>{ const c=practiceCat(p.category)||{icon:"🧪",label:p.category}; return { at:p.submittedAt||p.startedAt, html:`<div><div class="t">${c.icon} ${H(c.label)} <span class="faint small">· Practice Lab · ${PRACTICE_DIFF[p.difficulty].label}</span></div><div class="m">${H(fmtDate(p.submittedAt||p.startedAt))} · ${PRACTICE_QUESTIONS} questions</div></div>
-      <div class="row center" style="gap:10px">${p.results?scoreBadge(p.results.score)+`<a class="btn sm" href="#/practice/results/${p.id}">Review</a>`:`<span class="badge info">In progress</span><a class="btn sm" href="#/practice/run">Resume</a>`}</div>` }; }),
-    Repo.practice.all().map(a=>({ at:a.at, html:`<div><div class="t"><span class="badge">LEGACY PRACTICE</span> ${H(a.title)}</div><div class="m">1 Task · Completed before Practice Lab upgrade · ${H(fmtDate(a.at))}</div></div>${scoreBadge(a.score)}` }))
-  ).sort((a,b)=>b.at-a.at).slice(0,40);
-  el.innerHTML=pageHead("Progress","Recent activity","Your latest interviews and practice, newest first.")+tabs(PROGRESS_TABS,"#/progress/activity")
-  + (items.length?`<div class="card"><div class="list">${items.map(i=>`<div class="item">${i.html}</div>`).join("")}</div></div>`
-  : emptyCard("🕒","No activity yet","Start an interview or a practice task and it will appear here.","#/interview/start","Start interview"));
-}
-
 /* ---------- About --------------------------------------------------------- */
 function scrAbout(){
   el.innerHTML=pageHead("About","About BSP AI WorkReady · Interview IQ","The AI Interview Lab from Business Startup Powerhouse, built to help people practise realistic AI-led interviews for free.")
@@ -573,12 +449,13 @@ function scrAbout(){
       <li>Each profession has its own competency model, for example Risk Management or Stakeholder Management for project managers.</li>
       <li>Questions are structured by competency, difficulty and type: knowledge, behavioral, scenario, AI output evaluation, error detection, explanation and practical tasks.</li>
       <li>Adaptive difficulty: strong answers go deeper, vague answers get clarification, and missing competencies get explored.</li></ul></div>
-    <div class="card"><h3>How scoring works</h3><p class="small muted">Every answer is scored 0–100 on Relevance, Depth, Structure and Specificity, with expectations scaled to your experience level. Scores roll up into competencies and an overall readiness score. Scoring is deterministic and runs in your browser.</p></div>
-    <div class="card"><h3>Original content</h3><p class="small muted">All interview and practice questions are original BSP practice material based on general professional competencies. They are not copied from any hiring or AI-training platform, and Interview IQ is not affiliated with any of them.</p></div>
+    <div class="card"><h3>How scoring works</h3><p class="small muted">Every answer is first rated on an explicit 0–4 rubric for each dimension it tests (Domain Knowledge, Professional Reasoning, Professional Judgment, AI Evaluation Ability, Communication, Instruction Following, Attention to Detail). Levels are converted to percentages only afterwards, and every score shows the evidence found, the evidence missing and excerpts from your own answers. Scoring is deterministic and runs in your browser; it is a practice score, not a prediction of any hiring outcome.</p></div>
+    <div class="card"><h3>Original content</h3><p class="small muted">All interview and practice questions are original BSP practice material based on general professional competencies. They are not copied from any hiring or AI-training platform or employer assessment, and Interview IQ is not affiliated with any of them.</p></div>
   </div>
+  <div class="card"><h3>Practice and integrity</h3><p class="small">${INTEGRITY_NOTICE}</p></div>
   <div class="card"><h3>Guest mode &amp; your data</h3>
-    <p class="small muted">No account is needed. Your interview history, practice history and preferences are stored ${Repo.kind==="browser"?"in this browser on this device":"for this session only (your browser is blocking storage)"}. Nothing is sent to a server. In voice interviews, Interview IQ never records or stores audio: your browser's speech service turns speech into text live, and only the text transcript is saved. Accent, voice pitch, regional speech patterns, gender presentation and perceived ethnicity are never scored. Clearing your browser data removes everything.</p>
-    <div class="row wrapw" style="gap:10px"><button class="btn" onclick="exportData()">⬇ Export my data (JSON)</button><button class="btn danger" onclick="clearData()">Delete all my data</button></div></div>
+    <p class="small muted">No account is needed and Interview IQ has no server: your history, practice, CV and preferences are stored ${Repo.kind==="browser"?"in this browser on this device":"for this tab only (your browser is blocking storage)"}. Read exactly how voice, transcripts, CV data and browser storage are handled on the <a href="#/privacy">Privacy &amp; your data</a> page, where you can also clear your data.</p>
+    <div class="row wrapw" style="gap:10px"><button class="btn" onclick="exportData()">⬇ Export my data (JSON)</button><a class="btn danger" href="#/privacy">Clear my data</a></div></div>
   <div class="card"><h3>Browser support</h3><p class="small muted">Best experience: Chrome or Edge on desktop or Android, which support both speaking and listening. Safari and Firefox can speak questions aloud; you type your answers.</p></div>`;
 }
 function exportData(){
@@ -586,10 +463,33 @@ function exportData(){
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="interview-iq-data.json";
   document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500);
 }
-function clearData(){
-  if(!confirm("Delete all interviews, practice history, custom professions and preferences stored in this browser? This can't be undone.")) return;
-  Repo.clearAll(); App.session=null; loadSetup(); go("");
+/* ---------- Privacy & Clear My Data --------------------------------------- */
+const CLEAR_LABELS={ interviews:["Interview History","Every interview, transcript text and report"], practice:["Practice History","Practice Lab sessions, legacy attempts and question-usage counts"],
+  cv:["CV Data","Your CV text, extracted items and experience mappings"], preferences:["Preferences","Setup choices, voice settings and custom professions"] };
+function scrPrivacy(){
+  const counts={ interviews:Repo.sessions.all().length, practice:Repo.practiceSessions.all().length+Repo.practice.all().length, cv:Repo.cv.get()?1:0, preferences:Object.keys(Repo.prefs.get()).length+Repo.customProfessions.all().length };
+  el.innerHTML=pageHead("About","Privacy & your data","What Interview IQ stores, where, and how to remove it.")
+  + `<div class="grid g2">
+    <div class="card"><h3>Voice processing</h3><p class="small muted">Alex's voice uses your browser's built-in speech synthesis. When you answer by voice, your browser's speech-recognition service turns speech into text. In some browsers (for example Chrome and Edge) that service may send the audio to the browser maker's servers to transcribe it; that is controlled by your browser, not by Interview IQ. Interview IQ itself never records, stores, uploads or analyses raw audio, and the microphone level meter only reads volume live. Accent and voice are never scored.</p></div>
+    <div class="card"><h3>Transcript storage</h3><p class="small muted">The text of your answers (typed, or transcribed and reviewed by you) is saved with your interview so you can read your report later. It stays in this browser. Remove it below with Interview History.</p></div>
+    <div class="card"><h3>CV data</h3><p class="small muted">CV text you paste or upload (.txt / .md) is read inside your browser and never uploaded. Extracted items are only used after you confirm them, and only when you switch on “Use my confirmed CV” for an interview. Remove personal details you don't want stored before pasting.</p></div>
+    <div class="card"><h3>Browser storage</h3><p class="small muted">Everything is kept in this browser's local storage (${Repo.kind==="browser"?"available":"blocked, so data lasts only until you close this tab"}). There is no account, no cloud copy and no sync: data doesn't follow you to another device, and clearing your browser data deletes it. The storage layer is designed so it could later be migrated to an account if one is ever added.</p></div>
+  </div>
+  <div class="card" id="clearData"><h2>Clear my data</h2><p class="small muted">Choose what to remove from this browser. This can't be undone; export first if you want a copy.</p>
+    <div class="picks">${Object.entries(CLEAR_LABELS).map(([k,[l,d]])=>`<label class="pick"><input type="checkbox" name="clr" value="${k}" ${counts[k]?"checked":""}> <span><b>${l}</b> <span class="faint small">· ${d} (${counts[k]?counts[k]+" stored":"nothing stored"})</span></span></label>`).join("")}</div>
+    <div class="row wrapw" style="gap:10px;margin-top:14px"><button class="btn danger" id="clearBtn" onclick="clearSelected()">Clear selected data</button><button class="btn" onclick="exportData()">⬇ Export my data first</button></div>
+    <div id="clearMsg" class="small" role="status" style="margin-top:10px"></div></div>
+  <div class="card"><h3>Practice and integrity</h3><p class="small">${INTEGRITY_NOTICE}</p></div>`;
 }
+function clearSelected(){
+  const g=[...document.querySelectorAll("input[name=clr]:checked")].map(x=>x.value); if(!g.length){ document.getElementById("clearMsg").textContent="Select at least one type of data."; return; }
+  if(!confirm("Remove "+g.map(k=>CLEAR_LABELS[k][0]).join(", ")+" from this browser? This can't be undone.")) return;
+  Repo.clearGroups(g);
+  if(g.includes("interviews")) App.session=null;
+  if(g.includes("preferences")) loadSetup();
+  scrPrivacy(); document.getElementById("clearMsg").textContent="Cleared: "+g.map(k=>CLEAR_LABELS[k][0]).join(", ")+" ✓";
+}
+function clearData(){ go("privacy"); }
 
 /* ---------- Brand, footer, boot ------------------------------------------- */
 function renderBrand(){
@@ -604,14 +504,24 @@ function renderBrand(){
 }
 function renderFooter(){
   document.getElementById("footer").innerHTML=`<b>${BRAND.line}</b> · ${BRAND.name}, ${BRAND.product}. Powered by ${BRAND.community}.<br>
-    Original practice content; not affiliated with any hiring or AI-training platform. Guest mode: your data stays in this browser.`;
+    <span class="integrity">${INTEGRITY_NOTICE}</span><br>
+    Original practice content; not affiliated with any hiring or AI-training platform. Guest mode: your data stays in this browser. <a href="#/privacy">Privacy &amp; your data</a>`;
+}
+function renderSysBanner(){
+  const b=document.getElementById("sysBanner"); if(!b) return;
+  if(Repo.kind!=="browser"){ b.hidden=false; b.innerHTML=`⚠️ Storage unavailable: your browser is blocking local storage, so progress will be lost when you close this tab. You can keep practising. <a href="#/privacy">Learn more</a>`; }
 }
 
 Repo.migrate();
+applyRoleOverrides();
+applyAlexSettings();
 loadSetup();
 (()=>{ const v=Repo.prefs.get().voice; if(v){ Speech.settings.muted=!!v.muted; Speech.settings.rate=+v.rate||1; } })();
 renderBrand();
 renderFooter();
+renderSysBanner();
 initNav();
 window.addEventListener("hashchange", route);
+window.addEventListener("error", e=>{ if(el && !el.innerText.trim()) el.innerHTML=errorCard("Something went wrong","Part of the app failed to load. Your saved data is safe.", e.error||e.message); });
+window.__iqBooted=true;
 route();

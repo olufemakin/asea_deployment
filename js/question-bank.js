@@ -88,7 +88,7 @@ const QuestionBank = (()=>{
     PB_GENERATORS.forEach(g=>DIFF_KEYS.forEach(d=>{
       for(let i=0;i<g.perDifficulty;i++){
         const seed=hash(g.prefix+"|"+d+"|"+i);
-        const raw=Object.assign(g.fn(seed, d), { id:`${g.prefix}-${d}-${i+1}`, d, category:g.category, generated:true, seed, version:"1.0" });
+        const raw=Object.assign(g.fn(seed, d, i), { id:`${g.prefix}-${d}-${i+1}`, d, category:g.category, generated:true, seed, version:"1.0" });
         items.push(normalize(raw));
       }
     }));

@@ -22,8 +22,19 @@ Owner constraints (keep unless told otherwise):
 The owner is delivering a 3-part upgrade brief. **Prompt 1** (foundation, Alex, role system, setup) and
 **Prompt 2** (adaptive engine + memory, voice interview, timed Practice Lab, interview↔practice
 integration) are done, plus the **Prompt 2 correction pass** (question-bank integrity, recommended-vs-selected
-interview types, competency evidence). Prompt 3 will follow; see `docs/PROMPT3_READINESS.md`. Extend the
-systems below, don't replace them.
+interview types, competency evidence) and **Prompt 3** (rubric scoring + evidence, premium report, history/trends,
+skills/readiness/dashboard, CV intelligence, AI Work Profile, interview question bank + variants, local admin studio,
+privacy, error states, Netlify hardening) are done. See `docs/PROMPT3_COMPLETION.md`. Extend these systems; don't replace them.
+
+Prompt 3 rules that must hold:
+- **Scoring is rubric-first** (`js/scoring.js`): per-answer 0–4 levels per dimension, then % = level ÷ 4; overall = weighted
+  dims the interview tested. Every score keeps evidence found/missing, verbatim excerpts and how-to-improve. The adaptive
+  engine still uses the internal 0–100 `a.score` for pacing only; anything shown to users uses `ansPct(a)` / `s.scores.role`.
+- **No fabrication:** stronger-structure advice never invents experience; CV items keep their source line; only confirmed
+  CV items and accepted mappings are used; Alex quotes confirmed CV text verbatim.
+- **Never** "chance of getting hired / passing" or "employment probability". Paths use "BSP Internal Fit".
+- **Admin is local-only** (`#/admin`): it must never pretend to change the public site. Generated questions stay DRAFT.
+- Only PUBLISHED questions reach users (interview: `InterviewBank.finalizePool`; practice: `QuestionBank.pool`).
 
 Prompt 2 rules that must hold:
 - Practice sessions are ALWAYS exactly 10 questions (`PRACTICE_QUESTIONS`); Easy 15 / Medium 20 / Hard 25 min.
@@ -55,6 +66,14 @@ Correction-pass rules that must hold:
 | `js/data/professions.js` | `GROUPS`, `PROFESSIONS` (145), `PROF` lookup, `TRANSFERABLE_HINTS` |
 | `js/data/items.js` | `ALEX` script, `TYPES` (+stage `weights`), `MODES`, `LEVELS`, `DIFFS`, `LENGTHS`, `FOLLOWUP` (7 types), `LANG_BALANCE`, `FINALS`, `ITEM_SETS`, `LEGACY_MAP`, `PRACTICE_TASKS` (v1, unused) |
 | `js/data/roles.js` | `ROLE_MODELS` (18 role models → 54 professions): curated questions with follow-ups, artifacts, memory triggers, finals; FR-EN bilingual bank; extra competencies |
+| `js/data/concepts.js` | Interview `CONCEPTS`, each with 5 meaningfully different variants (e.g. Project Schedule Risk: vendor delay, resource absence, regulatory delay, technical dependency, budget freeze) |
+| `js/data/bank-critique.js` | Response Critique generator (select accurate + specific critiques) |
+| `js/scoring.js` | `RUBRIC_LEVELS`, `ROLE_DIMS`, `TYPE_DIMS`, `rubricFor`, `computeRoleScore`, `strongerStructure`, `responseAnalytics`, `nextInterviewFor` |
+| `js/interview-bank.js` | `InterviewBank` (record catalog, statuses, local edits, `finalizePool`), `conceptQuestionsFor`, `generateDrafts`, `applyRoleOverrides`, Alex settings |
+| `js/cv.js` | CV parse (paste / .txt upload / build), review UI, `CV` API, AI Experience Mapper (`buildMappings`), `cvIntroLine` |
+| `js/insights.js` | `SKILLS` taxonomy, `skillEvidence`, `readinessModel`, `nextBestActions`, dashboard / readiness / skills / activity / AI Work Profile screens |
+| `js/report-ui.js` | Alex Interview Report, Interview History, Score Trends |
+| `js/admin.js` | Local Content Studio: question manager, generator, role manager, Alex settings, export/import |
 | `js/data/practice-core.js` | Practice constants, `PRACTICE_COMPETENCIES`, 24 `PRACTICE_CATEGORIES` (each with a competency mapping `{id, from:[grading components]}` and common errors), question constructors (`qRank`, `qEval`, `qFact`, `qMulti`, `qSingle`, `qRewrite`, `qTranscribe`, `qHallu`), `LEGACY_TASK_REVIEW` |
 | `js/data/bank-*.js` | Original question content per family: ranking, evaluation (+domain expert), facts (fact checking, hallucination, research), annotation (6 categories), language (FR-EN, multilingual, transcription), generalist, coding |
 | `js/data/bank-generated.js` | Deterministic seeded generators (instruction following, rewriting, documents, spreadsheets, image labelling, image-to-text), materialised as stable ids `prefix-difficulty-n` |
@@ -63,10 +82,11 @@ Correction-pass rules that must hold:
 | `js/practice.js` | Practice engine: session build (always 10), grading per format, submit/results, progression, `getRecommendations` |
 | `js/interview-ui.js` | Mic check, live interview screen (voice state machine, Alex controls), `renderArtifact` |
 | `js/practice-ui.js` | Practice Lab home/setup/runner/results/history, `recommendationsHTML` |
-| `js/storage.js` | `StorageAdapter` (localStorage → memory fallback) + `Repo` (sessions, practice [legacy], practiceSessions, questionStats, bankOverrides, prefs, customProfessions), v1 migration |
+| `js/storage.js` | `StorageAdapter` (localStorage → memory fallback) + `Repo` (sessions, practice [legacy], practiceSessions, questionStats, bankOverrides, prefs, customProfessions, cv, interviewBank, roleOverrides, alexSettings, admin; `clearGroups`), v1 migration |
 | `js/engine.js` | `Speech` (lang/rate/mute), `scoreAnswer` (+communication, stem match, filler strip, language check), question architecture, blueprint (stage flow + weights), same-session memory, follow-ups, session model, area-weighted reports |
 | `js/app.js` | Hash router, nav, home, setup wizard, results/report, history, progress, about, boot (loads last) |
-| `tests/regression.mjs` | Playwright browser regression suite (179 checks, voice flows mocked) |
+| `tests/regression.mjs` | Playwright browser regression suite (283 checks incl. Prompt 3 journeys 1–6; voice flows mocked) |
+| `tests/spa-server.py` | Local stand-in for Netlify's `/* → /index.html` fallback (deep-link test) |
 | `tests/engine-check.js` | Headless sweep: every profession × allowed type builds a pool and finishes an interview |
 | `logo.png` / `logo.svg` | Header logo + fallback; `log.png.jpeg` is the source logo asset (unused) |
 
@@ -107,7 +127,9 @@ Top-level `function` declarations are global, which is what inline `onclick` han
 ## Routes
 `#/` home · `#/interview` hub · `/interview/start` (7-step wizard) · `/interview/alex` · `/interview/domain` ·
 `/interview/ai-evaluation` · `/interview/history` · `/interview/mic-check` · `/interview/session` · `#/practice` ·
-`/practice/setup/:category` · `/practice/run` · `/practice/results/:id` · `/practice/history` · `#/results` · `/results/:id` · `#/progress` · `/progress/skills` · `/progress/activity` · `#/about`.
+`/practice/setup/:category` · `/practice/run` · `/practice/results/:id` · `/practice/history` · `#/results` · `/results/:id` · `#/progress` (dashboard) ·
+`/progress/readiness` · `/progress/skills` · `/progress/trends[/:professionId]` · `/progress/activity` · `#/profile` · `#/cv` · `/cv/mapper` · `#/privacy` · `#/about` ·
+`#/admin[/:tab]` (local studio, not in nav). `netlify.toml` serves index.html for any path; index.html turns `/path` into `#/path`.
 Unknown routes fall back to home. Add new nav links only with a working route.
 
 ## Run / test locally

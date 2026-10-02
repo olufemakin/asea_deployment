@@ -7,6 +7,10 @@
 <meta name="description" content="BSP AI WorkReady · Interview IQ: practice realistic AI-led interviews with Alex, your BSP AI interviewer. Domain expert, AI evaluation, behavioral and transferable-skills interviews for 140+ professions. Free, voice or text, no sign-up." />
 <meta name="theme-color" content="#05061a" />
 <link rel="icon" href="logo.svg" type="image/svg+xml" />
+<script>
+  /* Deep links like /practice or /interview/start (from Netlify's SPA fallback) become hash routes. */
+  (function(){ var p=location.pathname; if(p!=="/" && !/\/index\.html$/.test(p) && !/\.[a-z0-9]+$/i.test(p)) location.replace("/#"+p.replace(/\/+$/,"")+location.search); })();
+</script>
 <link rel="stylesheet" href="css/app.css" />
 </head>
 <body>
@@ -46,15 +50,26 @@
       <div class="dd" data-nav="progress">
         <button class="ddbtn" aria-expanded="false" aria-haspopup="true">Progress<span class="car">▾</span></button>
         <div class="ddmenu">
-          <a href="#/progress">Interview Readiness<small>Your readiness score</small></a>
-          <a href="#/progress/skills">Skills &amp; Scores<small>Rubric and competencies</small></a>
+          <a href="#/progress">Progress Dashboard<small>Readiness, skills and next best action</small></a>
+          <a href="#/progress/readiness">Interview Readiness<small>Your readiness and its inputs</small></a>
+          <a href="#/progress/skills">Skills &amp; Scores<small>Evidence from practice, interviews and CV</small></a>
+          <a href="#/progress/trends">Score Trends<small>Attempt-by-attempt progress</small></a>
           <a href="#/progress/activity">Recent Activity<small>Interviews and practice</small></a>
+        </div>
+      </div>
+      <div class="dd" data-nav="profile">
+        <button class="ddbtn" aria-expanded="false" aria-haspopup="true">Profile<span class="car">▾</span></button>
+        <div class="ddmenu">
+          <a href="#/profile">My AI Work Profile<small>Strengths and potential paths</small></a>
+          <a href="#/cv">My CV<small>Paste, upload or build, then confirm</small></a>
+          <a href="#/cv/mapper">AI Experience Mapper<small>Transferable AI-work skills</small></a>
         </div>
       </div>
       <a href="#/about" data-nav="about">About</a>
     </nav>
   </div>
 </header>
+<div class="sysbanner" id="sysBanner" role="status" hidden></div>
 <main class="wrap" id="app" tabindex="-1">
   <noscript><div class="card"><h2>JavaScript required</h2><p>Interview IQ runs entirely in your browser and needs JavaScript enabled.</p></div></noscript>
 </main>
@@ -75,13 +90,25 @@
 <script src="js/data/bank-generalist.js"></script>
 <script src="js/data/bank-coding.js"></script>
 <script src="js/data/bank-generated.js"></script>
+<script src="js/data/bank-critique.js"></script>
+<script src="js/data/concepts.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/question-bank.js"></script>
+<script src="js/scoring.js"></script>
+<script src="js/interview-bank.js"></script>
 <script src="js/voice.js"></script>
 <script src="js/practice.js"></script>
 <script src="js/interview-ui.js"></script>
 <script src="js/practice-ui.js"></script>
+<script src="js/cv.js"></script>
+<script src="js/insights.js"></script>
+<script src="js/report-ui.js"></script>
+<script src="js/admin.js"></script>
 <script src="js/app.js"></script>
+<script>
+  /* If a script failed to load, show a recovery screen instead of a blank page. */
+  if(!window.__iqBooted){ var a=document.getElementById("app"); if(a) a.innerHTML='<div class="card empty" role="alert"><h2>Interview IQ couldn\'t start</h2><p class="muted">A file failed to load. Check your connection and reload the page. Your saved progress is kept in this browser.</p><button class="btn primary" onclick="location.reload()">Reload</button></div>'; }
+</script>
 </body>
 </html>

@@ -38,6 +38,7 @@ function scrPractice(){
       <div class="card stat"><div class="l">Sessions completed</div><div class="v">${done.length}</div></div>
       <div class="card stat"><div class="l">Average score</div><div class="v">${done.length?avg(done.map(p=>p.results.score)):"–"}</div></div>
       <div class="card stat"><div class="l">Categories practised</div><div class="v">${Object.keys(last).length} / ${avail.length}</div></div></div>`
+  + (!done.length?`<div class="card" id="practiceEmpty" style="margin-bottom:18px"><b>Start your first 10-question practice session.</b> <span class="small muted">Pick any available category below.</span></div>`:"")
   + (done.length||Repo.sessions.completed().length?`<div class="card" style="margin-bottom:18px">${recommendationsHTML()||`<p class="small muted" style="margin:0">Complete more sessions to unlock personalised recommendations.</p>`}</div>`:"")
   + `<div class="grid g3">${PRACTICE_CATEGORIES.map(c=>{ const l=last[c.id], prog=practiceProgression(c.id);
       if(!isCategoryAvailable(c.id)) return `
@@ -50,7 +51,7 @@ function scrPractice(){
         <div class="row between center"><span class="ic" style="margin:0">${c.icon}</span>${l?scoreBadge(l.results.score):`<span class="badge">New</span>`}</div>
         <div class="t" style="margin-top:8px">${H(c.label)}</div><div class="d">${H(c.d)}</div>
         ${prog?`<div class="small" style="margin-top:8px;color:var(--accent)">Recommended: ${PRACTICE_DIFF[prog.difficulty].label}</div>`:""}</a>`; }).join("")}</div>
-    <p class="note">Your sessions are saved in <a href="#/practice/history">My Practice History</a>.</p>`;
+    <p class="note">Your sessions are saved in <a href="#/practice/history">My Practice History</a>.</p><p class="note integrity">${INTEGRITY_NOTICE}</p>`;
 }
 
 /* ---------- Setup --------------------------------------------------------- */
@@ -268,7 +269,7 @@ function scrPracticeHistory(){
       <td>${R?scoreBadge(R.score):`<span class="badge info">In progress</span>`}</td><td>${PRACTICE_QUESTIONS}</td><td>${R?fmtDur(R.timeUsedSec):fmtClock(practiceRemaining(p))+" left"}</td><td>${R?fmtDur(R.avgSec):"–"}</td>
       <td>${R?`<a class="btn sm" href="#/practice/results/${p.id}">Review</a>`:`<a class="btn sm primary" href="#/practice/run">Resume</a>`}</td></tr>`; }).join("")}
     </tbody></table></div></div>`
-  : emptyCard("🧪","No practice sessions yet","Start a timed 10-question session in the Practice Lab.","#/practice","Open Practice Lab"))
+  : emptyCard("🧪","No practice sessions yet","Your completed sessions will appear here. Start your first 10-question practice session.","#/practice","Open Practice Lab"))
   + (legacy.length?`<div class="card legacy"><h3>Legacy practice</h3><p class="small muted">Single tasks completed before the Practice Lab upgrade. They stay readable here but are not counted in standardised analytics, progression or recommendations.</p>
     <div class="list">${legacy.map(a=>`<div class="item legacyrow"><div><div class="t"><span class="badge">LEGACY PRACTICE</span> ${H(a.title)}</div><div class="m">1 Task · Completed before Practice Lab upgrade · ${H(fmtDate(a.at))}${a.skill?" · "+H(a.skill):""}</div></div>${scoreBadge(a.score)}</div>`).join("")}</div></div>`:"");
 }

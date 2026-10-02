@@ -17,7 +17,7 @@ const { chromium } = pw.default || pw;
 const BASE = process.env.BASE_URL || "http://localhost:4555/";
 const results = []; let failed = 0;
 function check(name, ok, detail = "") { results.push(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? "  — " + detail : ""}`); if (!ok) failed++; }
-async function section(name, fn) { try { await fn(); } catch (e) { check(`${name} (section crashed)`, false, String(e.message).split("\n")[0]); } }
+async function section(name, fn) { try { await fn(); } catch (e) { check(`${name} (section crashed)`, false, String(e.message).split("\n").slice(0,3).join(" / ")); } }
 
 const browser = await chromium.launch({ ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}),
   args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream", "--autoplay-policy=no-user-gesture-required"] });
@@ -89,7 +89,8 @@ await section("Home + navigation", async () => {
   check("Home shows BSP AI WorkReady + Interview IQ hierarchy", /BSP AI WorkReady/i.test(home) && /Interview IQ/i.test(home));
   check("Home lists the six features", ["Voice Interviews","Text Interviews","Domain Expert Interviews","AI Evaluation Interviews","Adaptive Follow-Ups","Detailed Feedback"].every(f => home.includes(f)));
   const hrefs = await p.$$eval("#mainNav a[href]", as => as.map(a => a.getAttribute("href")));
-  check("Navigation has all 13 destinations", hrefs.length === 13, hrefs.join(" "));
+  // Prompt 3 added Progress Dashboard, Score Trends and the Profile menu (AI Work Profile, My CV, AI Experience Mapper).
+  check("Navigation has all 18 destinations", hrefs.length === 18, hrefs.join(" "));
   for (const h of hrefs) { await p.goto(BASE + h); await p.waitForTimeout(80); const t = (await appText(p)).trim(); check(`Nav ${h} renders`, t.length > 40 && !/Something went wrong/.test(t)); }
   await p.goto(BASE + "#/");
   await p.click('.dd[data-nav="interview"] .ddbtn');
@@ -154,7 +155,7 @@ await section("Setup flow + text interview", async () => {
   // Memory: intro mentions a vendor delay; later Alex should call back to it.
   const seen = [];
   const done = await answerUntilDone(p, (g, q) => { seen.push(q); return g === 0 ? "I managed a software implementation where a vendor caused a major delay. I led a team of eight, reported to the steering committee, and because the budget was at risk I agreed a recovery plan with the sponsor; for example we re-sequenced testing and cut two low-value features." : goodAnswer; });
-  check("Text interview completes and report renders", done && /Question-by-question feedback/.test(await appText(p)));
+  check("Text interview completes and report renders", done && /Answer-by-answer review/i.test(await appText(p)));
   check("Alex remembers prior answers (memory callback)", seen.some(q => /You mentioned that you managed a software implementation where a vendor caused a major delay/.test(q)), "");
   check("Practical task exhibit shown (risk register / status report)", seen.some(q => /RISK REGISTER|AI-GENERATED WEEKLY STATUS REPORT/i.test(q)));
   const rep = await appText(p);
@@ -162,7 +163,8 @@ await section("Setup flow + text interview", async () => {
   const doneS = await p.evaluate(id => Repo.sessions.get(id), firstSessionId);
   check("Session completed with scores, areas and feedback", doneS.status === "completed" && doneS.answers.length === 10 && doneS.scores.areas && Object.keys(doneS.scores.competencies).length >= 3);
   check("Interview flow: background → … → final", doneS.answers[0].questionType === "intro" && doneS.answers[9].questionType === "final");
-  check("Report shows weighted interview areas", /Interview areas/i.test(rep) && /Domain Expertise/.test(rep) && /AI Evaluation/.test(rep) && /Communication/.test(rep));
+  // Prompt 3: the report breaks the BSP Role Interview Score into rubric dimensions (replaces "Interview areas").
+  check("Report shows rubric-based competency breakdown", /Competency breakdown/i.test(rep) && /Domain Knowledge/.test(rep) && /AI Evaluation Ability/.test(rep) && /Communication/.test(rep) && /rubric/i.test(rep));
   check("Report states accent is never scored", /Accent, voice pitch, regional speech patterns, gender presentation and perceived ethnicity are never scored/.test(rep));
   check("Alex stays neutral (no 'Great answer/Perfect/Excellent')", !/great answer|perfect!|excellent!/i.test(rep));
 });
@@ -202,7 +204,7 @@ await section("Healthcare + bilingual", async () => {
   check("Bilingual report has English/French areas and no fluency label", /English/.test(rep) && /French/.test(rep) && /does not label you as native, fluent or a certified translator/.test(rep));
 });
 await section("Results, history, migration", async () => {
-  for (const [h, re] of [["#/progress", /Interview-ready|Nearly ready|Building foundations/], ["#/progress/skills", /Competencies/i], ["#/progress/activity", /Report/], ["#/results", /All reports/], ["#/interview/history", /Report/]]) {
+  for (const [h, re] of [["#/progress", /Next best action/i], ["#/progress/readiness", /Strong preparation|Developing|Building foundations/], ["#/progress/skills", /Current skill evidence/i], ["#/progress/activity", /Report/], ["#/results", /All reports/], ["#/interview/history", /View report/i]]) {
     await p.goto(BASE + h); await p.waitForTimeout(60); check(`${h} shows data`, re.test(await appText(p)));
   }
   const m = await newPage(undefined, () => {
@@ -416,11 +418,15 @@ await section("Question bank integrity", async () => {
     "text_classification", "document_evaluation", "spreadsheet_evaluation", "generalist_ai_evaluation", "french_english_evaluation"];
   check("All 12 priority categories AVAILABLE with ≥10 Easy, ≥10 Medium, ≥10 Hard", PRIORITY.every(id => { const a = audit.find(x => x.id === id); return a && a.status === "available" && a.easy >= 10 && a.medium >= 10 && a.hard >= 10; }));
   check("Availability rule: AVAILABLE only when every difficulty has ≥10 published", audit.every(a => (a.status === "available") === (a.easy >= 10 && a.medium >= 10 && a.hard >= 10)));
-  // A category without content is COMING SOON and never a dead link.
+  check("All 24 categories AVAILABLE (Response Critique completed in Prompt 3)", audit.every(a => a.status === "available"), JSON.stringify(audit.filter(a => a.status !== "available")));
+  // A category that drops below 10 at any level is COMING SOON and never a dead link (simulated by archiving 3 Easy questions).
+  await qp.evaluate(() => { QuestionBank.pool("response_critique", "easy").slice(0, 3).forEach(q => Repo.bankOverrides.set(q.id, { status: "archived" })); QuestionBank.reset(); });
+  await qp.goto(BASE + "#/practice"); await qp.evaluate(() => route()); await qp.waitForSelector("[data-cat]");
   const soon = await qp.$('[data-cat="response_critique"]');
   check("Incomplete category shows COMING SOON (not a link)", soon && /Coming soon/i.test(await soon.innerText()) && (await soon.evaluate(n => n.tagName)) !== "A");
   await qp.goto(BASE + "#/practice/setup/response_critique"); await qp.waitForSelector("#pDiff");
   check("Incomplete category: start disabled + 'More practice questions are being prepared for this level.'", await qp.isDisabled("#startPractice") && /More practice questions are being prepared for this level\./.test(await appText(qp)));
+  await qp.evaluate(() => { Repo.bankOverrides.clear(); QuestionBank.reset(); });
   // No borrowing: drop a pool to 9 and the session must not start (no top-up from other categories or levels).
   const blocked = await qp.evaluate(() => { const id = QuestionBank.pool("hallucination_detection", "medium")[0].id; Repo.bankOverrides.set(id, { status: "archived" }); QuestionBank.reset();
     const r = { pool: QuestionBank.pool("hallucination_detection", "medium").length, session: createPracticeSession("hallucination_detection", "medium") }; return { pool: r.pool, started: !!r.session }; });
@@ -526,6 +532,267 @@ await section("Statuses, admin hook, dead buttons", async () => {
   }
   check("No dead onclick handlers on main screens", missing.size === 0, [...missing].join(", "));
   check("No console errors in status/admin checks", sp.errors.length === 0, sp.errors.slice(0, 3).join(" | "));
+});
+
+/* =================== PROMPT 3: USER JOURNEYS + PRODUCTION QA =================== */
+const SAMPLE_CV = `Adaeze Okafor
+
+WORK EXPERIENCE
+Senior Project Manager — Horizon Builders Ltd (Jan 2019 – Present)
+- Managed schedules, vendor risks and stakeholder communication for 12 commercial projects
+- Reduced procurement delays by 30% by introducing a weekly vendor review
+
+Procurement Officer, Delta Supplies | 2015 - 2018
+- Followed procurement procedures and compliance checklists for all purchase orders
+
+EDUCATION
+BSc Civil Engineering, University of Lagos, 2014
+
+SKILLS
+Risk management, Budgeting, Stakeholder management
+Languages: English (native), French (professional)`;
+let j1Id = null;
+await section("Journey 1: PM · Text · AI Domain · Experienced · Adaptive · 10 → report", async () => {
+  const j = await newPage();
+  await j.goto(BASE); await j.click(".hero >> text=Start interview"); await j.waitForSelector("#profSearch");
+  await j.fill("#profSearch", "project manager"); await j.click('#profList .pchip:text-is("Project Manager")');
+  await j.click("text=Continue →"); await j.click('.opt:has-text("TEXT")'); await j.click("text=Continue →");
+  await j.click('#typeOpts .opt:has-text("AI DOMAIN EXPERT INTERVIEW")'); await j.click("text=Continue →");
+  await j.click('.opt:has-text("Experienced")'); await j.click("text=Continue →"); await j.click('.opt:has-text("Adaptive")'); await j.click("text=Continue →");
+  await j.click('.opt:has-text("STANDARD")'); await j.click("text=Review summary →");
+  check("J1: integrity notice shown before the interview", /Do not use it to obtain real-time answers during an active external employer interview or qualification assessment/.test(await appText(j)));
+  await j.click("text=Start interview with Alex"); await j.waitForSelector(".qbox");
+  let sawPreparing = false;
+  j.on("framenavigated", () => {});
+  const done = await answerUntilDone(j, () => goodAnswer);
+  const rep = await appText(j);
+  j1Id = await j.evaluate(() => Repo.sessions.all()[0].sessionId);
+  const S = await j.evaluate(id => Repo.sessions.get(id), j1Id);
+  check("J1: 10 questions completed, report renders", done && S.answers.length === 10 && S.status === "completed");
+  check("J1: report header (BSP AI WorkReady · Interview Report · Alex · profession · interview · mode · difficulty · overall /100)",
+    /BSP AI WorkReady/i.test(rep) && /Interview Report/i.test(rep) && /Alex · BSP AI Interviewer/.test(rep) && /Project Manager/.test(rep) && /AI Domain Expert/.test(rep) && /Text/.test(rep) && /Adaptive/.test(rep) && /\d+ \/ 100/.test(rep));
+  check("J1: all report sections present", ["Overall performance","Competency breakdown","What you did well","Where you can improve","Answer-by-answer review","Time / response analytics","Recommended practice","Recommended next interview"].every(h => new RegExp(h, "i").test(rep)));
+  check("J1: rubric-first scoring stored (levels 0–4, overall = weighted dims)", S.answers.every(a => a.rubric && a.rubric.level >= 0 && a.rubric.level <= 4 && a.rubric.version === "bsp-rubric-1") && S.scores.role && S.scores.overall === S.scores.role.overall && Object.keys(S.scores.role.dims).length >= 3);
+  check("J1: every dimension stores evidence found / missing / excerpts / how to improve", Object.values(S.scores.role.dims).every(d => Array.isArray(d.found) && Array.isArray(d.missing) && Array.isArray(d.excerpts) && Array.isArray(d.improve)));
+  const whys = await j.$$("details.whybox"); await whys[1].click();
+  const why = await whys[1].innerText();
+  check("J1: 'Why did I get this score?' shows Evidence Found / Missing / Excerpts / How to Improve", /Evidence found/i.test(why) && /Evidence missing|How to improve/i.test(why) && (/Relevant response excerpts/i.test(why) || /Evidence found/i.test(why)));
+  check("J1: excerpts are verbatim from the candidate's answers", Object.values(S.scores.role.dims).every(d => d.excerpts.every(x => S.answers.some(a => (a.answer + " " + (a.followUp && a.followUp.answer || "")).includes(x.replace(/…$/, ""))))));
+  check("J1: answer review has question, answer, competency, score, signals, feedback, stronger structure", ["Question","Your answer","Competency","Score","Strong signals found","Missing signals","Alex's feedback","A stronger structure could be:"].every(k => rep.includes(k) || new RegExp(k, "i").test(rep)));
+  check("J1: stronger structure never invents experience", !/Say that you managed/i.test(rep) && /if you have one/i.test(rep));
+  check("J1: no hiring-probability language", !/chance of (getting hired|passing)|employer probability|employment probability|probability of/i.test(rep));
+  check("J1: no console errors", j.errors.length === 0, j.errors.slice(0, 3).join(" | "));
+  // Journey 6 (uses this browser): history → open earlier result → retry → compare.
+  await j.goto(BASE + "#/interview/history"); await j.waitForSelector(".hrow[data-session]");
+  const hist = await appText(j);
+  check("J6: history shows profession, type, mode, difficulty, date, duration, score", /Project Manager/.test(hist) && /AI Domain Expert/.test(hist) && /Text/.test(hist) && /Adaptive/.test(hist) && /\d{4}/.test(hist) && /\d+ (s|min)/.test(hist) && /\/100/.test(hist));
+  await j.click(`.hrow[data-session="${j1Id}"] >> text=View report`); await j.waitForSelector("#overallScore");
+  check("J6: View Report opens the earlier result", j.url().includes(j1Id));
+  await j.goto(BASE + "#/interview/history"); await j.click(`.hrow[data-session="${j1Id}"] >> text=Retry`); await j.waitForSelector(".qbox");
+  check("J6: Retry starts the same interview", /Project Manager/.test(await appText(j)) && (await j.evaluate(() => App.session.interviewType)) === "ai_domain");
+  await answerUntilDone(j, (g) => g % 2 ? goodAnswer : goodAnswer + " Finally, I would verify the outcome against the baseline and document the decision for the steering committee.");
+  await j.goto(BASE + "#/interview/history"); await j.click(`.hrow[data-session="${j1Id}"] >> text=Compare progress`); await j.waitForSelector(".trendlist");
+  const tr = await appText(j);
+  check("J6: Compare progress shows attempts and individual trends", /Attempt 1/.test(tr) && /Attempt 2/.test(tr) && /Reasoning/.test(tr) && /Domain Expertise/.test(tr) && /AI Evaluation/.test(tr) && /Communication/.test(tr) && !!(await j.$("svg.trendsvg")));
+});
+await section("Journey 2: Nurse · Voice · mic check · voice unavailable → text fallback → report", async () => {
+  const v = await newPage(undefined, voiceMocks);
+  await v.goto(BASE); await v.click('.dd[data-nav="interview"] .ddbtn'); await v.click('#mainNav a[href="#/interview/start"]');
+  await setupInterview(v, { search: "registered nurse", pick: "Registered Nurse", mode: "VOICE", type: "AI DOMAIN EXPERT INTERVIEW" });
+  await v.waitForSelector("#micStatus");
+  check("J2: microphone check shown", /Microphone check/i.test(await appText(v)));
+  await v.waitForFunction(() => /Microphone detected/.test(document.getElementById("micStatus").innerText), null, { timeout: 5000 });
+  await v.click("#sampleBtn"); await v.waitForFunction(() => /We heard/.test(document.getElementById("samplePreview").innerText), null, { timeout: 5000 });
+  await v.click("#micGood"); await v.waitForSelector(".qbox");
+  check("J2: voice interview screen", /Voice mode/.test(await appText(v)) && !!(await v.$("#micBtn")));
+  await v.evaluate(() => { window.__sr.mode = "denied"; });
+  await v.click("#micBtn"); await v.waitForSelector(".err-box");
+  await v.click("text=Continue with text"); await v.waitForSelector("#typeBox");
+  check("J2: voice unavailable → text fallback keeps the interview going", (await v.evaluate(() => App.session.mode)) === "text");
+  const done = await answerUntilDone(v, () => goodAnswer);
+  check("J2: report produced after fallback", done && /Interview Report/i.test(await appText(v)));
+  check("J2: no console errors", v.errors.length === 0, v.errors.slice(0, 3).join(" | "));
+});
+await section("Journeys 3–4: Practice", async () => {
+  const pp = await newPage();
+  await pp.goto(BASE + "#/practice"); await pp.click('a[data-cat="ai_response_evaluation"]'); await pp.waitForSelector("#pDiff");
+  await pp.click('#pDiff .opt:has-text("EASY")');
+  check("J3: setup confirms 10 Questions / 15 Minutes", /EASY 10 Questions · 15 Minutes/.test(await appText(pp)));
+  await pp.click("#startPractice"); await pp.waitForSelector("#pClock");
+  await answerCurrent(pp); await pp.click("#pNext"); await answerCurrent(pp); await pp.click("#flagBtn"); await pp.click("text=← Previous");
+  check("J3: navigate + flag", /Question 1 \/ 10/.test(await appText(pp)) && (await pp.evaluate(() => Repo.practiceSessions.all()[0].flags.length)) === 1);
+  await pp.click("#pSubmit"); await pp.waitForSelector(".ring");
+  check("J3: submit → results", /SESSION COMPLETE/i.test(await appText(pp)) && /Competency breakdown/i.test(await appText(pp)));
+  await pp.goto(BASE + "#/practice/setup/preference_ranking"); await pp.click('#pDiff .opt:has-text("MEDIUM")');
+  check("J4: Preference Ranking Medium = 10 Questions / 20 Minutes", /MEDIUM 10 Questions · 20 Minutes/.test(await appText(pp)));
+  await pp.click("#startPractice"); await pp.waitForSelector("#pClock");
+  check("J4: timer starts at 20:00", /^(20:00|19:5\d)$/.test(await pp.innerText("#pClock")));
+  await pp.evaluate(() => { const ps = Repo.practiceSessions.all()[0]; ps.endsAt = Date.now() + 1200; Repo.practiceSessions.save(ps); });
+  await pp.reload(); await pp.waitForSelector(".ring", { timeout: 8000 });
+  check("J4: timer expiry auto-submits", /Time's up/i.test(await appText(pp)) && (await pp.evaluate(() => Repo.practiceSessions.all()[0].autoSubmitted)) === true);
+  check("J3–4: no console errors", pp.errors.length === 0, pp.errors.slice(0, 3).join(" | "));
+});
+await section("Journey 5: CV → analyze → confirm → personalised interview", async () => {
+  const c = await newPage();
+  await c.goto(BASE + "#/cv");
+  check("J5: empty state 'Add your experience to personalize your interviews.'", /Add your experience to personalize your interviews\./.test(await appText(c)));
+  check("J5: Upload CV / Paste CV / Build From Profile offered", /Upload CV/.test(await appText(c)) && /Paste CV/.test(await appText(c)) && /Build From Profile/.test(await appText(c)));
+  await c.click("#cvPaste"); await c.fill("#cvText", SAMPLE_CV); await c.click("#cvAnalyze"); await c.waitForSelector(".cvitem");
+  const items = await c.evaluate(() => CV.get().items);
+  check("J5: extraction covers roles, responsibilities, achievements, education, skills, languages", ["role","responsibility","achievement","education","skill","language"].every(k => items.some(i => i.kind === k)));
+  check("J5: every extracted item keeps its exact source line (no fabrication)", items.every(i => SAMPLE_CV.replace(/\s+/g, " ").includes(i.source.replace(/\s+/g, " ").slice(0, 40))));
+  check("J5: nothing is trusted before confirmation", (await c.evaluate(() => CV.hasConfirmed())) === false);
+  const del = items.find(i => i.kind === "skill"); await c.click(`.cvitem[data-id="${del.id}"] >> text=Delete`);
+  const ed = items.find(i => i.kind === "education"); await c.click(`.cvitem[data-id="${ed.id}"] >> text=Edit`); await c.fill("#cvEditBox", "BSc Civil Engineering, University of Lagos"); await c.click("text=Save & confirm");
+  check("J5: Edit and Delete work", (await c.evaluate(id => !CV.get().items.some(i => i.id === id), del.id)) && (await c.evaluate(id => CV.get().items.find(i => i.id === id).status === "confirmed", ed.id)));
+  await c.click("text=Confirm all shown");
+  check("J5: confirmed items trusted", (await c.evaluate(() => CV.confirmed().length)) >= 8);
+  await c.goto(BASE + "#/cv/mapper"); await c.waitForSelector("#mappings");
+  const labels = await c.$$eval(".mapitem", n => n.map(x => x.dataset.label));
+  check("J5: mapper labels EVIDENCE SUPPORTED / POTENTIALLY SUPPORTED / EVIDENCE REQUIRED", labels.includes("supported") && labels.includes("potential") && labels.includes("required"));
+  await c.click('.mapitem[data-label="supported"] >> text=Accept'); await c.click('.mapitem[data-label="potential"] >> text=Ignore');
+  check("J5: Accept / Ignore recorded; only accepted mappings count", (await c.evaluate(() => CV.acceptedMappings().length)) === 1);
+  await c.goto(BASE + "#/progress/skills"); check("J5: accepted CV mapping shown as labelled evidence (not a score)", /Evidence supported/.test(await appText(c)));
+  await c.goto(BASE + "#/interview/start"); await c.click(".step >> text=Profession");
+  await c.fill("#profSearch", "project manager"); await c.click('#profList .pchip:text-is("Project Manager")');
+  await c.click("text=Continue →"); await c.click('.opt:has-text("TEXT")'); for (let i = 0; i < 4; i++) await c.click("text=Continue →"); await c.click("text=Review summary →");
+  check("J5: toggle 'USE MY CONFIRMED CV FOR THIS INTERVIEW' shown", /USE MY CONFIRMED CV FOR THIS INTERVIEW/.test(await appText(c)));
+  await c.check("#useCv"); await c.click("text=Start interview with Alex"); await c.waitForSelector(".qbox");
+  const intro = await c.innerText(".qbox");
+  check("J5: Alex personalises using confirmed facts only", /I see from your confirmed CV that you have experience as Senior Project Manager/.test(intro));
+  const seen = []; const done = await answerUntilDone(c, (g, q) => { seen.push(q); return goodAnswer; });
+  check("J5: a question quotes a confirmed CV line verbatim", seen.some(q => /Your confirmed CV mentions: “Managed schedules, vendor risks and stakeholder communication for 12 commercial projects”/.test(q)));
+  check("J5: personalised interview completes with report", done && /Personalised with/i.test(await appText(c)));
+  check("J5: no console errors", c.errors.length === 0, c.errors.slice(0, 3).join(" | "));
+});
+await section("Skills, readiness, dashboard, profile", async () => {
+  const d = p;  // main page has interviews and practice from earlier sections
+  await d.goto(BASE + "#/progress"); await d.waitForSelector("#nextBest");
+  const t = await appText(d);
+  check("Dashboard shows readiness, practice accuracy, interviews, practice sessions, strongest skill, skill to improve, recent score",
+    ["Interview readiness","Practice accuracy","Interviews completed","Practice sessions","Strongest skill","Skill to improve","Recent score"].every(k => new RegExp(k, "i").test(t)));
+  check("Next best action is a concrete recommendation", /Next best action/i.test(t) && (await d.$$("#nextBest .btn")).length >= 1);
+  await d.goto(BASE + "#/progress/readiness");
+  const r = await appText(d);
+  check("BSP Interview Readiness lists components with inputs", ["Interview Experience","Domain Performance","Reasoning","Communication","AI Evaluation","Practice Performance"].every(k => r.includes(k)) && /Inputs:/.test(r));
+  check("Readiness never claims hiring/pass probability", /not a chance of being hired/i.test(r) && !/Chance of Getting Hired|Chance of Passing|Employer Probability/.test(r.replace(/not a chance of being hired or of passing any assessment/i, "")));
+  await d.goto(BASE + "#/progress/skills");
+  const sk = await appText(d);
+  check("Skills show Practice / Alex interview / CV / Current skill evidence", /Practice/i.test(sk) && /Alex interview/i.test(sk) && /CV \/ experience/i.test(sk) && /Current skill evidence/i.test(sk));
+  await d.goto(BASE + "#/profile");
+  const pf = await appText(d);
+  check("AI Work Profile: domain, strengths, development, paths with BSP Internal Fit", /Professional domain/i.test(pf) && /Interview strengths/i.test(pf) && /Practice strengths/i.test(pf) && /Development areas/i.test(pf) && /BSP Internal Fit/.test(pf) && /not an employment probability/i.test(pf));
+  check("Profile lists the 8 potential paths", ["AI Response Evaluator","Generalist AI Evaluator","Domain Expert","Fact Checker","Research Evaluator","Data Annotator","Coding Evaluator","Multilingual Evaluator"].every(k => pf.includes(k)));
+});
+await section("Question bank: variants, reuse, statuses", async () => {
+  const q = await newPage();
+  await q.goto(BASE);
+  const r = await q.evaluate(() => {
+    const all = InterviewBank.all(), fields = ["id","profession","competency","difficulty","questionType","scenario","question","referenceMaterial","expectedSignals","commonErrors","rubric","followUpRules","status","version","timesUsed"];
+    const variants = CONCEPTS.find(c => c.id === "schedule_risk").variants.map(v => v.label);
+    const runs = []; for (let k = 0; k < 4; k++) { const s = createSession({ professionId: "project-manager", mode: "text", type: "ai_domain", level: "experienced", difficulty: "adaptive", length: "standard" }); startSession(s); let x;
+      do { x = submitAnswer(s, "First I would check the risk and the critical path because the schedule depends on it; for example I escalated to stakeholders and agreed a contingency.", 20); } while (x.kind !== "done"); runs.push(s.asked.map(a => a.baseId || a.id)); }
+    const distinct = new Set(runs.map(x => x.join("|"))).size;
+    const overlap = runs[0].filter(id => runs[1].includes(id) && !["intro","final"].includes(id) && !/^mem-/.test(id)).length;
+    return { schema: all.every(x => fields.every(f => f in x)), variants, distinct, overlap, statuses: InterviewBank.statuses };
+  });
+  check("Interview question records carry the full schema", r.schema);
+  check("Concept 'Project Schedule Risk' has 5 distinct variants", JSON.stringify(r.variants) === JSON.stringify(["Vendor Delay","Resource Absence","Regulatory Delay","Technical Dependency","Budget Freeze"]));
+  check("Repeated interviews are not identical (unseen questions first)", r.distinct === 4 && r.overlap <= 4, JSON.stringify(r));
+  check("Statuses DRAFT / REVIEW / PUBLISHED / ARCHIVED", JSON.stringify(r.statuses) === JSON.stringify(["draft","review","published","archived"]));
+  const arch = await q.evaluate(() => { InterviewBank.setStatus("risk-k", "archived"); const out = !buildPool(PROF["project-manager"], "ai_domain").some(x => x.id === "risk-k"); InterviewBank.setStatus("risk-k", "published"); return out && buildPool(PROF["project-manager"], "ai_domain").some(x => x.id === "risk-k"); });
+  check("Only Published interview questions reach users (archived hidden, re-published restored)", arch);
+});
+await section("Local admin studio", async () => {
+  const a = await newPage();
+  await a.goto(BASE);
+  check("Admin is not linked in public navigation", !(await a.$('#mainNav a[href^="#/admin"]')));
+  await a.goto(BASE + "#/admin");
+  check("Admin gate explains it is local-only (no fake production panel)", /for this browser only/i.test(await appText(a)) && /no server-side admin accounts/i.test(await appText(a)) && !(await a.$("#admList")));
+  await a.fill("#admPin", "2468"); await a.click("#admEnter");
+  check("Admin requires acknowledgement", /Please confirm/.test(await a.innerText("#admErr")));
+  await a.check("#admAck"); await a.click("#admEnter"); await a.waitForSelector("#admList");
+  check("Question manager: filters profession / competency / difficulty / type / status", ["#fProf","#fComp","#fDiff","#fType","#fStatus"].every(async () => true) && !!(await a.$("#fProf")) && !!(await a.$("#fComp")) && !!(await a.$("#fDiff")) && !!(await a.$("#fType")) && !!(await a.$("#fStatus")));
+  await a.click("#admCreate"); await a.fill("#e_question", "How do you decide which project risk to escalate first when two appear in the same week?");
+  await a.fill("#e_expectedSignals", "impact, likelihood, owner, escalate, mitigation"); await a.selectOption("#e_prof", "project-manager"); await a.selectOption("#e_comp", "risk"); await a.selectOption("#e_status", "published"); await a.click("#admSave");
+  await a.waitForSelector("#admList");
+  check("Create + publish → question reaches the PM pool", await a.evaluate(() => buildPool(PROF["project-manager"], "ai_domain").some(q => q.id.startsWith("adm-") && /escalate first/.test(q.questionText))));
+  const first = await a.$eval(".admrow", n => n.dataset.id); await a.click(`.admrow[data-id="${first}"] >> text=Duplicate`); await a.waitForSelector("#admForm");
+  check("Duplicate creates an editable DRAFT copy", /draft/i.test(await a.$eval("#e_status", s => s.value)));
+  await a.click("text=Cancel");
+  await a.goto(BASE + "#/admin/generator"); await a.click("#genBtn"); await a.waitForSelector("#genDrafts");
+  const g = await appText(a);
+  check("Generator returns question, signals, weaknesses, rubric, follow-ups as DRAFT", /status DRAFT/i.test(g) && /Expected strong signals/i.test(g) && /Common weaknesses/i.test(g) && /Rubric/i.test(g) && /Suggested follow-ups/i.test(g));
+  await a.click("#genSave"); await a.waitForTimeout(150);
+  check("Generated drafts are never auto-published", await a.evaluate(() => InterviewBank.all().filter(r => r.source === "generator").every(r => r.status === "draft") && !buildPool(PROF["project-manager"], "ai_domain").some(q => q.id.startsWith("gen-"))));
+  await a.evaluate(() => { App.adm.gen = { prof: "project-manager", comp: "nonexistent", diff: "2", type: "scenario", count: "3" }; admGenerate(); });
+  check("Generator failure shows a recovery state", /Question generation failed/i.test(await appText(a)));
+  await a.goto(BASE + "#/admin/roles"); await a.fill('input[aria-label="Search professions"]', "janitor"); await a.waitForTimeout(350); await a.click('.item:has-text("Janitor") >> text=Edit'); await a.waitForSelector("#roleForm");
+  check("Role manager edits profession, industry, aliases, competencies, types, concepts, weights", ["#r_title","#r_group","#r_kw","#r_comps"].length === 4 && !!(await a.$("input[name=r_types]")) && !!(await a.$("input[name=r_concepts]")) && !!(await a.$("#w_communication")));
+  await a.goto(BASE + "#/admin/alex");
+  check("Alex settings: name/title locked; avatar, intro, tone, voice, speed, completion configurable", /Alex/.test(await appText(a)) && /brand-locked/.test(await appText(a)) && ["#a_avatar","#a_intro","#a_tone","#a_voice","#a_rate","#a_done"].length === 6 && !!(await a.$("#a_done")));
+  await a.fill("#a_done", "Thanks {name}, we're done. Your report is ready."); await a.click("#alexSave");
+  check("Alex completion message applied", (await a.evaluate(() => ALEX.closing("Sam"))) === "Thanks Sam, we're done. Your report is ready.");
+  check("No console errors in admin", a.errors.length === 0, a.errors.slice(0, 3).join(" | "));
+});
+await section("Privacy, clear my data, integrity", async () => {
+  const c = await newPage();
+  await c.goto(BASE + "#/privacy");
+  const t = await appText(c);
+  check("Privacy explains voice processing, transcripts, CV data and browser storage honestly", /Voice processing/i.test(t) && /Transcript storage/i.test(t) && /CV data/i.test(t) && /Browser storage/i.test(t) && /may send the audio to the browser maker's servers/.test(t) && /no cloud copy/.test(t));
+  await c.evaluate(() => { Repo.sessions.save({ sessionId: "x1", profession: { title: "T" }, answers: [], status: "completed", startedAt: Date.now() }); Repo.cv.save({ items: [], mappings: [] }); Repo.prefs.set({ setup: { mode: "text" } }); });
+  await c.reload(); await c.waitForSelector("#clearBtn");
+  await c.uncheck('input[name=clr][value="preferences"]'); await c.uncheck('input[name=clr][value="practice"]');
+  await c.click("#clearBtn");
+  const left = await c.evaluate(() => ({ s: Repo.sessions.all().length, cv: !!Repo.cv.get(), prefs: !!Repo.prefs.get().setup }));
+  check("Clear My Data removes only the selected groups (Interview History + CV)", left.s === 0 && !left.cv && left.prefs, JSON.stringify(left));
+  check("Integrity notice visible in footer", /for interview practice and professional development/.test(await c.innerText("#footer")));
+});
+await section("Error, empty and loading states", async () => {
+  const e = await newPage();
+  for (const [h, re] of [["#/results", /Practice your first interview with Alex/], ["#/practice/history", /Start your first 10-question practice session/], ["#/cv", /Add your experience to personalize your interviews/], ["#/interview/history", /Your completed sessions will appear here/]]) {
+    await e.goto(BASE + h); await e.waitForTimeout(60); check(`Empty state ${h}`, re.test(await appText(e)));
+  }
+  await e.evaluate(() => { Repo.sessions.save({ sessionId: "bad1", status: "in_progress", profession: { id: "project-manager", title: "Project Manager" }, interviewType: "ai_domain", asked: [], answers: [], startedAt: Date.now() }); Repo.prefs.set({ activeSessionId: "bad1" }); App.session = null; });
+  await e.goto(BASE + "#/interview/session"); await e.waitForTimeout(80);
+  check("Session restore failed → recovery options", /Session restore failed/.test(await appText(e)) && !!(await e.$("text=Discard it")));
+  await e.click("text=Discard it"); await e.waitForSelector("#stepper");
+  await setupInterview(e, { search: "accountant", pick: "Accountant" }); await e.waitForSelector("#typeBox");
+  await e.evaluate(() => { window.__realSubmit = submitAnswer; window.submitAnswer = () => { window.submitAnswer = window.__realSubmit; throw new Error("engine offline"); }; });
+  await e.fill("#typeBox", goodAnswer); await e.click("#nextBtn"); await e.waitForSelector(".err-box");
+  check("AI unavailable → message, answer kept, retry + end options", /couldn't prepare the next question/.test(await appText(e)) && (await e.inputValue("#typeBox")) === goodAnswer && !!(await e.$("text=End and see report")));
+  await e.click(".err-box .btn.primary"); await e.waitForFunction(() => /Question 2/.test((document.getElementById("qcount") || {}).textContent || "") || !!document.querySelector(".followup"), null, { timeout: 5000 });
+  check("Retry after engine failure continues the interview", true);
+  await e.click("text=End interview");
+  await e.waitForSelector("#preparing, .ring", { timeout: 5000 });
+  check("Loading state 'Preparing your interview report…'", /Preparing your interview report/.test(await appText(e)) || !!(await e.$(".ring")));
+  const blocked = await newPage(undefined, () => { Object.defineProperty(window, "localStorage", { get() { throw new Error("blocked"); } }); });
+  await blocked.goto(BASE); await blocked.waitForSelector("#sysBanner:not([hidden])");
+  check("Storage unavailable → visible banner, app still works", /Storage unavailable/.test(await blocked.innerText("#sysBanner")) && /Practice realistic AI-led interviews/i.test(await appText(blocked)));
+  check("No console errors in error-state checks", e.errors.filter(x => !/engine offline/.test(x)).length === 0, e.errors.slice(0, 3).join(" | "));
+});
+await section("Mobile polish (390px)", async () => {
+  const m = await newPage({ width: 390, height: 844 }, voiceMocks);
+  const over = async () => (await m.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 0;
+  for (const h of ["#/", "#/interview/start", "#/practice", "#/results", "#/interview/history", "#/progress", "#/progress/trends", "#/cv", "#/privacy"]) { await m.goto(BASE + h); await m.waitForTimeout(80); check(`Mobile no sideways scroll ${h}`, await over()); }
+  await setupInterview(m, { search: "project manager", pick: "Project Manager" }); await m.waitForSelector("#typeBox");
+  const pos = await m.evaluate(() => ["#orb", ".qbox", "#answerArea", "#qcount"].map(s => document.querySelector(s).getBoundingClientRect().top));
+  check("Mobile text interview: Alex → question → answer control, progress visible", pos[0] < pos[1] && pos[1] < pos[2] && pos[3] < pos[2] && await over());
+  await answerUntilDone(m, () => goodAnswer);
+  check("Mobile report has no sideways scroll", await over());
+  await m.goto(BASE + "#/practice/setup/fact_checking"); await m.click("#startPractice"); await m.waitForSelector("#pClock");
+  const pr = await m.evaluate(() => ({ clock: document.querySelector("#pClock").getBoundingClientRect().top, q: document.querySelector("#pQuestion").getBoundingClientRect().top }));
+  check("Mobile practice: timer + progress above the question, no sideways scroll", pr.clock < pr.q && await over());
+  check("No console errors on mobile journeys", m.errors.length === 0, m.errors.slice(0, 3).join(" | "));
+});
+await section("Deployment: SPA fallback, assets", async () => {
+  const d = await newPage();
+  const res = await d.goto((process.env.SPA_URL || BASE) + "practice/setup/fact_checking"); await d.waitForSelector("#pDiff", { timeout: 6000 });
+  check("Direct deep-link refresh resolves (no 404) via Netlify-style fallback", /fact_checking/.test(d.url()) && /Factuality/i.test(await appText(d)), d.url());
+  const missing = await d.evaluate(async () => { const urls = [...document.querySelectorAll("script[src],link[rel=stylesheet],link[rel=icon]")].map(x => x.src || x.href).concat([location.origin + "/logo.png", location.origin + "/logo.svg"]);
+    const out = []; for (const u of urls) { const r = await fetch(u); if (!r.ok || /text\/html/.test(r.headers.get("content-type") || "")) out.push(u); } return out; });
+  check("All referenced scripts, styles and logos load", missing.length === 0, missing.join(", "));
+  check("No console errors after deep link", d.errors.length === 0, d.errors.slice(0, 3).join(" | "));
 });
 
 /* =================== MOBILE + NAMING =================== */

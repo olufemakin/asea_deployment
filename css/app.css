@@ -325,8 +325,7 @@ footer.foot{border-top:1px solid var(--line);padding:22px 18px 40px;text-align:c
 .orb.reviewing{animation:pulse 1.6s ease-in-out infinite;filter:saturate(.7)}
 .meter{--lvl:0;height:10px;border-radius:99px;background:var(--bg);border:1px solid var(--line2);overflow:hidden;margin:10px 0}
 .meter>i{display:block;height:100%;width:calc(var(--lvl)*100%);background:linear-gradient(90deg,var(--blue),var(--good));transition:width .08s linear}
-.meter.fake>i{width:40%;animation:fakelvl 1.2s ease-in-out infinite}
-@keyframes fakelvl{0%,100%{width:15%}50%{width:65%}}
+.meter.nolevel>i{width:100%;opacity:.18}   /* no live level available: a static, clearly inactive bar (never a simulated level) */
 .voicebox{border:1px solid var(--line2);border-radius:14px;padding:14px 16px;background:var(--bg2)}
 .voicebox.recording{border-color:rgba(239,68,68,.55)}
 .rec{font-weight:900;color:#ff8080;letter-spacing:.5px}
@@ -370,3 +369,60 @@ details.card>summary{cursor:pointer}
 .card.soon .d{color:var(--muted);font-size:14px}
 .recbox{border:1px solid rgba(167,139,250,.45);background:rgba(139,92,246,.10);border-radius:14px;padding:12px 14px;margin:10px 0 14px}
 #typeOpts .opt .tag{position:static;display:inline-block;margin-bottom:6px}
+
+/* ---------- Prompt 3: report, evidence, history, trends ------------------- */
+.rtitle{margin:2px 0 0;font-size:30px;text-transform:uppercase;letter-spacing:1.5px}
+.summary.kv td:first-child{color:var(--faint);font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding-right:14px;white-space:nowrap}
+.summary.kv td{padding:4px 0;vertical-align:top}
+details.whybox{border:1px solid var(--line);border-radius:11px;background:var(--bg2);padding:8px 12px;margin:2px 0 12px}
+details.whybox>summary{cursor:pointer;font-size:13px;font-weight:800;color:var(--accent)}
+.why-sec{margin-top:8px}.why-h{font-size:11px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:var(--faint)}
+.why-sec.good .why-h{color:#9ef0bf}.why-sec.bad .why-h{color:#ffb4b4}
+blockquote.excerpt{margin:6px 0;padding:6px 12px;border-left:3px solid var(--brand2);color:#dfe2ff;font-size:13.5px;background:rgba(139,92,246,.08);border-radius:0 8px 8px 0}
+.rv{margin:10px 0}.rv>b,.rvgrid b{font-size:11px;font-weight:900;letter-spacing:.7px;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:3px}
+.rvgrid{margin:8px 0;gap:10px}
+pre.rubricpre{white-space:pre-wrap;font-family:inherit;margin:0;color:var(--muted)}
+.hrows{display:flex;flex-direction:column;gap:8px}
+.hrow{display:grid;grid-template-columns:1.6fr 1.3fr .7fr .8fr 1.1fr .8fr 1fr;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg2);font-size:13.5px}
+.hrow .hacts{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}
+.hrow.hhead{background:none;border:0;padding:0 12px;font-size:11px;font-weight:900;letter-spacing:.7px;text-transform:uppercase;color:var(--faint)}
+.trendsvg{width:100%;height:auto;max-height:260px;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);margin:6px 0 10px}
+.legend i{display:inline-block;width:12px;height:4px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.trendlist{display:flex;flex-direction:column;gap:8px;margin-top:8px}.trendlist .item{display:flex;justify-content:space-between;align-items:center}
+.up{color:#9ef0bf}.down{color:#ffb4b4}
+.nba{border-color:var(--brand2);background:linear-gradient(135deg,rgba(139,92,246,.16),rgba(59,130,246,.08));margin-bottom:18px}
+.card.skill table{width:100%}
+.cvtoggle{margin-top:18px;padding:14px;border:1px solid var(--line2);border-radius:12px;background:var(--bg2)}
+.switch{display:flex;align-items:center;gap:10px;cursor:pointer}.switch input{width:auto;accent-color:var(--brand2);transform:scale(1.25)}
+.cvopt{text-align:left;font:inherit;cursor:pointer}
+.cvitem,.mapitem,.admrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.cvitem .grow,.mapitem .grow,.admrow .grow{flex:1 1 260px;min-width:0}
+.admfilters select,.admfilters input{padding:7px 9px;font-size:13px}
+.sysbanner{background:#4a3410;color:#ffe08a;border-bottom:1px solid #6b4c16;padding:9px 16px;text-align:center;font-size:13.5px}
+.sysbanner a{color:#fff}
+.note.integrity,.foot .integrity{color:var(--muted)}
+#preparing .orb{width:84px;height:84px}
+
+@media(max-width:760px){
+  .hrow{grid-template-columns:1fr 1fr;gap:6px 10px}
+  .hrow.hhead{display:none}
+  .hrow>span[data-l]::before{content:attr(data-l);display:block;font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--faint)}
+  .rtitle{font-size:24px}
+}
+@media(max-width:600px){
+  /* Interview: Alex, question, answer control and progress come first; the avatar is compact. */
+  .card.interview{padding:16px 14px}
+  .stage{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:4px 12px;text-align:left}
+  .stage .orb{width:58px;height:58px;margin:0}.stage .orb::after{inset:-8px}.stage .orb .face{font-size:24px}
+  .stage .eq{display:none}.stage .status{flex-basis:100%;text-align:center}
+  .alexctl .btn{padding:6px 10px;font-size:12.5px}
+  .alexsay{font-size:14px}
+  .qbox{padding:14px}
+  /* Practice: timer stays visible while scrolling through a question. */
+  .prun{position:sticky;top:0;z-index:5}
+  .palette{max-height:84px;overflow:auto}
+  .summary.kv td:first-child{white-space:normal}
+}
+details.introfold>summary{cursor:pointer;list-style:none}details.introfold>summary::-webkit-details-marker{display:none}
+details.introfold[open]>summary .faint{display:none}

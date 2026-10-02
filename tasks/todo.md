@@ -98,3 +98,13 @@ Done:
 - [x] Interview defaults: recommended vs selected type (no forced selection), "Recommended for Your Background" + why-text, Language Evaluation Interview for single-language evaluators, Technical recommended for software roles, role matrices
 - [x] Tests: regression 179/179 (removed the borrowing expectation; added purity, coming-soon, no-borrowing, legacy, status, dead-handler and interview-default checks) · engine-check OK (614 combos, 138 strict sessions)
 - [x] Prompt 3 readiness audit: docs/PROMPT3_READINESS.md
+
+## 2026-10-02 — Prompt 3 of 3: interview intelligence, CV, skills & readiness, question bank, admin, production QA
+- [x] BSP Role Interview Score: explicit 0–4 rubric per dimension → readable %; evidence found/missing, verbatim excerpts, how to improve
+- [x] Premium Alex Interview Report (all 8 sections, "Why did I get this score?", "A stronger structure could be:"), history table, retry, score trends
+- [x] Skills & Scores (practice + interview + CV sources), BSP Interview Readiness with inputs, Progress Dashboard + next best action, My AI Work Profile (BSP Internal Fit)
+- [x] CV Intelligence: paste / .txt upload / build from profile; confirm/edit/delete; AI Experience Mapper with evidence labels; "Use my confirmed CV" personalises Alex
+- [x] Interview question bank records + statuses, 5 concepts × 5 variants, unseen-first reuse; Response Critique completed (24/24 practice categories available)
+- [x] Local Content Studio (#/admin): question manager, draft generator, role manager, Alex settings, export/import — local-only by design
+- [x] Privacy page + granular Clear My Data, integrity notice, error/empty/loading states, storage-blocked banner, mobile polish, Netlify SPA fallback
+- [x] Tests: regression 283/283 (journeys 1–6 + feature/QA checks), engine-check OK (614 combos, 144 strict practice sessions)
