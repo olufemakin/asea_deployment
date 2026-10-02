@@ -48,6 +48,13 @@ const Repo = (()=>{
     all(){ return A.get("practice", []); },
     add(r){ const list=[r, ...practice.all()]; A.set("practice", list.slice(0, MAX_PRACTICE)); return r; },
   };
+  /* Timed Practice Lab sessions (10 questions each). */
+  const practiceSessions = {
+    all(){ return A.get("practiceSessions", []); },
+    get(id){ return practiceSessions.all().find(p=>p.id===id) || null; },
+    save(ps){ const list=practiceSessions.all().filter(x=>x.id!==ps.id); list.push(ps); list.sort((a,b)=>b.startedAt-a.startedAt); A.set("practiceSessions", list.slice(0, MAX_PRACTICE)); return ps; },
+    remove(id){ A.set("practiceSessions", practiceSessions.all().filter(p=>p.id!==id)); },
+  };
   const prefs = {
     get(){ return A.get("prefs", {}); },
     set(patch){ const p = Object.assign(prefs.get(), patch); A.set("prefs", p); return p; },
@@ -84,9 +91,9 @@ const Repo = (()=>{
 
   function exportAll(){
     return { exportedAt:new Date().toISOString(), storage:A.kind,
-      sessions:sessions.all(), practice:practice.all(), prefs:prefs.get(), customProfessions:customProfessions.all() };
+      sessions:sessions.all(), practiceSessions:practiceSessions.all(), practice:practice.all(), prefs:prefs.get(), customProfessions:customProfessions.all() };
   }
-  function clearAll(){ ["sessions","practice","prefs","customProfessions"].forEach(k=>A.remove(k)); }
+  function clearAll(){ ["sessions","practice","practiceSessions","prefs","customProfessions"].forEach(k=>A.remove(k)); }
 
-  return { sessions, practice, prefs, customProfessions, migrate, exportAll, clearAll, kind:A.kind };
+  return { sessions, practice, practiceSessions, prefs, customProfessions, migrate, exportAll, clearAll, kind:A.kind };
 })();

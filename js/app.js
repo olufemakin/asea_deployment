@@ -10,7 +10,7 @@ const H = s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;"
 const fmtDate = t=>{ try{ return new Date(t).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"}); }catch(e){ return ""; } };
 
 const DEFAULT_SETUP = { step:1, professionId:null, mode:Speech.sttAvailable?"voice":"text", type:"ai_domain",
-  level:"experienced", difficulty:"adaptive", length:"standard", name:"", platform:"" };
+  level:"experienced", difficulty:"adaptive", length:"standard", name:"", platform:"", langBalance:"balanced" };
 const App = { setup:null, session:null, ui:{ search:"", group:"all", customOpen:false }, practice:{}, closing:null };
 
 function loadSetup(){
@@ -27,6 +27,7 @@ function normalizeSetup(){
   if(!LEVELS[S.level]) S.level="experienced";
   if(!DIFFS[S.difficulty]) S.difficulty="adaptive";
   if(!LENGTHS[S.length]) S.length="standard";
+  if(!LANG_BALANCE[S.langBalance]) S.langBalance="balanced";
   const p=S.professionId && getProfession(S.professionId);
   if(p && !typeAvailability(p)[S.type].ok) S.type=recommendedType(p);
 }
@@ -40,9 +41,13 @@ const ROUTES = [
   [/^interview\/domain$/, scrDomainLanding],
   [/^interview\/ai-evaluation$/, scrAiEvalLanding],
   [/^interview\/history$/, scrHistory],
+  [/^interview\/mic-check$/, scrMicCheck],
   [/^interview\/session$/, scrSession],
   [/^practice$/, scrPractice],
-  [/^practice\/task\/([\w-]+)$/, scrPracticeTask],
+  [/^practice\/setup\/([\w-]+)$/, scrPracticeSetup],
+  [/^practice\/run$/, scrPracticeRun],
+  [/^practice\/results\/([\w-]+)$/, scrPracticeResults],
+  [/^practice\/task\/([\w-]+)$/, ()=>go("practice")],
   [/^practice\/history$/, scrPracticeHistory],
   [/^results$/, scrResults],
   [/^results\/([\w-]+)$/, scrReport],
@@ -57,6 +62,8 @@ function go(path){ const h="#/"+String(path).replace(/^\//,""); if(location.hash
 function route(){
   const path=pathNow();
   if(currentPath==="interview/session" && path!=="interview/session") leaveInterview();
+  if(currentPath==="interview/mic-check" && path!=="interview/mic-check") closeMicCheck();
+  if(currentPath==="practice/run" && path!=="practice/run") leavePractice();
   currentPath=path;
   let fn=null, m=null;
   for(const [re,f] of ROUTES){ m=path.match(re); if(m){ fn=f; break; } }
@@ -270,7 +277,11 @@ function onProfSearch(v){ App.ui.search=v; document.getElementById("profList").i
 function setGroupFilter(g){ App.ui.group=g; document.getElementById("groupChips").innerHTML=groupChipsHTML(); document.getElementById("profList").innerHTML=profListHTML(); }
 function pickProfession(id){
   const list=document.getElementById("profList"), top=list?list.scrollTop:0;
-  App.setup.professionId=id; normalizeSetup(); saveSetup(); renderStep();
+  const changed=App.setup.professionId!==id;
+  App.setup.professionId=id;
+  const p=getProfession(id);
+  if(changed && p && (isLingual(p) || isTransferable(p))) App.setup.type=recommendedType(p);  // language → Bilingual, hands-on → Transferable
+  normalizeSetup(); saveSetup(); renderStep();
   const l2=document.getElementById("profList"); if(l2) l2.scrollTop=top;
 }
 function removeCustom(id){
@@ -327,6 +338,8 @@ function stepType(p){
     ${isTransferable(p)?`<p class="muted">For transferable-skills roles, Alex runs a <b>Transferable Skills Interview</b> focused on attention to detail, process adherence, quality review and instruction following. No profession-specific AI job is invented.</p>`:""}
     <div class="opts">${Object.entries(TYPES).map(([k,t])=>optCard({ sel:S.type===k, disabled:!av[k].ok, onclick:`setField('type','${k}')`,
       title:t.label.toUpperCase(), d:t.d, why:av[k].ok?"":av[k].why, tag:k===rec&&av[k].ok?"Recommended":"" })).join("")}</div>
+    ${S.type==="bilingual" && isFrenchBilingual(p)?`<h3 style="margin-top:20px">Language balance</h3><p class="small muted">Alex switches naturally between English and French. Choose the mix.</p>
+      <div class="opts" id="langBalance">${Object.entries(LANG_BALANCE).map(([k,b])=>optCard({ sel:S.langBalance===k, onclick:`setField('langBalance','${k}')`, title:b.label, d:b.d, tag:k==="balanced"?"Default":"" })).join("")}</div>`:""}
     ${wizFoot(true)}`;
 }
 function stepLevel(){
@@ -352,6 +365,7 @@ function stepLength(){
 function stepSummary(p){
   const S=App.setup, L=LENGTHS[S.length];
   const rows=[["Profession",H(p.title),1],["Interviewer","Alex · BSP AI Interviewer",0],["Mode",MODES[S.mode].label,2],["Interview",TYPES[S.type].label.replace(/ Interview$/,""),3],
+    ...(S.type==="bilingual"&&isFrenchBilingual(p)?[["Language balance",LANG_BALANCE[S.langBalance].label,3]]:[]),
     ["Experience",LEVELS[S.level].label,4],["Difficulty",DIFFS[S.difficulty].label,5],["Questions",S.length==="deep"?`${L.min}–${L.max} (adaptive)`:L.n,6]];
   return `<h2 style="text-transform:uppercase;letter-spacing:1px">Your interview</h2>
     <table class="summary">${rows.map(([k,v,st])=>`<tr><td>${k}</td><td>${v}${st?` <button class="linkbtn small" onclick="setStep(${st})" aria-label="Edit ${k}">edit</button>`:""}</td></tr>`).join("")}</table>
@@ -364,190 +378,18 @@ function stepSummary(p){
       <button class="btn ghost" onclick="setStep(6)">← Back</button>
       <button class="btn primary lg upper" onclick="startFromSetup()">Start interview with Alex</button>
     </div>
-    ${S.mode==="voice"&&Speech.sttAvailable?`<p class="note">Your browser will ask for microphone permission when you start answering. Audio is processed by your browser's speech service; Interview IQ never uploads or stores audio.</p>`:""}`;
+    ${S.mode==="voice"&&Speech.sttAvailable?`<p class="note">Next, a quick microphone check. Audio is processed live by your browser's speech service; Interview IQ never records or stores audio, only the text transcript of your answers. Accent and voice are never scored.</p>`:""}`;
 }
 function startFromSetup(){
   const S=App.setup; if(!S.professionId){ setStep(1); return; }
-  const s=createSession({ professionId:S.professionId, mode:S.mode, type:S.type, level:S.level, difficulty:S.difficulty, length:S.length, name:S.name, platform:S.platform });
+  const s=createSession({ professionId:S.professionId, mode:S.mode, type:S.type, level:S.level, difficulty:S.difficulty, length:S.length, name:S.name, platform:S.platform, langBalance:S.langBalance });
   startSession(s); App.session=s; Repo.prefs.set({ activeSessionId:s.sessionId });
-  go("interview/session");
+  go(needsMicCheck(s) ? "interview/mic-check" : "interview/session");
 }
 function resumeSession(id){
   const s=Repo.sessions.get(id); if(!s || s.status!=="in_progress"){ go("interview/history"); return; }
   App.session=s; Repo.prefs.set({ activeSessionId:id }); go("interview/session");
 }
-
-/* ---------- Live interview ------------------------------------------------ */
-let recog=null, listening=false, finalText="", interimText="", tick=null, elapsed=0, renderToken=0;
-function activeSession(){
-  if(App.session && App.session.status==="in_progress") return App.session;
-  const id=Repo.prefs.get().activeSessionId, s=id && Repo.sessions.get(id);
-  if(s && s.status==="in_progress"){ App.session=s; return s; }
-  return null;
-}
-function scrSession(){
-  const s=activeSession();
-  if(!s){ el.innerHTML=emptyCard("🎙️","No interview in progress","Set up a new interview with Alex, or resume one from your history.","#/interview/start","Start interview"); return; }
-  renderInterview(s);
-}
-function speechPlan(s){
-  const q=currentQ(s), lead=q.scenario?["Here is the example on your screen."]:[];
-  if(s.phase==="followup" && s.pending && s.pending.followUp){ const f=s.pending.followUp; return { display:[f.lead], spoken:[f.lead, f.question] }; }
-  if(s.currentQuestion===0 && !s.answers.length){
-    const intro=ALEX.intro({ name:s.candidate.name, profession:s.profession.title, typeIntro:TYPES[s.interviewType].intro });
-    return { display:intro, spoken:intro.concat(lead, q.questionText) };
-  }
-  const t=s.lastTransition?[s.lastTransition]:[];
-  return { display:t, spoken:t.concat(lead, q.questionText) };
-}
-function renderInterview(s){
-  const q=currentQ(s), T=TYPES[s.interviewType], L=LENGTHS[s.length], plan=speechPlan(s);
-  const fu=s.phase==="followup" && s.pending ? s.pending.followUp : null;
-  const denom = s.length==="deep" ? L.min : s.questionTarget;
-  const pct=Math.min(100, Math.round(s.answers.length/denom*100));
-  const total = s.length==="deep" ? `${L.min}–${L.max}` : s.questionTarget;
-  const listen = s.mode==="voice" && Speech.sttAvailable, talk = s.mode==="voice" && Speech.ttsAvailable;
-  const t=s.adaptive.target;
-  el.innerHTML=`
-  <div class="card">
-    <div class="row between center small muted wrapw"><span>${H(s.profession.title)} · ${H(T.label)} · ${H(LEVELS[s.experienceLevel].label)}</span><span class="timer" id="timer" aria-label="Time on this question">0:00</span></div>
-    <div class="progress" style="margin:10px 0 4px" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div>
-    <div class="small faint">Question ${s.currentQuestion+1} of ${total}${s.difficulty==="adaptive"?` · Adaptive depth <span title="Current depth ${t} of 3">${"●".repeat(t)}${"○".repeat(3-t)}</span>`:` · ${H(DIFFS[s.difficulty].label)}`}</div>
-    <div class="stage">
-      <div class="orb" id="orb" aria-hidden="true"><span class="face">A</span></div>
-      <div class="eq" id="eq" style="visibility:hidden" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-      <div class="alexname" style="font-size:15px;margin-top:4px">ALEX</div><div class="alextitle">${ALEX.title}</div>
-      <div class="status" id="status" role="status" style="margin-top:8px">Preparing…</div>
-    </div>
-    ${plan.display.length?`<div class="alexsay"><span class="who">Alex</span>${plan.display.map(l=>`<p>${H(l)}</p>`).join("")}</div>`:""}
-    <div class="qbox">
-      <div class="qmeta">Alex asks · ${H(QTYPE_LABEL[q.questionType]||"Question")} · ${H(q.compLabel)}</div>
-      ${q.scenario?`<div class="scenario ${q.code?"code":""}">${H(q.scenario)}</div>`:""}
-      <div class="qtext">${H(q.questionText)}</div>
-      ${fu?`<div class="followup"><span class="lbl">Follow-up</span>${H(fu.question)}</div>`:""}
-    </div>
-    <div id="answerArea">
-      ${listen?`
-        <div class="transcript empty" id="transcript" aria-live="polite">Your spoken answer will appear here…</div>
-        <div class="row wrapw" style="margin-top:12px;gap:10px">
-          <button class="btn good" id="micBtn" onclick="toggleMic()">🎙️ Start answering</button>
-          <button class="btn ghost" onclick="repeatQ()">🔁 Repeat question</button>
-          <button class="btn ghost" onclick="showTyping()">⌨️ Type instead</button>
-        </div>
-        <textarea id="typeBox" class="hidden" placeholder="Type your answer here…" style="margin-top:12px" aria-label="Your answer"></textarea>`
-      :`
-        <textarea id="typeBox" placeholder="Type your answer here…" aria-label="Your answer"></textarea>
-        <div class="row wrapw" style="margin-top:8px;gap:10px">${Speech.ttsAvailable?`<button class="btn ghost sm" onclick="repeatQ(true)">🔊 Read question aloud</button>`:""}<span class="small faint" id="wc"></span></div>`}
-    </div>
-    <div class="row between wrapw" style="margin-top:18px;gap:10px">
-      <button class="btn ghost" onclick="endInterviewEarly()">End interview</button>
-      <button class="btn primary" id="nextBtn" onclick="submitCurrent()">${fu?"Submit follow-up →":"Submit answer →"}</button>
-    </div>
-    <div class="note">Tip: aim for ${LEVELS[s.experienceLevel].words}–${LEVELS[s.experienceLevel].words+50} words. Structure your answer, explain your reasoning and give a concrete example.</div>
-  </div>`;
-  finalText=""; interimText=""; elapsed=0; listening=false;
-  const tb=document.getElementById("typeBox"), wc=document.getElementById("wc");
-  if(tb && wc) tb.addEventListener("input", ()=>{ const n=words(tb.value).length; wc.textContent=n?`${n} words`:""; });
-  const token=++renderToken;
-  if(talk){
-    orbMode("speaking"); setStatus("Alex is speaking…");
-    Speech.say(plan.spoken).then(()=>{ if(token!==renderToken) return; if(!listening){ orbMode("idle"); setStatus(listen?"Your turn: press “Start answering”":"Your turn: type your answer"); } startTimer(); });
-  } else {
-    orbMode("idle"); setStatus("Your turn: type your answer"); startTimer();
-    if(tb && !listen) setTimeout(()=>tb.focus({preventScroll:true}),50);
-  }
-}
-function setStatus(t){ const s=document.getElementById("status"); if(s) s.textContent=t; }
-function orbMode(m){
-  const orb=document.getElementById("orb"), eq=document.getElementById("eq"); if(!orb) return;
-  orb.classList.remove("speaking","listening"); if(eq) eq.style.visibility="hidden";
-  if(m==="speaking") orb.classList.add("speaking");
-  if(m==="listening"){ orb.classList.add("listening"); if(eq) eq.style.visibility="visible"; }
-}
-function repeatQ(){
-  const s=App.session; if(!s) return; const q=currentQ(s);
-  const f=s.phase==="followup"&&s.pending?s.pending.followUp:null;
-  orbMode("speaking"); setStatus("Alex is speaking…");
-  const token=renderToken;
-  Speech.say(f?[f.question]:(q.scenario?["Here is the example on your screen.", q.questionText]:[q.questionText])).then(()=>{ if(token===renderToken && !listening){ orbMode("idle"); setStatus("Your turn"); } });
-}
-function startTimer(){
-  clearInterval(tick);
-  const limit=DIFFS[App.session?App.session.difficulty:"medium"].time;
-  tick=setInterval(()=>{ elapsed++;
-    const t=document.getElementById("timer");
-    if(t){ const m=Math.floor(elapsed/60), s=String(elapsed%60).padStart(2,"0");
-      t.textContent=`${m}:${s}`; t.className="timer"+(elapsed>limit?" over":elapsed>limit*0.75?" warn":""); }
-  },1000);
-}
-function toggleMic(){ if(!listening) startMic(); else stopMic(); }
-function startMic(){
-  if(!Speech.SR) return;
-  Speech.stop(); if(!tick) startTimer();
-  recog=new Speech.SR(); recog.lang="en-US"; recog.continuous=true; recog.interimResults=true;
-  recog.onresult=e=>{ interimText="";
-    for(let i=e.resultIndex;i<e.results.length;i++){ const r=e.results[i];
-      if(r.isFinal) finalText+=(finalText?" ":"")+r[0].transcript.trim(); else interimText+=r[0].transcript; }
-    paintTranscript(); };
-  recog.onend=()=>{ if(listening){ try{ recog.start(); }catch(e){} } };
-  recog.onerror=e=>{ if(e.error==="not-allowed"||e.error==="service-not-allowed") micDenied(); };
-  try{ recog.start(); }catch(e){}
-  listening=true; orbMode("listening"); setStatus("Listening…");
-  const b=document.getElementById("micBtn"); if(b){ b.textContent="⏹ Stop answering"; b.classList.remove("good"); b.classList.add("danger"); }
-}
-function stopMic(){
-  const was=listening; listening=false; try{ recog&&recog.stop(); }catch(e){}
-  if(!was) return;
-  orbMode("idle"); setStatus("Answer captured: submit when ready");
-  const b=document.getElementById("micBtn"); if(b){ b.textContent="🎙️ Resume answering"; b.classList.add("good"); b.classList.remove("danger"); }
-}
-function micDenied(){
-  listening=false; orbMode("idle"); setStatus("Microphone blocked: type your answer instead");
-  const ta=document.getElementById("typeBox"); if(ta){ ta.classList.remove("hidden"); ta.focus(); }
-  const tr=document.getElementById("transcript"); if(tr) tr.classList.add("hidden");
-  const b=document.getElementById("micBtn"); if(b) b.disabled=true;
-}
-function paintTranscript(){
-  const tr=document.getElementById("transcript"); if(!tr) return;
-  const full=(finalText+" "+interimText).trim();
-  if(!full){ tr.classList.add("empty"); tr.textContent="Your spoken answer will appear here…"; return; }
-  tr.classList.remove("empty"); tr.innerHTML=H(finalText)+(interimText?` <span class="interim">${H(interimText)}</span>`:"");
-}
-function showTyping(){ const ta=document.getElementById("typeBox"); if(ta){ ta.classList.toggle("hidden"); if(!ta.classList.contains("hidden")) ta.focus(); } }
-function currentAnswerText(){
-  const ta=document.getElementById("typeBox");
-  const typed=ta && !ta.classList.contains("hidden") ? ta.value.trim() : "";
-  return [(finalText+" "+interimText).trim(), typed].filter(Boolean).join(" ").trim();
-}
-function submitCurrent(){
-  const s=App.session; if(!s) return;
-  const ans=currentAnswerText();
-  if(words(ans).length<3){ setStatus("Please give a fuller answer before submitting");
-    const nb=document.getElementById("nextBtn"); if(nb){ nb.classList.add("danger"); setTimeout(()=>nb.classList.remove("danger"),1200); } return; }
-  stopMic(); Speech.stop(); clearInterval(tick); tick=null;
-  const res=submitAnswer(s, ans, elapsed);
-  if(res.kind==="done"){ finishToReport(s); return; }
-  renderInterview(s);
-  window.scrollTo({top:0,behavior:"smooth"});
-}
-function finishToReport(s){
-  Repo.prefs.set({ activeSessionId:null });
-  App.closing={ id:s.sessionId, text:ALEX.closing(s.candidate.name), speak:s.mode==="voice" && Speech.ttsAvailable };
-  App.session=null; go("results/"+s.sessionId);
-}
-function endInterviewEarly(){
-  const s=App.session; if(!s) return;
-  const has=s.answers.length || (s.pending && s.pending.answer);
-  if(!has){
-    if(!confirm("End this interview? Nothing has been answered yet, so no report will be created.")) return;
-    stopMic(); Speech.stop(); clearInterval(tick); tick=null;
-    completeSession(s,"abandoned"); Repo.prefs.set({ activeSessionId:null }); App.session=null; go("interview"); return;
-  }
-  if(!confirm("End the interview now and see your report for the questions you've answered?")) return;
-  stopMic(); Speech.stop(); clearInterval(tick); tick=null;
-  endSessionEarly(s); finishToReport(s);
-}
-function leaveInterview(){ stopMic(); Speech.stop(); clearInterval(tick); tick=null; renderToken++; }
 
 /* ---------- Results ------------------------------------------------------- */
 function scrResults(){
@@ -574,7 +416,8 @@ function scrReport(id){
   const comps=Object.entries(s.scores.competencies||{}).sort((a,b)=>a[1]-b[1]);
   const meta=[ s.profession.title, sessionTypeLabel(s), s.mode?MODES[s.mode]&&MODES[s.mode].label+" mode":"",
     LEVELS[s.experienceLevel]?LEVELS[s.experienceLevel].label:"", DIFFS[s.difficulty]?DIFFS[s.difficulty].label:"", `${s.answers.length} question${s.answers.length===1?"":"s"}`, fmtDate(s.completedAt||s.startedAt) ].filter(Boolean);
-  const canRepeat = s.version===2 && getProfession(s.profession.id);
+  const canRepeat = s.version>=2 && getProfession(s.profession.id);
+  const areas=Object.entries((s.scores&&s.scores.areas)||{});
   el.innerHTML=`
   ${closing?`<div class="alexsay noprint"><span class="who">Alex</span><p>${H(closing.text)}</p></div>`:""}
   <div class="card">
@@ -583,15 +426,20 @@ function scrReport(id){
       <div class="ring" style="--p:${sc}"><div><div class="scorebig">${sc}</div><div class="small muted">/ 100</div></div></div>
       <div class="grow" style="min-width:240px"><p style="font-size:16px">${H(s.feedback?s.feedback.verdict:"")}</p>
         <div class="small muted">${meta.map(H).join(" · ")}</div>
-        ${s.version===2?`<div class="small faint" style="margin-top:4px">Interviewer: Alex · ${ALEX.title}</div>`:""}</div>
+        ${s.version>=2?`<div class="small faint" style="margin-top:4px">Interviewer: Alex · ${ALEX.title}</div>`:""}</div>
     </div>
+    ${areas.length?`<div style="margin-top:14px"><h3>Interview areas <span class="faint" style="text-transform:none;letter-spacing:0">(weighted into your overall score)</span></h3>
+      ${areas.map(([k,v])=>barRow(k, v.score, `· ${v.weight}% weight`)).join("")}</div>`:""}
     <div class="grid g2" style="margin-top:14px">
       <div><h3>Rubric</h3>${["Relevance","Depth","Structure","Specificity"].map(n=>barRow(n, s.scores.dims[n])).join("")}</div>
-      <div><h3>Competencies</h3>${comps.length?comps.map(([k,v])=>barRow(k,v)).join(""):`<p class="small muted">Competency scores are available for interviews taken with Alex (v2).</p>`}</div>
+      <div><h3>Competencies</h3>${comps.length?comps.map(([k,v])=>barRow(k,v)).join(""):`<p class="small muted">Competency scores are available for interviews taken with Alex.</p>`}</div>
     </div>
     ${s.feedback&&(s.feedback.strengths.length||s.feedback.focus.length)?`<div class="grid g2" style="margin-top:8px">
       <div><h3>Strengths</h3>${s.feedback.strengths.length?`<ul class="clean small">${s.feedback.strengths.map(x=>`<li>${H(x)}</li>`).join("")}</ul>`:`<p class="small muted">Build consistency: no competency scored 70+ yet.</p>`}</div>
       <div><h3>Focus areas</h3>${s.feedback.focus.length?`<ul class="clean small">${s.feedback.focus.map(x=>`<li>${H(x)}</li>`).join("")}</ul>`:`<p class="small muted">No competency below 70. Keep going.</p>`}</div></div>`:""}
+    ${s.healthcare?`<p class="note">Educational practice with fictional scenarios only. This report is not medical advice and does not assess real patient care.</p>`:""}
+    ${s.langBalance?`<p class="note">This practice report scores your answers to these questions only. It does not label you as native, fluent or a certified translator.</p>`:""}
+    <div id="reportRecs">${typeof recommendationsHTML==="function"?recommendationsHTML({ session:s }):""}</div>
     <div class="row wrapw noprint" style="margin-top:20px;gap:10px">
       ${canRepeat?`<button class="btn primary" onclick="practiceAgain('${s.sessionId}')">↻ Practice again</button>`:""}
       <a class="btn" href="#/interview/start">New interview</a>
@@ -604,21 +452,23 @@ function scrReport(id){
     ${s.answers.map((a,i)=>{ const [k,l]=band(a.score); return `
       <div class="qresult">
         <div class="row between center wrapw"><div class="qmeta" style="margin:0">Q${i+1}${a.questionType?` · ${H(QTYPE_LABEL[a.questionType]||"")}`:""}${a.compLabel?` · ${H(a.compLabel)}`:""} · ${a.seconds}s · ${a.wc} words</div><span class="badge ${k}">${a.score}/100 · ${l}</span></div>
+        ${a.artifact?renderArtifact(a.artifact):""}
         ${a.scenario?`<div class="scenario ${a.code?"code":""}" style="margin-top:10px">${H(a.scenario)}</div>`:""}
         <div style="font-weight:700;margin:8px 0">${H(a.q)}</div>
         <div class="qa"><b>Your answer:</b> ${H(a.answer)}</div>
-        ${a.followUp?`<div class="qa"><b>Alex's follow-up:</b> ${H(a.followUp.question)}<br><b>Your follow-up answer:</b> ${a.followUp.answer?H(a.followUp.answer):"<i>Not answered</i>"}</div>`:""}
+        ${a.followUp?`<div class="qa"><b>Alex's follow-up${a.followUp.label?` (${H(a.followUp.label)})`:""}:</b> ${H(a.followUp.question)}<br><b>Your follow-up answer:</b> ${a.followUp.answer?H(a.followUp.answer):"<i>Not answered</i>"}</div>`:""}
         <div class="row wrapw small" style="gap:14px;margin-bottom:8px">${Object.entries(a.dims).map(([n,v])=>`<span class="muted">${n}: <b style="color:${barColor(v)}">${v}</b></span>`).join("")}</div>
         <div class="small"><b>How to improve:</b><ul class="tips">${(a.feedback||[]).map(t=>`<li>${H(t)}</li>`).join("")}</ul></div>
       </div>`; }).join("")}
   </div>
   <div class="card"><h3>How scoring works</h3>
-    <p class="small muted">Each answer is scored 0–100 on four rubric dimensions: <b>Relevance</b> (did you cover what the question targets), <b>Depth</b> (substance relative to your experience level), <b>Structure</b> (clear, signposted reasoning) and <b>Specificity</b> (examples, numbers, concrete detail). Hedging phrases reduce the score slightly. Competency scores average the questions that tested each competency. Scoring runs entirely in your browser; nothing is uploaded.</p></div>`;
+    <p class="small muted">Each answer is scored 0–100 on four rubric dimensions: <b>Relevance</b> (did you cover what the question targets), <b>Depth</b> (substance relative to your experience level), <b>Structure</b> (clear, signposted reasoning) and <b>Specificity</b> (examples, numbers, concrete detail). Hedging phrases reduce the score slightly. Competency scores average the questions that tested each competency, and interview areas are weighted into your overall score.</p>
+    <p class="small muted"><b>Communication</b> is scored from the words of your answers only: relevance, clarity, logical organisation, explanation and appropriate detail. Hesitation sounds are removed first. <b>Accent, voice pitch, regional speech patterns, gender presentation and perceived ethnicity are never scored</b>; audio is never analysed or stored. Scoring runs entirely in your browser.</p></div>`;
 }
 function practiceAgain(id){
   const o=Repo.sessions.get(id); if(!o || !getProfession(o.profession.id)){ go("interview/start"); return; }
-  const s=createSession({ professionId:o.profession.id, mode:o.mode, type:o.interviewType, level:o.experienceLevel, difficulty:o.difficulty, length:o.length||"standard", name:o.candidate&&o.candidate.name, platform:o.candidate&&o.candidate.platform });
-  startSession(s); App.session=s; Repo.prefs.set({ activeSessionId:s.sessionId }); go("interview/session");
+  const s=createSession({ professionId:o.profession.id, mode:o.mode, type:o.interviewType, level:o.experienceLevel, difficulty:o.difficulty, length:o.length||"standard", name:o.candidate&&o.candidate.name, platform:o.candidate&&o.candidate.platform, langBalance:o.langBalance });
+  startSession(s); App.session=s; Repo.prefs.set({ activeSessionId:s.sessionId }); go(needsMicCheck(s)?"interview/mic-check":"interview/session");
 }
 
 /* ---------- Interview history -------------------------------------------- */
@@ -641,80 +491,6 @@ function deleteSession(id){
   scrHistory();
 }
 
-/* ---------- Practice Lab -------------------------------------------------- */
-const KIND_LABEL={ pair:"Compare two responses", rate:"Rate a response (1–5)", find:"Find the errors", rewrite:"Fix and rewrite" };
-const KIND_HELP={ pair:"Which response is better? Choose A or B, then justify your choice.",
-  rate:"Rate this response from 1 (poor) to 5 (excellent), then justify your rating.",
-  find:"Identify every problem in the response and explain why it matters.",
-  rewrite:"List the problems, then write a corrected version." };
-function practiceBest(){ const best={}; Repo.practice.all().forEach(a=>{ best[a.taskId]=Math.max(best[a.taskId]||0, a.score); }); return best; }
-function scrPractice(){
-  const attempts=Repo.practice.all(), best=practiceBest();
-  el.innerHTML=pageHead("Practice Lab","Practice AI evaluation tasks","Short, original tasks that build the skills AI-evaluation interviews test: comparing responses, rating quality, spotting errors and enforcing instructions.")
-  + `<div class="grid g3" style="margin-bottom:18px">
-      <div class="card stat"><div class="l">Tasks attempted</div><div class="v">${attempts.length}</div></div>
-      <div class="card stat"><div class="l">Average score</div><div class="v">${attempts.length?avg(attempts.map(a=>a.score)):"–"}</div></div>
-      <div class="card stat"><div class="l">Tasks mastered (80+)</div><div class="v">${Object.values(best).filter(v=>v>=80).length} / ${PRACTICE_TASKS.length}</div></div></div>
-    <div class="grid g2">${PRACTICE_TASKS.map(t=>`<a class="card linkcard" href="#/practice/task/${t.id}">
-      <div class="row between center"><span class="pill">${H(t.skill)}</span>${best[t.id]!=null?scoreBadge(best[t.id]):`<span class="badge">New</span>`}</div>
-      <div class="t" style="margin-top:12px">${H(t.title)}</div><div class="d">${KIND_LABEL[t.kind]}</div></a>`).join("")}</div>
-    <p class="note">Your attempts are saved in <a href="#/practice/history">My Practice History</a>.</p>`;
-}
-function scrPracticeTask(id){
-  const t=PRACTICE_TASKS.find(x=>x.id===id);
-  if(!t){ el.innerHTML=emptyCard("🧪","Task not found","That practice task doesn't exist.","#/practice","Back to Practice Lab"); return; }
-  const st=App.practice[id]||(App.practice[id]={ choice:null, rating:null, text:"", result:null });
-  const idx=PRACTICE_TASKS.indexOf(t), next=PRACTICE_TASKS[(idx+1)%PRACTICE_TASKS.length];
-  const res=st.result;
-  el.innerHTML=`<p class="small"><a href="#/practice">← Practice Lab</a></p>`
-  + pageHead(H(t.skill), H(t.title), KIND_HELP[t.kind])
-  + `<div class="card">
-      <div class="resplabel">User prompt</div><div class="resp">${H(t.prompt)}</div>
-      ${t.kind==="pair"?`<div class="grid g2"><div><div class="resplabel">Response A</div><div class="resp">${H(t.a)}</div></div><div><div class="resplabel">Response B</div><div class="resp">${H(t.b)}</div></div></div>`
-        :`<div class="resplabel">AI response</div><div class="resp ${t.code?"code":""}">${H(t.response)}</div>`}
-    </div>
-    <div class="card">
-      ${t.kind==="pair"?`<h3>Your choice</h3><div class="opts">${["a","b"].map(k=>optCard({ sel:st.choice===k, onclick:`practiceSet('${id}','choice','${k}')`, title:"Response "+k.toUpperCase()+" is better" })).join("")}</div>`:""}
-      ${t.kind==="rate"?`<h3>Your rating</h3><div class="rate">${[1,2,3,4,5].map(n=>optCard({ sel:+st.rating===n, onclick:`practiceSet('${id}','rating',${n})`, title:String(n) })).join("")}</div>`:""}
-      <div class="field"><label class="fld" for="ptText">${t.kind==="rewrite"?"Problems and your corrected version":"Your justification"}</label>
-        <textarea id="ptText" placeholder="Explain your reasoning…" oninput="App.practice['${id}'].text=this.value">${H(st.text)}</textarea></div>
-      <div id="ptErr" class="small" style="color:#ffb4b4;margin-top:8px" role="alert"></div>
-      <div class="row wrapw" style="margin-top:14px;gap:10px"><button class="btn primary" onclick="submitPractice('${id}')">${res?"Re-submit":"Submit"}</button>
-        <a class="btn ghost" href="#/practice/task/${next.id}">Skip to next task →</a></div>
-    </div>
-    ${res?`<div class="card" id="ptResult">
-      <div class="row between center wrapw"><h2 style="margin:0">Your result</h2>${scoreBadge(res.score)}</div>
-      ${res.correct!=null?`<p style="margin-top:12px">${res.correct?"✅ Your judgment matches the expected answer.":"❌ Your judgment differs from the expected answer."}</p>`:""}
-      <h3 style="margin-top:14px">What a strong reviewer notices</h3><p>${H(t.model)}</p>
-      <h3>How to improve</h3><ul class="tips small">${res.tips.map(x=>`<li>${H(x)}</li>`).join("")}</ul>
-      <div class="row wrapw" style="margin-top:14px;gap:10px"><a class="btn primary" href="#/practice/task/${next.id}">Next task →</a><a class="btn ghost" href="#/practice/history">My Practice History</a></div>
-    </div>`:""}`;
-  if(res){ const r=document.getElementById("ptResult"); if(r && App.practice[id].justSubmitted){ App.practice[id].justSubmitted=false; r.scrollIntoView({behavior:"smooth"}); } }
-}
-function practiceSet(id, k, v){ App.practice[id][k]=v; App.practice[id].text=(document.getElementById("ptText")||{}).value||App.practice[id].text; scrPracticeTask(id); }
-function submitPractice(id){
-  const t=PRACTICE_TASKS.find(x=>x.id===id), st=App.practice[id];
-  st.text=(document.getElementById("ptText")||{}).value||"";
-  const err=document.getElementById("ptErr");
-  if(t.kind==="pair" && !st.choice){ err.textContent="Choose Response A or B first."; return; }
-  if(t.kind==="rate" && !st.rating){ err.textContent="Choose a rating from 1 to 5 first."; return; }
-  if(words(st.text).length<5){ err.textContent="Add a short justification (at least a sentence) so your reasoning can be scored."; return; }
-  const r=scorePractice(t, st);
-  st.result=r; st.justSubmitted=true;
-  Repo.practice.add({ id:"p-"+Date.now().toString(36), taskId:id, title:t.title, skill:t.skill, kind:t.kind, score:r.score, correct:r.correct,
-    choice:st.choice, rating:st.rating, text:st.text, at:Date.now() });
-  scrPracticeTask(id);
-}
-function scrPracticeHistory(){
-  const list=Repo.practice.all();
-  el.innerHTML=pageHead("Practice","My practice history","Every Practice Lab attempt, newest first.")
-  + (list.length?`<div class="card"><div class="list">${list.map(a=>`
-    <div class="item"><div><div class="t">${H(a.title)} <span class="faint small">· ${H(a.skill)}</span></div>
-      <div class="m">${H(fmtDate(a.at))} · ${H(KIND_LABEL[a.kind]||"")}${a.correct!=null?(a.correct?" · judgment matched":" · judgment differed"):""}</div></div>
-      <div class="row center" style="gap:10px">${scoreBadge(a.score)}<a class="btn sm" href="#/practice/task/${a.taskId}">Retry</a></div></div>`).join("")}</div></div>`
-  : emptyCard("🧪","No practice yet","Try a Practice Lab task. Each takes two or three minutes.","#/practice","Open Practice Lab"));
-}
-
 /* ---------- Progress ------------------------------------------------------ */
 const PROGRESS_TABS=[["#/progress","Interview Readiness"],["#/progress/skills","Skills & Scores"],["#/progress/activity","Recent Activity"]];
 function readiness(){
@@ -729,7 +505,7 @@ function competencyStats(){
   return Object.entries(m).map(([k,v])=>({ label:k, score:avg(v), n:v.length })).sort((a,b)=>a.score-b.score);
 }
 function scrReadiness(){
-  const r=readiness(), done=Repo.sessions.completed().map(reportOf), prac=Repo.practice.all(), weak=competencyStats()[0];
+  const r=readiness(), done=Repo.sessions.completed().map(reportOf), prac=Repo.practiceSessions.all().filter(x=>x.status==="submitted"), weak=competencyStats()[0];
   const label = r==null?"":r>=78?"Interview-ready":r>=55?"Nearly ready":"Building foundations";
   el.innerHTML=pageHead("Progress","Interview readiness","Your readiness weighs your three most recent completed interviews, with the newest counting most.")+tabs(PROGRESS_TABS,"#/progress")
   + (r==null ? emptyCard("🎯","No readiness score yet","Complete an interview with Alex to get your first readiness score.","#/interview/start","Start interview")
@@ -744,17 +520,18 @@ function scrReadiness(){
   + `<div class="grid g4">
       <div class="card stat"><div class="l">Interviews completed</div><div class="v">${done.length}</div></div>
       <div class="card stat"><div class="l">Best score</div><div class="v">${done.length?Math.max(...done.map(s=>s.scores.overall)):"–"}</div></div>
-      <div class="card stat"><div class="l">Practice tasks</div><div class="v">${prac.length}</div></div>
-      <div class="card stat"><div class="l">Practice average</div><div class="v">${prac.length?avg(prac.map(a=>a.score)):"–"}</div></div></div>`;
+      <div class="card stat"><div class="l">Practice sessions</div><div class="v">${prac.length}</div></div>
+      <div class="card stat"><div class="l">Practice average</div><div class="v">${prac.length?avg(prac.map(a=>a.results.score)):"–"}</div></div></div>
+    ${(done.length||prac.length)?`<div class="card">${recommendationsHTML()||`<p class="small muted" style="margin:0">No specific recommendations right now. Keep practising across categories.</p>`}</div>`:""}`;
 }
 function scrSkills(){
   const A=allAnswers(), comps=competencyStats();
-  const pm={}; Repo.practice.all().forEach(a=>{ (pm[a.skill]=pm[a.skill]||[]).push(a.score); });
+  const pm={}; Repo.practiceSessions.all().filter(x=>x.status==="submitted").forEach(p=>Object.entries(p.results.competencies).forEach(([k,v])=>{ (pm[k]=pm[k]||[]).push(v); }));
   el.innerHTML=pageHead("Progress","Skills & scores","Averages across every interview answer and practice attempt.")+tabs(PROGRESS_TABS,"#/progress/skills")
   + (!A.length && !Object.keys(pm).length ? emptyCard("📈","No scores yet","Complete an interview or a practice task to see your skill profile.","#/interview/start","Start interview")
   : `<div class="grid g2">
       <div class="card"><h3>Rubric dimensions</h3>${A.length?["Relevance","Depth","Structure","Specificity"].map(n=>barRow(n, avg(A.map(a=>a.dims[n])))).join(""):`<p class="small muted">No interview answers yet.</p>`}</div>
-      <div class="card"><h3>Practice Lab skills</h3>${Object.keys(pm).length?Object.entries(pm).map(([k,v])=>barRow(k, avg(v), `· ${v.length} attempt${v.length>1?"s":""}`)).join(""):`<p class="small muted">No practice attempts yet. <a href="#/practice">Try one</a>.</p>`}</div>
+      <div class="card"><h3>Practice Lab skills</h3>${Object.keys(pm).length?Object.entries(pm).map(([k,v])=>barRow(k, avg(v), `· ${v.length} session${v.length>1?"s":""}`)).join(""):`<p class="small muted">No practice sessions yet. <a href="#/practice">Start one</a>.</p>`}</div>
     </div>
     <div class="card"><h3>Competencies (weakest first)</h3>${comps.length?comps.map(c=>barRow(c.label, c.score, `· ${c.n} question${c.n>1?"s":""}`)).join(""):`<p class="small muted">Competency scores appear after your first interview with Alex.</p>`}</div>`);
 }
@@ -762,8 +539,8 @@ function scrActivity(){
   const items=[].concat(
     Repo.sessions.all().map(s=>({ at:s.completedAt||s.startedAt, html:`<div><div class="t">🎙️ ${sessionTitle(s)}</div><div class="m">${H(fmtDate(s.completedAt||s.startedAt))} ${statusBadge(s)}</div></div>
       <div class="row center" style="gap:10px">${s.answers&&s.answers.length?scoreBadge(reportOf(s).scores.overall):""}${s.status==="in_progress"?`<button class="btn sm" onclick="resumeSession('${s.sessionId}')">Resume</button>`:s.answers&&s.answers.length?`<a class="btn sm" href="#/results/${s.sessionId}">Report</a>`:""}</div>` })),
-    Repo.practice.all().map(a=>({ at:a.at, html:`<div><div class="t">🧪 ${H(a.title)} <span class="faint small">· Practice Lab</span></div><div class="m">${H(fmtDate(a.at))} · ${H(a.skill)}</div></div>
-      <div class="row center" style="gap:10px">${scoreBadge(a.score)}<a class="btn sm" href="#/practice/task/${a.taskId}">Retry</a></div>` }))
+    Repo.practiceSessions.all().map(p=>{ const c=practiceCat(p.category)||{icon:"🧪",label:p.category}; return { at:p.submittedAt||p.startedAt, html:`<div><div class="t">${c.icon} ${H(c.label)} <span class="faint small">· Practice Lab · ${PRACTICE_DIFF[p.difficulty].label}</span></div><div class="m">${H(fmtDate(p.submittedAt||p.startedAt))} · ${PRACTICE_QUESTIONS} questions</div></div>
+      <div class="row center" style="gap:10px">${p.results?scoreBadge(p.results.score)+`<a class="btn sm" href="#/practice/results/${p.id}">Review</a>`:`<span class="badge info">In progress</span><a class="btn sm" href="#/practice/run">Resume</a>`}</div>` }; })
   ).sort((a,b)=>b.at-a.at).slice(0,40);
   el.innerHTML=pageHead("Progress","Recent activity","Your latest interviews and practice, newest first.")+tabs(PROGRESS_TABS,"#/progress/activity")
   + (items.length?`<div class="card"><div class="list">${items.map(i=>`<div class="item">${i.html}</div>`).join("")}</div></div>`
@@ -775,7 +552,7 @@ function scrAbout(){
   el.innerHTML=pageHead("About","About BSP AI WorkReady · Interview IQ","The AI Interview Lab from Business Startup Powerhouse, built to help people practise realistic AI-led interviews for free.")
   + `<div class="grid g2">
     <div class="card"><h3>What it is</h3><p>Interview IQ simulates the AI-led screening interviews used across professional and AI-training work. Alex, your BSP AI interviewer, asks profession-specific questions, adapts to your answers and gives you a detailed, transparent report.</p>
-      <p class="muted">${PROFESSIONS.length}+ professions · 8 interview types · voice or text · adaptive follow-ups.</p><a href="#/interview/alex">Meet Alex →</a></div>
+      <p class="muted">${PROFESSIONS.length}+ professions · 8 interview types · voice or text · adaptive follow-ups · a timed Practice Lab with ${PRACTICE_CATEGORIES.length} AI-evaluation categories (every session is exactly ${PRACTICE_QUESTIONS} questions).</p><a href="#/interview/alex">Meet Alex →</a></div>
     <div class="card"><h3>How interviews work</h3><ul class="clean small">
       <li>Each profession has its own competency model, for example Risk Management or Stakeholder Management for project managers.</li>
       <li>Questions are structured by competency, difficulty and type: knowledge, behavioral, scenario, AI output evaluation, error detection, explanation and practical tasks.</li>
@@ -784,7 +561,7 @@ function scrAbout(){
     <div class="card"><h3>Original content</h3><p class="small muted">All interview and practice questions are original BSP practice material based on general professional competencies. They are not copied from any hiring or AI-training platform, and Interview IQ is not affiliated with any of them.</p></div>
   </div>
   <div class="card"><h3>Guest mode &amp; your data</h3>
-    <p class="small muted">No account is needed. Your interview history, practice history and preferences are stored ${Repo.kind==="browser"?"in this browser on this device":"for this session only (your browser is blocking storage)"}. Nothing is sent to a server, and Interview IQ never stores audio. Clearing your browser data removes them.</p>
+    <p class="small muted">No account is needed. Your interview history, practice history and preferences are stored ${Repo.kind==="browser"?"in this browser on this device":"for this session only (your browser is blocking storage)"}. Nothing is sent to a server. In voice interviews, Interview IQ never records or stores audio: your browser's speech service turns speech into text live, and only the text transcript is saved. Accent, voice pitch, regional speech patterns, gender presentation and perceived ethnicity are never scored. Clearing your browser data removes everything.</p>
     <div class="row wrapw" style="gap:10px"><button class="btn" onclick="exportData()">⬇ Export my data (JSON)</button><button class="btn danger" onclick="clearData()">Delete all my data</button></div></div>
   <div class="card"><h3>Browser support</h3><p class="small muted">Best experience: Chrome or Edge on desktop or Android, which support both speaking and listening. Safari and Firefox can speak questions aloud; you type your answers.</p></div>`;
 }
@@ -795,7 +572,7 @@ function exportData(){
 }
 function clearData(){
   if(!confirm("Delete all interviews, practice history, custom professions and preferences stored in this browser? This can't be undone.")) return;
-  Repo.clearAll(); App.session=null; App.practice={}; loadSetup(); go("");
+  Repo.clearAll(); App.session=null; loadSetup(); go("");
 }
 
 /* ---------- Brand, footer, boot ------------------------------------------- */
@@ -816,6 +593,7 @@ function renderFooter(){
 
 Repo.migrate();
 loadSetup();
+(()=>{ const v=Repo.prefs.get().voice; if(v){ Speech.settings.muted=!!v.muted; Speech.settings.rate=+v.rate||1; } })();
 renderBrand();
 renderFooter();
 initNav();

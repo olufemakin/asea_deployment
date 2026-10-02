@@ -15,8 +15,7 @@ const ALEX = {
       `Today we'll be completing ${aOrAn(o.profession)} ${o.profession} ${o.typeIntro}.`,
       `I'll ask questions about your professional experience, reasoning and, where relevant, your ability to evaluate AI-generated work.`,
       `Some of my follow-up questions will depend on your answers, so take your time and explain your reasoning clearly.`,
-      `When you're ready, let's begin.`,
-    ];
+    ].concat(o.healthcare?[ALEX.healthcare]:[], o.bilingual?[ALEX.bilingual]:[], [`When you're ready, let's begin.`]);
   },
   ack:["Thank you.","Thank you for that.","Understood.","Thank you. Noted."],
   transition:{
@@ -31,29 +30,34 @@ const ALEX = {
   stayWith:hit=>`You mentioned ${hit}. Let's stay with that for a moment.`,
   explore:"Thank you. I'd like to explore that further.",
   closing:name=>`Thank you${name?", "+name:""}. That concludes today's interview. Your report is ready.`,
+  healthcare:"All scenarios today are fictional and for education only. Please don't share any real patient information.",
+  bilingual:"We'll move between English and French during this interview. Nous alternerons entre l'anglais et le français.",
+  toFrench:"Passons maintenant au français.", toEnglish:"Let's switch back to English.", toCross:"Now a translation task. You may answer in English or French.",
+  remember:fact=>`You mentioned that ${fact}.`,
+  status:{ speaking:"Alex is speaking…", listening:"Alex is listening…", reviewing:"Alex is reviewing your response…" },
 };
 function aOrAn(w){ return /^[aeiou]/i.test(String(w||"").trim()) ? "an" : "a"; }
 
 /* ---------- Interview types ------------------------------------------------ */
 const TYPES = {
   domain:      { label:"Domain Expert Interview",        intro:"Domain Expert Interview",        d:"Tests profession-specific expertise.",
-                 plan:["knowledge","scenario","behavioral","scenario","explanation","knowledge","practical"] },
+                 plan:["knowledge","scenario","behavioral","scenario","explanation","knowledge","practical"], weights:{background:20,domain:30,reasoning:30,ai:0,communication:20} },
   ai_domain:   { label:"AI Domain Expert Interview",     intro:"AI Domain Expert Interview",     d:"Tests professional expertise plus ability to review AI-generated work.",
-                 plan:["knowledge","ai_eval","scenario","error_detection","ai_eval","behavioral","practical"] },
+                 plan:["knowledge","ai_eval","scenario","error_detection","ai_eval","behavioral","practical"], weights:{background:20,domain:25,reasoning:20,ai:20,communication:15} },
   ai_readiness:{ label:"AI Training Readiness",          intro:"AI Training Readiness Interview", d:"Tests AI evaluation skills.",
-                 plan:["ai_eval","error_detection","knowledge","ai_eval","practical","scenario","explanation"] },
+                 plan:["ai_eval","error_detection","knowledge","ai_eval","practical","scenario","explanation"], weights:{background:10,domain:15,reasoning:20,ai:40,communication:15} },
   behavioral:  { label:"Behavioral Interview",           intro:"Behavioral Interview",           d:"Tests professional experience and judgment.",
-                 plan:["behavioral","behavioral","scenario","behavioral"] },
+                 plan:["behavioral","behavioral","scenario","behavioral"], weights:{background:60,domain:0,reasoning:25,ai:0,communication:15} },
   technical:   { label:"Technical Interview",            intro:"Technical Interview",            d:"Coding, data, science, engineering and technical professions.",
-                 plan:["knowledge","practical","scenario","error_detection","explanation","knowledge"] },
+                 plan:["knowledge","practical","scenario","error_detection","explanation","knowledge"], weights:{background:10,domain:30,reasoning:35,ai:10,communication:15} },
   bilingual:   { label:"Bilingual Interview",            intro:"Bilingual Interview",            d:"Language and translation evaluation.",
-                 plan:["practical","error_detection","ai_eval","knowledge","scenario","explanation"] },
+                 plan:["practical","error_detection","ai_eval","knowledge","scenario","explanation"], weights:{background:10,domain:25,reasoning:25,ai:25,communication:15} },
   transferable:{ label:"Transferable Skills Interview",  intro:"Transferable Skills Interview",  d:"Attention to detail, process adherence, quality review and instruction following.",
-                 plan:["knowledge","scenario","behavioral","error_detection","practical","explanation"] },
+                 plan:["knowledge","scenario","behavioral","error_detection","practical","explanation"], weights:{background:25,domain:25,reasoning:35,ai:0,communication:15} },
   full_mock:   { label:"Full Mock Interview",            intro:"Full Mock Interview",            d:"Professional experience, domain knowledge, reasoning, AI evaluation, communication and practical scenarios.",
-                 plan:["behavioral","knowledge","scenario","ai_eval","explanation","practical","error_detection"] },
+                 plan:["behavioral","knowledge","scenario","ai_eval","explanation","practical","error_detection"], weights:{background:20,domain:25,reasoning:20,ai:20,communication:15} },
 };
-const QTYPE_LABEL = { intro:"Professional Experience", knowledge:"Professional Knowledge", behavioral:"Behavioral", scenario:"Scenario Reasoning",
+const QTYPE_LABEL = { final:"Final Question", callback:"Follow-Up on Your Experience", intro:"Professional Experience", knowledge:"Professional Knowledge", behavioral:"Behavioral", scenario:"Scenario Reasoning",
   ai_eval:"AI Output Evaluation", error_detection:"Error Detection", explanation:"Explanation", practical:"Practical Task", followup:"Adaptive Follow-Up" };
 
 const MODES = {
@@ -92,20 +96,37 @@ const COMPLICATIONS = [
 ];
 
 const FOLLOWUP = {
-  clarify:"Could you expand on that? Walk me through your reasoning step by step.",
-  evidence:"What evidence supports that conclusion?",
-  probe:{
-    intro:"Which part of that experience is most relevant to this kind of work, and why?",
-    knowledge:"Can you give a concrete example of how you've applied that?",
-    scenario:"What would you do first, and what would cause you to change your decision?",
-    behavioral:"What was the outcome, and what would you do differently next time?",
-    ai_eval:"What specific rating would you give, and what is the single most important issue?",
-    error_detection:"Is there anything else in that example you would flag, and how severe is each issue?",
-    explanation:"How would you check that the person actually understood you?",
-    practical:"How would you check the quality of what you just produced?",
+  /* Seven adaptive follow-up types. Question-specific `fu` text overrides these defaults. */
+  text:{
+    clarify:"Could you explain what you mean by that?",
+    evidence:"What evidence would you review before making that decision?",
+    depth:"Walk me through that step in more detail.",
+    tradeoff:"What potential disadvantage could that approach introduce?",
+    edge:"Would your decision change if {cond}?",
+    challenge:"What if a senior stakeholder disagreed?",
+    ai:"How would you evaluate an AI-generated response that made the same assumption?",
   },
-  deepen:["What would cause you to change your decision?","What evidence supports that conclusion?",
-    "How would your approach change if you had half the time?","What is the biggest risk in the approach you just described?"],
+  label:{ clarify:"Clarification", evidence:"Evidence", depth:"Depth", tradeoff:"Trade-off", edge:"Edge case", challenge:"Challenge", ai:"AI connection" },
+  edgeCond:{ scenario:"the deadline were cut in half", knowledge:"you had to apply this at ten times the scale",
+    ai_eval:"that AI output were going straight to a client without review", error_detection:"you only had time to fix one of those issues",
+    practical:"you had to hand this over to a colleague tomorrow", behavioral:"you faced the same situation with half the team",
+    explanation:"the person you were explaining to disagreed with you", callback:"the same thing happened again next month",
+    healthcare:"the fictional patient's condition started to deteriorate" },
+};
+const LANG_BALANCE = {
+  balanced:{ label:"Balanced", d:"≈40% English · 40% French · 20% translation", mix:{en:40,fr:40,x:20} },
+  english: { label:"Mostly English", d:"≈70% English · 10% French · 20% translation", mix:{en:70,fr:10,x:20} },
+  french:  { label:"Mostly French", d:"≈10% English · 70% French · 20% translation", mix:{en:10,fr:70,x:20} },
+};
+const FINALS = {
+  default:{ text:"Final question: what is one professional standard you would never compromise on as {a_role}, and how have you protected it under pressure?",
+    sig:["standard","example","pressure","because","protect","quality","decision","evidence","never","consistent"] },
+  ai:{ text:"Final question: if you reviewed AI-generated work from your field every day, what standard would you hold it to, and how would you stay consistent?",
+    sig:["standard","accuracy","evidence","consistent","rubric","verify","example","because","quality","safety"] },
+  transferable:{ text:"Final question: what would your supervisor say is the most reliable thing about the way you work, and why?",
+    sig:["reliable","on time","careful","example","because","standard","team","trust","quality","consistent"] },
+  bilingual:{ text:"Final question, in English or French: what makes a translation ready to send to a client?",
+    sig:["meaning","accurate","natural","register","terminology","review","proofread","sens","relecture","client"] },
 };
 
 /* ---------- Field item sets ----------------------------------------------- */

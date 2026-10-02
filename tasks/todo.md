@@ -75,3 +75,17 @@ Done:
 - [x] Storage abstraction (StorageAdapter + Repo), v1 `ia_history` migration, export/delete data
 - [x] Results, report (rubric + competencies + strengths/focus), interview history, Practice Lab (8 tasks), progress (readiness, skills, activity), About
 - [x] Tests: tests/regression.mjs (65/65 pass), tests/engine-check.js (911 profession×type combos, 0 issues)
+
+## 2026-10-02 — Upgrade Prompt 2 of 3: Adaptive engine + Voice + Timed Practice Lab
+- [x] Stage blueprint (Background → Domain → Reasoning → AI → Communication → Final) with 20/25/20/20/15 weighting per type; weighted area scores
+- [x] Same-session memory: role triggers + generic experience callbacks ("You mentioned that …"); behavioral repeats avoided
+- [x] Seven follow-up types (clarify, evidence, depth, tradeoff, edge, challenge, AI connection) + harder follow-up after the AI stage
+- [x] 18 role models (54 professions) with curated questions, exhibits, memory triggers; advanced interviews always include an exhibit
+- [x] Healthcare safeguards (fictional scenarios, no patient info); FR-EN bilingual with Mostly EN / Mostly FR / Balanced, FR TTS/STT
+- [x] Fair scoring: text only, fillers stripped, diacritic-insensitive stem matching, communication score; accent never scored
+- [x] Voice: mic check (meter, sample transcript, Sounds good / Try again / Use text), speaking/listening/reviewing statuses,
+      replay/mute/speed, start/pause/finish, live transcript toggle, transcript review/correction, mic + transcription fallbacks
+- [x] Practice Lab rebuilt: 24 categories, 7 formats, exactly 10 questions, Easy 15 / Medium 20 / Hard 25 min, wall-clock timer,
+      prev/next/palette/flags, autosave, manual + auto-submit (NO RESPONSE), results, full question review, progression, history
+- [x] Interview↔practice recommendations on reports, Progress and Practice Lab
+- [x] Tests: tests/regression.mjs 137/137 · tests/engine-check.js OK (911 combos, 72 practice sessions)

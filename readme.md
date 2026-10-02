@@ -23,7 +23,17 @@ Live: **https://strong-dragon-d8b60f.netlify.app**
   7. Summary
 - 🔀 **Adaptive engine.** Strong answers lead to deeper follow-ups and harder scenarios. Vague answers get a request to clarify, and competencies you haven't shown yet get explored.
 - 📊 **Detailed reports.** Each report scores Relevance, Depth, Structure and Specificity, breaks results down by competency, lists strengths and focus areas, and gives question-by-question feedback. Reports are printable.
-- 🧪 **Practice Lab.** Original AI-evaluation tasks: compare responses, rate quality, find errors, fix the format.
+- 🧠 **Same-session memory.** Alex remembers your earlier answers ("You mentioned that vendor delays affected your software implementation…") and builds on them instead of asking you to repeat yourself.
+- 🧭 **Realistic interview flow.** Background → domain knowledge → reasoning → scenario → AI evaluation → a harder follow-up → final question, weighted 20/25/20/20/15 (adjusted per interview type).
+- 🖼️ **Practical exhibits.** Risk registers, reconciliations, code, dashboards, lesson plans, captions, and source text with two translations, to evaluate out loud or in text.
+- 🇫🇷 **French-English bilingual interviews.** Mostly English, Mostly French or Balanced (40/40/20). Alex switches languages naturally.
+- 🎤 **Voice interview.** A microphone check with level meter and sample transcript, and Alex speaking/listening/reviewing statuses. Controls: replay, mute and playback speed, plus start/pause/finish answer. You can review and correct the transcript before submitting, and both mic and transcription failures fall back to text. Audio is never stored, and accent is never scored.
+- ⏱️ **Timed Practice Lab.** 24 AI-evaluation categories (preference ranking, factuality, hallucination detection, spreadsheets, image labelling, transcription, coding, French-English, …).
+  - Every session is exactly 10 questions: Easy 15 minutes, Medium 20 minutes, Hard 25 minutes.
+  - Navigation: previous/next, flag for review, autosave, and auto-submit when time runs out.
+  - Results include a full question review: expected outcome, what was correct, what was missed, the rubric, and a strong example.
+  - Difficulty progression is recommended, never locked.
+- 🔗 **Interview ↔ practice.** A weak interview area leads to targeted practice (e.g. AI Evaluation 58% → AI Response Evaluation · Medium · 10 questions · 20 min). Strong practice with weak spoken explanation leads to a Voice Interview With Alex.
 - 📈 **Progress.** Interview readiness score, skills and scores, and recent activity.
 - 🔒 **Guest mode.** History, practice and preferences are saved in your browser. You can export or delete them from the About page.
 
@@ -52,8 +62,8 @@ The microphone needs `localhost` or HTTPS.
 
 ## Tests
 ```bash
-node tests/engine-check.js     # every profession × interview type, headless (≈2–3 min)
-node tests/regression.mjs      # 65 browser checks (needs Playwright + Chromium and the local server)
+node tests/engine-check.js     # every profession × interview type + practice bank, headless (≈5 s)
+node tests/regression.mjs      # 137 browser checks (needs Playwright + Chromium and the local server)
 ```
 
 ## Live site & auto-deploy
