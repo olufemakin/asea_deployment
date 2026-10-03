@@ -426,3 +426,14 @@ pre.rubricpre{white-space:pre-wrap;font-family:inherit;margin:0;color:var(--mute
 }
 details.introfold>summary{cursor:pointer;list-style:none}details.introfold>summary::-webkit-details-marker{display:none}
 details.introfold[open]>summary .faint{display:none}
+
+/* ---------- Profession library ------------------------------------------- */
+.presults{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.presult{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.presult .pmeta{font-size:12.5px;color:var(--faint)}
+.note.ambig{color:#ffe08a;border:1px solid #5a4a16;background:rgba(234,179,8,.08);border-radius:10px;padding:8px 12px}
+.pcard .t{font-weight:800;font-size:16px}
+.paybox{border:1px solid var(--line2);border-radius:12px;padding:12px 14px;background:var(--bg2)}
+.paybox.unverified{border-style:dashed}
+.career select{width:auto}
+.mini input{padding:5px 8px;font-size:14px;margin-top:4px}

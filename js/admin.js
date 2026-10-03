@@ -14,10 +14,11 @@ async function adminHash(s){
   try{ const b=await crypto.subtle.digest("SHA-256", new TextEncoder().encode("bsp-studio|"+s)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join(""); }
   catch(e){ let h=5381; for(const c of "bsp-studio|"+s) h=((h<<5)+h+c.charCodeAt(0))>>>0; return "x"+h.toString(16); }
 }
-const ADMIN_TABS=[["questions","Question Manager"],["generator","Question Generator"],["roles","Role Manager"],["alex","Alex Settings"],["data","Export / Import"]];
+const ADMIN_TABS=[["questions","Question Manager"],["generator","Question Generator"],["roles","Professions"],["alex","Alex Settings"],["data","Export / Import"]];
 function scrAdmin(tab){
   if(!App.adminUnlocked){ el.innerHTML=adminGateHTML(); return; }
   tab=tab||"questions"; App.adm=App.adm||{ bank:"interview", f:{}, page:0, edit:null };
+  if(tab==="roles"){ App.adm.bulk=false; App.adm.role=null; }   // entering the tab from navigation always shows the list
   el.innerHTML=pageHead("Local Content Studio","Admin · this device only",`Edits here are saved only in this browser and never change the public site. Export them as JSON for the site owner to review and publish in the repository.`)
     +`<nav class="tabs" aria-label="Studio">${ADMIN_TABS.map(([k,l])=>`<a href="#/admin/${k}" class="${k===tab?"active":""}">${l}</a>`).join("")}<a href="javascript:void(0)" onclick="adminLock()">Lock studio</a></nav><div id="admBody"></div>`;
   ({ questions:admQuestions, generator:admGenerator, roles:admRoles, alex:admAlex, data:admData })[tab] ? ({ questions:admQuestions, generator:admGenerator, roles:admRoles, alex:admAlex, data:admData })[tab]() : go("admin");
@@ -176,45 +177,132 @@ function admSaveDrafts(){ const g=App.adm.gen; (g.drafts||[]).forEach(d=>Repo.in
 function admRoles(){
   const A=App.adm; A.role=A.role||null;
   if(A.role) return admRoleForm(A.role);
-  const q=fold(A.roleQ||""), list=PROFESSIONS.filter(p=>!q||fold(p.title+" "+(p.kw||"")).includes(q)).sort((a,b)=>a.title.localeCompare(b.title));
+  if(A.bulk) return admBulk();
+  const q=fold(A.roleQ||""), cat=A.roleCat||"", st=A.roleStatus||"";
   const ov=Repo.roleOverrides.all();
-  admBody(`<div class="card"><div class="row between center wrapw"><h2 style="margin:0">Role manager</h2><button class="btn sm good" onclick="admRoleNew()">+ Add profession</button></div>
-    <input style="margin:12px 0" placeholder="Search professions" value="${H(A.roleQ||"")}" oninput="App.adm.roleQ=this.value;clearTimeout(window.__rq);window.__rq=setTimeout(admRoles,200)" aria-label="Search professions">
-    <div class="list">${list.slice(0,60).map(p=>`<div class="item"><div><div class="t">${H(p.title)} ${ov[p.id]?`<span class="badge info">Edited locally</span>`:""}</div><div class="m faint">${H(GROUP[p.group]?GROUP[p.group].label:p.group)} · ${profComps(p).length} competencies · types: ${allowedTypes(p).map(t=>TYPES[t].label.replace(/ Interview$/,"")).join(", ")}</div></div>
-      <button class="btn sm" onclick="App.adm.role='${p.id}';admRoles()">Edit</button></div>`).join("")}${list.length>60?`<p class="small faint">Showing 60 of ${list.length}. Search to narrow.</p>`:""}</div></div>`);
+  const list=PROFESSIONS.filter(p=>(!q||fold(p.title+" "+(p.aliases||[]).join(" ")+" "+(p.kw||"")).includes(q)) && (!cat||p.category===cat) && (!st||p.status===st)).sort((a,b)=>a.title.localeCompare(b.title));
+  admBody(`<div class="card"><div class="row between center wrapw"><h2 style="margin:0">Professions</h2>
+      <div class="row wrapw" style="gap:8px"><button class="btn sm good" id="admProfAdd" onclick="admRoleNew()">+ Add Profession</button><button class="btn sm" id="admBulkBtn" onclick="App.adm.bulk=true;admRoles()">Bulk import</button></div></div>
+    <p class="small muted">${PROFESSIONS.length} profession records (${PROFESSIONS.filter(p=>p.status==="archived").length} archived). Professions come from configuration plus the changes saved here; no application code is needed to add one.</p>
+    <div class="grid g3 admfilters">
+      <div><label class="fld small" for="rq">Search</label><input id="rq" placeholder="Search professions" aria-label="Search professions" value="${H(A.roleQ||"")}" oninput="App.adm.roleQ=this.value;clearTimeout(window.__rq);window.__rq=setTimeout(admRoles,200)"></div>
+      <div>${admSel("rCat",[["","All categories"]].concat(PROFESSION_CATEGORIES.map(c=>[c.id,c.label])),cat,"App.adm.roleCat=this.value;admRoles()","Category")}</div>
+      <div>${admSel("rStatus",[["","All statuses"]].concat(Object.entries(PROFESSION_STATUSES)),st,"App.adm.roleStatus=this.value;admRoles()","Status")}</div></div>
+    <div class="small faint" style="margin:8px 0" id="admProfCount">${list.length} shown${list.length>60?" (first 60)":""}</div>
+    <div class="list">${list.slice(0,60).map(p=>`<div class="item"><div><div class="t">${H(p.title)} ${statusChip(p)} ${ov[p.id]?`<span class="badge info">Edited locally</span>`:""}</div><div class="m faint">${H((PCAT[p.category]||{}).label||"")} · ${H(p.profession_family||"")} · ${profComps(p).length} competencies · recommended: ${H((TYPES[recommendedType(p)]||{}).label||"")}</div></div>
+      <button class="btn sm" onclick="App.adm.role='${p.id}';admRoles()">Edit</button></div>`).join("")}</div></div>`);
 }
-function admRoleNew(){ const t=prompt("New profession title:"); if(!t||t.trim().length<3) return; const id="admin-"+slug(t).slice(0,40);
-  Repo.roleOverrides.set(id, { admin:true, title:t.trim(), group:"business", comps:["communication","judgment"], kw:"" }); applyRoleOverrides(); App.adm.role=id; admRoles(); }
+function admRoleNew(){ const t=prompt("New profession name:"); if(!t||t.trim().length<3) return; const id="admin-"+slug(t).slice(0,40);
+  if(PROF[id]||ProfessionLib.find(t)){ alert("A profession with this name already exists. Edit it, or add this name as an alias."); return; }
+  Repo.roleOverrides.set(id, { admin:true, title:t.trim(), category:"other", family:"generalist" }); applyRoleOverrides(); App.adm.role=id; admRoles(); }
 function admRoleForm(id){
   const p=PROF[id]; if(!p){ App.adm.role=null; return admRoles(); }
-  const W=Object.assign(Object.fromEntries(Object.entries(ROLE_DIMS).map(([k,d])=>[k,d.w])), p.roleWeights||{});
+  const W=Object.assign(Object.fromEntries(Object.entries(ROLE_DIMS).map(([k,d])=>[k,d.w])), p.roleWeights||{}), y=p.pay||{};
+  const opp=(p.opportunities||[]).map(o=>[o.title,o.url||"",o.verifiedAt||""].join(" | ")).join("\n");
   admBody(`<div class="card" id="roleForm"><h2>${H(p.title)} <span class="faint small">${H(id)}</span></h2>
-    <div class="grid g2"><div><label class="fld" for="r_title">Profession</label><input id="r_title" value="${H(p.title)}"></div>
-      <div>${admSel("r_group",GROUPS.map(g=>[g.id,g.label]),p.group,"","Industry / group")}</div></div>
-    <label class="fld" for="r_kw">Aliases (comma-separated search terms)</label><input id="r_kw" value="${H((p.kw||"").split(/\s+/).join(", "))}">
+    <div class="grid g2"><div><label class="fld" for="r_title">Profession name</label><input id="r_title" value="${H(p.title)}"></div>
+      <div><label class="fld" for="r_display">Display name</label><input id="r_display" value="${H(p.display_name||p.title)}"></div>
+      <div>${admSel("r_category",PROFESSION_CATEGORIES.map(c=>[c.id,c.label]),p.category,"","Category")}</div>
+      <div>${admSel("r_family",Object.values(PROFESSION_FAMILIES).map(f=>[f.id,f.label]),p.family,"","Profession family (template)")}</div>
+      <div>${admSel("r_group",GROUPS.map(g=>[g.id,g.label]),p.group,"","Engine group (item set & AI competency)")}</div>
+      <div>${admSel("r_status",Object.entries(PROFESSION_STATUSES),p.status,"","Status (Archived = not selectable)")}</div></div>
+    <label class="fld" for="r_desc">Description</label><textarea id="r_desc" rows="2">${H(p.description||"")}</textarea>
+    <label class="fld" for="r_kw">Aliases (comma-separated)</label><input id="r_kw" value="${H((p.aliases||[]).join(", "))}">
+    <label class="fld" for="r_spec">Specialties (comma-separated)</label><input id="r_spec" value="${H((p.specialties||[]).join(", "))}">
     <label class="fld" for="r_comps">Competencies (ids, comma-separated)</label><input id="r_comps" list="compIds" value="${H(profComps(p).join(", "))}">
     <datalist id="compIds">${Object.keys(COMPS).map(c=>`<option value="${c}">${H(COMPS[c].label)}</option>`).join("")}</datalist>
-    <div class="small faint">Known ids include: ${H(Object.keys(COMPS).slice(0,24).join(", "))}…</div>
     <label class="fld">Interview types</label><div class="picks">${Object.entries(TYPES).map(([k,t])=>`<label class="pick"><input type="checkbox" name="r_types" value="${k}" ${allowedTypes(p).includes(k)?"checked":""}> <span>${H(t.label)}</span></label>`).join("")}</div>
+    <div>${admSel("r_rec",Object.entries(TYPES).map(([k,t])=>[k,t.label]),recommendedType(p),"","Recommended interview type (never forced)")}</div>
+    <label class="fld" for="r_tasks">Practical task types (comma-separated)</label><input id="r_tasks" value="${H((p.supported_practical_tasks||[]).join(", "))}">
     <label class="fld">Question concepts</label><div class="picks">${CONCEPTS.map(c=>`<label class="pick"><input type="checkbox" name="r_concepts" value="${c.id}" ${!p.concepts||p.concepts.includes(c.id)?"checked":""}> <span>${H(c.label)} (${c.variants.length} variants)</span></label>`).join("")}</div>
     <label class="fld">Scoring weights (BSP Role Interview Score)</label><div class="grid g3">${Object.entries(ROLE_DIMS).map(([k,d])=>`<div><label class="small" for="w_${k}">${H(d.label)}</label><input id="w_${k}" type="number" min="0" max="100" value="${W[k]}"></div>`).join("")}</div>
+    <h3 style="margin-top:16px">Pay information &amp; verification</h3>
+    <div class="grid g3"><div><label class="small" for="pay_min">Min</label><input id="pay_min" type="number" value="${H(y.min==null?"":y.min)}"></div><div><label class="small" for="pay_max">Max</label><input id="pay_max" type="number" value="${H(y.max==null?"":y.max)}"></div>
+      <div><label class="small" for="pay_cur">Currency</label><input id="pay_cur" value="${H(y.currency||"")}" placeholder="USD"></div>
+      <div>${admSel("pay_period",[["","—"],["hour","Hourly"],["project","Project"],["year","Salary (yearly)"]],y.period||"","","Type")}</div>
+      <div>${admSel("pay_status",Object.entries(PAY_STATUSES),y.status||"unknown","","Verification status")}</div>
+      <div><label class="small" for="pay_ver">Last verified (YYYY-MM-DD)</label><input id="pay_ver" value="${H(y.last_verified||"")}"></div></div>
+    <label class="small" for="pay_src">Source</label><input id="pay_src" value="${H(y.source||"")}"><label class="small" for="pay_notes">Notes</label><input id="pay_notes" value="${H(y.notes||"")}">
+    <h3 style="margin-top:16px">Verified opportunities</h3><p class="small faint">Only add opportunities you have verified. One per line: title | link | verified date.</p>
+    <textarea id="r_opps" rows="2">${H(opp)}</textarea>
     <div id="roleErr" class="small" role="alert" style="color:#ffb4b4;margin-top:8px"></div>
     <div class="row wrapw" style="gap:10px;margin-top:14px"><button class="btn primary" id="roleSave" onclick="admRoleSave('${id}')">Save</button><button class="btn ghost" onclick="App.adm.role=null;admRoles()">Cancel</button>
+      ${p.status!=="archived"?`<button class="btn" onclick="admRoleArchive('${id}')">Archive</button>`:""}
       ${Repo.roleOverrides.all()[id]?`<button class="btn danger" onclick="admRoleReset('${id}')">Discard local changes</button>`:""}</div></div>`);
 }
 function admRoleSave(id){
-  const v=k=>((document.getElementById(k)||{}).value||"").trim(), err=m=>{ document.getElementById("roleErr").textContent=m; };
+  const v=k=>((document.getElementById(k)||{}).value||"").trim(), err=m=>{ document.getElementById("roleErr").textContent=m; }, list=x=>x.split(/\s*,\s*/).filter(Boolean);
   const comps=v("r_comps").split(/[,\s]+/).filter(Boolean), bad=comps.filter(c=>!COMPS[c]);
   if(bad.length){ err("Unknown competency ids: "+bad.join(", ")); return; }
   if(comps.length<2){ err("Choose at least two competencies."); return; }
   const types=[...document.querySelectorAll('input[name=r_types]:checked')].map(x=>x.value); if(!types.length){ err("Choose at least one interview type."); return; }
+  const rec=v("r_rec"); if(!types.includes(rec)){ err("The recommended type must be one of the selected interview types."); return; }
   const concepts=[...document.querySelectorAll('input[name=r_concepts]:checked')].map(x=>x.value);
   const roleWeights=Object.fromEntries(Object.keys(ROLE_DIMS).map(k=>[k, Math.max(0,Math.min(100,+v("w_"+k)||0))]));
+  const num=x=>x===""?null:+x, pay={ min:num(v("pay_min")), max:num(v("pay_max")), currency:v("pay_cur")||null, period:v("pay_period")||null, source:v("pay_src")||null, last_verified:v("pay_ver")||null, status:v("pay_status")||"unknown", notes:v("pay_notes") };
+  if(pay.status==="verified_current" && (!pay.source || !pay.last_verified)){ err("“Verified current” pay needs a source and a last-verified date."); return; }
+  const opportunities=v("r_opps").split(/\n+/).map(l=>l.split("|").map(x=>x.trim())).filter(a=>a[0]).map(([title,url,verifiedAt])=>({ title, url, verifiedAt }));
+  if(opportunities.some(o=>!o.verifiedAt)){ err("Each opportunity needs a verified date (only verified opportunities may be listed)."); return; }
   const prev=Repo.roleOverrides.all()[id]||{};
-  Repo.roleOverrides.set(id, Object.assign(prev, { title:v("r_title")||PROF[id].title, group:v("r_group"), kw:v("r_kw").split(/\s*,\s*/).join(" "), comps, types, concepts, roleWeights }));
-  Object.assign(PROF[id], Repo.roleOverrides.all()[id]); InterviewBank.reset(); App.adm.role=null; admRoles();
+  Repo.roleOverrides.set(id, Object.assign(prev, { title:v("r_title")||PROF[id].title, display_name:v("r_display"), category:v("r_category"), family:v("r_family"), group:v("r_group"), status:v("r_status"),
+    description:v("r_desc"), aliases:list(v("r_kw")), specialties:list(v("r_spec")), comps, types, recommendedType:rec, supported_practical_tasks:list(v("r_tasks")), concepts, roleWeights, pay, opportunities }));
+  applyRoleOverrides(); InterviewBank.reset(); App.adm.role=null; admRoles();
 }
+function admRoleArchive(id){ if(!confirm("Archive this profession? It will no longer be selectable; past interviews stay readable.")) return; const prev=Repo.roleOverrides.all()[id]||{}; Repo.roleOverrides.set(id, Object.assign(prev,{ status:"archived" })); applyRoleOverrides(); App.adm.role=null; admRoles(); }
 function admRoleReset(id){ if(!confirm("Discard local changes to this profession? A locally added profession is removed.")) return; Repo.roleOverrides.set(id, null); alert("Changes discarded. The page will reload to restore the built-in profession."); location.reload(); }
+
+/* ---------- Bulk profession import (CSV) ----------------------------------- */
+const BULK_HEADER="Profession,Category,Family,Aliases,Competencies,RecommendedType,Status";
+function parseCSV(text){
+  const rows=[]; let row=[], cell="", q=false;
+  for(let i=0;i<text.length;i++){ const ch=text[i];
+    if(q){ if(ch==='"' && text[i+1]==='"'){ cell+='"'; i++; } else if(ch==='"') q=false; else cell+=ch; }
+    else if(ch==='"') q=true; else if(ch===","){ row.push(cell); cell=""; } else if(ch==="\n"||ch==="\r"){ if(ch==="\r"&&text[i+1]==="\n") i++; row.push(cell); rows.push(row); row=[]; cell=""; } else cell+=ch; }
+  if(cell.length||row.length){ row.push(cell); rows.push(row); }
+  return rows.map(r=>r.map(x=>x.trim())).filter(r=>r.some(Boolean));
+}
+function bulkResolve(text){
+  const rows=parseCSV(text||""); if(!rows.length) return [];
+  const head=rows[0].map(h=>h.toLowerCase()), body=/profession/.test(head[0])?rows.slice(1):rows, col=n=>head.indexOf(n.toLowerCase());
+  const get=(r,n,i)=>{ const c=col(n); return (c>=0?r[c]:r[i])||""; }, findBy=(list,val)=>list.find(x=>x.id===val||fold(x.label)===fold(val));
+  const statusIds=Object.keys(PROFESSION_STATUSES);
+  return body.map((r,n)=>{
+    const title=get(r,"Profession",0), errs=[];
+    const cat=findBy(PROFESSION_CATEGORIES, get(r,"Category",1)); if(!cat) errs.push("unknown category “"+get(r,"Category",1)+"”");
+    const famRaw=get(r,"Family",2), fam=famRaw?findBy(Object.values(PROFESSION_FAMILIES), famRaw):(cat?PROFESSION_FAMILIES[CATEGORY_FAMILY[cat.id]]:null); if(!fam) errs.push("unknown family “"+famRaw+"”");
+    const aliases=get(r,"Aliases",3).split(/\s*;\s*/).filter(Boolean), comps=get(r,"Competencies",4).split(/\s*;\s*/).filter(Boolean);
+    const badC=comps.filter(c=>!COMPS[c]); if(badC.length) errs.push("unknown competencies: "+badC.join(", "));
+    const rec=get(r,"RecommendedType",5); if(rec && !TYPES[rec]) errs.push("unknown interview type “"+rec+"”");
+    const stRaw=get(r,"Status",6), st=stRaw?(statusIds.find(k=>k===stRaw||fold(PROFESSION_STATUSES[k])===fold(stRaw))):"domain_template"; if(!st) errs.push("unknown status “"+stRaw+"”");
+    if(title.length<2) errs.push("missing profession name");
+    const existing=title && ProfessionLib.find(title);
+    return { line:n+2, title, category:cat&&cat.id, family:fam&&fam.id, aliases, comps, rec, status:st, existing:existing&&existing.id, errs };
+  });
+}
+function admBulk(){
+  const A=App.adm, res=A.bulkRows||[];
+  admBody(`<div class="card" id="bulkCard"><h2>Bulk import professions</h2>
+    <p class="small muted">Paste CSV with the header <code>${BULK_HEADER}</code>. Separate several aliases or competencies with “;”. Category and family accept an id or a label; the family defaults to the category's template. Existing professions are updated (merged), not duplicated.</p>
+    <textarea id="bulkText" rows="8" placeholder="${BULK_HEADER}&#10;Veterinary Practice Manager,Veterinary & Animal Care,Operations,Vet Practice Manager;Practice Manager (Veterinary),operations;communication;judgment,ai_domain,Domain template">${H(A.bulkText||"")}</textarea>
+    <div class="row wrapw" style="gap:10px;margin-top:10px"><button class="btn" id="bulkPreview" onclick="App.adm.bulkText=document.getElementById('bulkText').value;App.adm.bulkRows=bulkResolve(App.adm.bulkText);admBulk()">Preview</button>
+      ${res.length?`<button class="btn primary" id="bulkImport" onclick="admBulkImport()" ${res.some(r=>!r.errs.length)?"":"disabled"}>Import ${res.filter(r=>!r.errs.length).length} valid row(s)</button>`:""}
+      <button class="btn ghost" onclick="App.adm.bulk=false;App.adm.bulkRows=null;admRoles()">Back</button></div>
+    ${res.length?`<div class="list" id="bulkRows" style="margin-top:12px">${res.map(r=>`<div class="item"><div><div class="t small">Line ${r.line}: ${H(r.title||"(no name)")} ${r.errs.length?`<span class="badge bad">Error</span>`:r.existing?`<span class="badge info">Update existing</span>`:`<span class="badge good">New</span>`}</div>
+      <div class="m faint">${r.errs.length?H(r.errs.join("; ")):H([(PCAT[r.category]||{}).label,(PROFESSION_FAMILIES[r.family]||{}).label,r.aliases.length?r.aliases.length+" aliases":"",r.comps.length?r.comps.length+" competencies":"family competencies",r.rec?"recommended: "+TYPES[r.rec].label:"",PROFESSION_STATUSES[r.status]].filter(Boolean).join(" · "))}</div></div></div>`).join("")}</div>`:""}
+    <div id="bulkMsg" class="small" role="status" style="margin-top:10px">${H(A.bulkMsg||"")}</div></div>`);
+  A.bulkMsg="";
+}
+function admBulkImport(){
+  const A=App.adm, ok=(A.bulkRows||[]).filter(r=>!r.errs.length); let added=0, updated=0;
+  ok.forEach(r=>{
+    const patch={ category:r.category, family:r.family, status:r.status };
+    if(r.comps.length) patch.comps=r.comps; if(r.rec) patch.recommendedType=r.rec;
+    if(r.existing){ const prev=Repo.roleOverrides.all()[r.existing]||{}; patch.aliases=uniq(((PROF[r.existing]||{}).aliases||[]).concat(r.aliases)); Repo.roleOverrides.set(r.existing, Object.assign(prev, patch)); updated++; }
+    else { const id="admin-"+slug(r.title).slice(0,40); Repo.roleOverrides.set(id, Object.assign({ admin:true, title:r.title, aliases:r.aliases }, patch)); added++; }
+  });
+  applyRoleOverrides(); InterviewBank.reset();
+  A.bulkRows=null; A.bulkMsg=`Imported ✓ ${added} new, ${updated} updated (this browser only; export to publish).`; admBulk();
+}
 
 /* ---------- Alex settings -------------------------------------------------- */
 function admAlex(){

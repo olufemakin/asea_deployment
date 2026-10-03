@@ -84,6 +84,15 @@ const Repo = (()=>{
   };
   /* Local content studio (admin) data: stays on this device; exported as JSON for the site owner. */
   const kv = name => ({ all(){ return A.get(name, {}); }, set(id, v){ const o=A.get(name, {}); if(v==null) delete o[id]; else o[id]=v; A.set(name, o); return v; }, replace(o){ A.set(name, o||{}); }, clear(){ A.remove(name); } });
+  /* Personal professional profile: several careers per user (primary / secondary / additional). */
+  const careers = {
+    all(){ return A.get("careers", []); },
+    save(list){ A.set("careers", list); return list; },
+    add(c){ const list=careers.all().filter(x=>x.professionId!==c.professionId); if(!list.length) c.rank="primary"; else if(c.rank==="primary") list.forEach(x=>{ if(x.rank==="primary") x.rank="secondary"; });
+      list.push(Object.assign({ rank:"secondary", years:"", specialty:"", addedAt:Date.now(), source:"user" }, c)); A.set("careers", list); return c; },
+    update(id, patch){ const list=careers.all().map(x=>x.professionId===id?Object.assign(x,patch):x); if(patch.rank==="primary") list.forEach(x=>{ if(x.professionId!==id && x.rank==="primary") x.rank="secondary"; }); A.set("careers", list); },
+    remove(id){ A.set("careers", careers.all().filter(x=>x.professionId!==id)); },
+  };
   const interviewBank = kv("interviewBank");     // id → patch (built-in) or full record (admin-created)
   const roleOverrides = kv("roleOverrides");     // profession id → patch | full new profession
   const alexSettings = { get(){ return A.get("alexSettings", {}); }, set(o){ A.set("alexSettings", o||{}); }, clear(){ A.remove("alexSettings"); } };
@@ -115,13 +124,13 @@ const Repo = (()=>{
 
   function exportAll(){
     return { exportedAt:new Date().toISOString(), storage:A.kind,
-      sessions:sessions.all(), practiceSessions:practiceSessions.all(), practice:practice.all(), questionStats:questionStats.all(), prefs:prefs.get(), customProfessions:customProfessions.all(), cv:cv.get() };
+      sessions:sessions.all(), practiceSessions:practiceSessions.all(), practice:practice.all(), questionStats:questionStats.all(), prefs:prefs.get(), customProfessions:customProfessions.all(), careers:careers.all(), cv:cv.get() };
   }
   /* Granular "Clear my data" groups. Local content-studio edits are separate (cleared from the studio). */
-  const CLEAR_GROUPS = { interviews:["sessions"], practice:["practiceSessions","practice","questionStats"], cv:["cv"], preferences:["prefs","customProfessions"] };
+  const CLEAR_GROUPS = { interviews:["sessions"], practice:["practiceSessions","practice","questionStats"], cv:["cv"], preferences:["prefs","customProfessions","careers"] };
   function clearGroups(groups){ groups.forEach(g=>(CLEAR_GROUPS[g]||[]).forEach(k=>A.remove(k))); }
   function clearAll(){ clearGroups(Object.keys(CLEAR_GROUPS)); }
 
-  return { sessions, practice, practiceSessions, questionStats, bankOverrides, prefs, customProfessions, cv, interviewBank, roleOverrides, alexSettings, admin,
+  return { sessions, practice, practiceSessions, questionStats, bankOverrides, prefs, customProfessions, careers, cv, interviewBank, roleOverrides, alexSettings, admin,
     migrate, exportAll, clearAll, clearGroups, CLEAR_GROUPS, kind:A.kind };
 })();

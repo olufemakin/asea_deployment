@@ -90,7 +90,8 @@ await section("Home + navigation", async () => {
   check("Home lists the six features", ["Voice Interviews","Text Interviews","Domain Expert Interviews","AI Evaluation Interviews","Adaptive Follow-Ups","Detailed Feedback"].every(f => home.includes(f)));
   const hrefs = await p.$$eval("#mainNav a[href]", as => as.map(a => a.getAttribute("href")));
   // Prompt 3 added Progress Dashboard, Score Trends and the Profile menu (AI Work Profile, My CV, AI Experience Mapper).
-  check("Navigation has all 18 destinations", hrefs.length === 18, hrefs.join(" "));
+  // Profession expansion added Profession Library (Interview menu) and My Professions (Profile menu).
+  check("Navigation has all 20 destinations", hrefs.length === 20, hrefs.join(" "));
   for (const h of hrefs) { await p.goto(BASE + h); await p.waitForTimeout(80); const t = (await appText(p)).trim(); check(`Nav ${h} renders`, t.length > 40 && !/Something went wrong/.test(t)); }
   await p.goto(BASE + "#/");
   await p.click('.dd[data-nav="interview"] .ddbtn');
@@ -103,9 +104,10 @@ await section("Home + navigation", async () => {
 });
 await section("Profession library + custom profession", async () => {
   await p.goto(BASE + "#/interview/start"); await p.waitForSelector("#profSearch");
-  const total = await p.$$eval("#profList .pchip", n => n.length);
-  check("At least 30 professions available", total >= 30, `${total} professions`);
-  check("Search placeholder text", (await p.getAttribute("#profSearch", "placeholder")) === "Search nurse, accountant, teacher, engineer...");
+  // Profession expansion: the library is searched/browsed instead of listing every profession at once.
+  const total = await p.evaluate(() => ProfessionLib.all().length);
+  check("At least 300 professions available (searchable, not one endless list)", total >= 300 && (await p.$$eval("#profList .pchip", n => n.length)) < 60, `${total} professions`);
+  check("Search placeholder text", (await p.getAttribute("#profSearch", "placeholder")) === "Search accountant, nurse, carpenter, lawyer, engineer...");
   await p.fill("#profSearch", "nurse");
   const nurse = await p.$$eval("#profList .pchip", n => n.map(x => x.textContent));
   check("Search 'nurse' finds nursing roles", nurse.some(t => /Registered Nurse/.test(t)) && nurse.some(t => /Nurse Practitioner/.test(t)));
@@ -113,8 +115,8 @@ await section("Profession library + custom profession", async () => {
   check("Empty search offers custom profession", /add it below as a custom profession/i.test(await p.innerText("#profList")));
   await p.fill("#profSearch", "");
   check("Continue disabled until a profession is chosen", await p.isDisabled(".wizfoot .btn.primary"));
-  await p.click("text=Add My Profession"); await p.click("text=Create my interview profile");
-  check("Custom profession validates required fields", /job title/i.test(await p.innerText("#cpErr")));
+  await p.click("#addProfBtn"); await p.click("text=Create my interview profile");
+  check("Custom profession validates required fields", /profession name/i.test(await p.innerText("#cpErr")));
   await p.fill("#cpTitle", "Veterinary Technician"); await p.fill("#cpIndustry", "Animal health");
   await p.fill("#cpResp", "Monitoring anaesthesia, Preparing surgical equipment, Client education");
   await p.click("text=Create my interview profile"); await p.waitForTimeout(80);
@@ -150,7 +152,7 @@ await section("Setup flow + text interview", async () => {
   check("Starting interview creates a valid session", keys.every(k => k in sess) && sess.status === "in_progress" && sess.questionTarget === 10);
   firstSessionId = sess.sessionId;
   const intro = await p.innerText(".alexsay");
-  check("Alex introduction (personalised + profession-specific)", /Hi Tolu, I'm Alex, your AI interviewer from BSP AI WorkReady/.test(intro) && /Today we'll be completing a Project Manager AI Domain Expert Interview/.test(intro));
+  check("Alex introduction (personalised + profession-specific)", /Hi Tolu, I'm Alex, your AI interviewer from BSP AI WorkReady/.test(intro) && /Today we'll be completing an experienced-level Project Manager AI Domain Expert Interview/.test(intro));
   check("Alex asks one question at a time", (await p.$$(".qbox .qtext")).length === 1);
   // Memory: intro mentions a vendor delay; later Alex should call back to it.
   const seen = [];
@@ -793,6 +795,148 @@ await section("Deployment: SPA fallback, assets", async () => {
     const out = []; for (const u of urls) { const r = await fetch(u); if (!r.ok || /text\/html/.test(r.headers.get("content-type") || "")) out.push(u); } return out; });
   check("All referenced scripts, styles and logos load", missing.length === 0, missing.join(", "));
   check("No console errors after deep link", d.errors.length === 0, d.errors.slice(0, 3).join(" | "));
+});
+
+await section("Practice autosave race (type then flag immediately)", async () => {
+  const r = await newPage();
+  await r.goto(BASE + "#/practice/setup/fact_checking"); await r.click("#startPractice"); await r.waitForSelector("#pClock");
+  await r.fill("#pText", "Answer typed right before flagging because the evidence shows the claim is unsupported.");
+  await r.click("#flagBtn"); await r.waitForTimeout(600); await r.reload(); await r.waitForSelector("#pClock");
+  const st = await r.evaluate(() => { const ps = Repo.practiceSessions.all()[0]; return { flags: ps.flags.length, text: Object.values(ps.responses).some(x => /right before flagging/.test(x.text || "")) }; });
+  check("Flag made within the autosave delay is not overwritten; typed text kept", st.flags === 1 && st.text, JSON.stringify(st));
+});
+
+/* =================== PROFESSION LIBRARY EXPANSION =================== */
+await section("Profession library: search, aliases, categories", async () => {
+  const s = await newPage();
+  await s.goto(BASE + "#/interview/start"); await s.waitForSelector("#profSearch");
+  const NAMES = ["Software Engineer","Frontend Engineer","Data Engineer","Chemist","Physics Expert","Mathematician","Biologist","AI Researcher","Generalist","Data Analyst","Cybersecurity Expert","Teacher",
+    "Janitorial Supervisor","Accountant","Project Manager","Product Manager","French-English Evaluator","Nurse","Doctor","Dentist","Dental Therapist","AI Training Specialist","Full-Stack Developer",
+    "Transcription Expert","Business Analyst","Compliance Manager","Warehouse Worker","Truck Driver","Carpenter","HVAC Technician","Electrician","Plumber","Farmer","Manufacturing Technician",
+    "Food Service Manager","Caregiver","Virtual Assistant","Personal Assistant","Lawyer","Patent Attorney"];
+  const missing = [];
+  for (const n of NAMES) { await s.fill("#profSearch", n); await s.waitForTimeout(25); if (!(await s.$("#profList .presult .pchip"))) missing.push(n); }
+  check("Availability test: all 40 professions return a valid result (#33)", missing.length === 0, missing.join(", "));
+  const top = async q => { await s.fill("#profSearch", q); await s.waitForTimeout(30); return s.$$eval("#profList .presult .pchip", n => n.map(x => x.textContent.replace("×", "").trim())); };
+  check("RN → Registered Nurse", (await top("RN"))[0] === "Registered Nurse");
+  check("VA → Virtual Assistant", (await top("VA"))[0] === "Virtual Assistant");
+  check("MD → Medical Doctor", (await top("MD"))[0] === "Medical Doctor");
+  check("HVAC → HVAC Technician", (await top("HVAC"))[0] === "HVAC Technician");
+  const fe = await top("frontend");
+  check("frontend → Front-End Developer and Software Engineer — Front-End", fe.includes("Software Engineer — Front-End") && fe.some(t => /Front-?end Developer/i.test(t)), fe.join(" | "));
+  const pm = await top("PM");
+  check("PM → Project Manager and Product Manager offered, flagged as ambiguous, nothing auto-selected", pm.includes("Project Manager") && pm.includes("Product Manager") && /can mean more than one profession/.test(await s.innerText("#profList")) && (await s.evaluate(() => App.setup.professionId)) == null);
+  const cl = await top("corporate lawyer");
+  check("Alias with specialty: 'corporate lawyer' → Lawyer (Corporate)", cl[0] === "Lawyer" && /Corporate/.test(await s.innerText("#profList .presult")));
+  await s.fill("#profSearch", ""); await s.click('#groupChips .chip:text-is("Trades")');
+  const trades = await s.innerText("#profList");
+  check("Browse categories: Trades shows Construction & Trades, Manufacturing, Transportation…", /Construction & Trades/i.test(trades) && /Manufacturing/i.test(trades) && /Carpenter/.test(trades));
+  check("59 profession categories configured, ≥300 records, every record has the full data model", await s.evaluate(() => PROFESSION_CATEGORIES.length >= 59 && ProfessionLib.all().length >= 300 &&
+    ProfessionLib.all().every(p => ["id","name","display_name","category","profession_family","subcategory","aliases","description","common_responsibilities","core_competencies","technical_competencies","professional_competencies","education_expectation","credential_notes","typical_interview_types","recommended_interview_type","supported_practical_tasks","domain_keywords","status","pay_range_min","pay_range_max","pay_currency","pay_period","pay_source","pay_last_verified","pay_verification_status"].every(k => k in p))));
+  check("Statuses: Full domain model / Domain template / Transferable skills present", await s.evaluate(() => ["full_domain","domain_template","transferable"].every(st => ProfessionLib.all().some(p => p.status === st))));
+  check("No duplicate visible records for alias-only names (Truck Driver, Attorney, Transcriptionist)", await s.evaluate(() => !ProfessionLib.all().some(p => ["Truck Driver","Attorney","Transcriptionist","High School Teacher","Data Labeler"].includes(p.title))));
+  check("No console errors in profession search", s.errors.length === 0, s.errors.slice(0, 3).join(" | "));
+});
+await section("Profession library: recommended types, specialties, practice, pay", async () => {
+  const s = await newPage();
+  await s.goto(BASE);
+  const rec = await s.evaluate(() => Object.fromEntries(["project-manager","software-engineer","bilingual-evaluator-french-and-english","janitorial-supervisor","lawyer","carpenter"].map(id => [id, recommendedType(PROF[id])])));
+  check("Recommended types: PM AI Domain, SWE Technical, FR-EN Bilingual, Janitorial Supervisor Transferable, Lawyer AI Domain (#19)",
+    rec["project-manager"] === "ai_domain" && rec["software-engineer"] === "technical" && rec["bilingual-evaluator-french-and-english"] === "bilingual" && rec["janitorial-supervisor"] === "transferable" && rec.lawyer === "ai_domain", JSON.stringify(rec));
+  await s.goto(BASE + "#/interview/start"); await s.waitForSelector("#profSearch"); await s.fill("#profSearch", "carpenter"); await s.click('#profList .pchip:text-is("Carpenter")');
+  check("Selected profession shows recommended practice (#26)", /Recommended practice for Carpenter/.test(await appText(s)));
+  await s.click("text=Continue →"); await s.click('.opt:has-text("TEXT")'); await s.click("text=Continue →");
+  check("Carpenter: recommended Domain Expert, selector editable (Transferable available)", /Domain Expert Interview/.test(await s.innerText("#recType")) && !(await s.$eval('#typeOpts .opt:has-text("TRANSFERABLE SKILLS INTERVIEW")', b => b.disabled)));
+  await s.click('#typeOpts .opt:has-text("TRANSFERABLE SKILLS INTERVIEW")');
+  check("Recommendation does not force the selection", (await s.$eval("#typeOpts .opt.sel .t", n => n.textContent.trim())) === "TRANSFERABLE SKILLS INTERVIEW");
+  await s.click(".step >> text=Profession"); await s.fill("#profSearch", "software engineer"); await s.click('#profList .pchip:text-is("Software Engineer")');
+  await s.click('#specChips .chip:has-text("Front-End")');
+  check("Specialty selectable (Software Engineer → Front-End)", (await s.evaluate(() => App.setup.specialty)) === "Front-End");
+  await s.click("text=Continue →"); await s.click('.opt:has-text("TEXT")'); for (let i = 0; i < 4; i++) await s.click("text=Continue →"); await s.click("text=Review summary →");
+  await s.click("text=Start interview with Alex"); await s.waitForSelector(".qbox");
+  check("Alex intro uses profession + level + specialty (#27)", /experienced-level Software Engineer Technical Interview, with a focus on Front-End/.test(await s.innerText(".alexsay")));
+  check("Session stores specialty + category + family", await s.evaluate(() => App.session.profession.specialty === "Front-End" && App.session.profession.category === "software" && !!App.session.profession.family));
+  await s.click("text=End interview"); await s.waitForTimeout(150);
+  await s.goto(BASE + "#/professions"); await s.fill("#libSearch", "software engineer"); await s.waitForSelector(".pcard");
+  const card = await s.innerText('.pcard[data-prof="software-engineer"]');
+  check("Profession card: name, category, description, practice status; 3 buttons; no pay shown (#17)", /Software Engineer/.test(card) && /Interview practice: Available/.test(card) && /Prepare for This Profession/.test(card) && /Start Interview With Alex/.test(card) && /View Skills/.test(card) && !/\$\d/.test(card));
+  await s.goto(BASE + "#/professions/software-engineer");
+  const prof = await appText(s);
+  check("Profile: family, specialties, competencies, interview areas, transferable AI skills, types, practice, AI work categories (#18)",
+    ["Profession family","Specialties","Core competencies","Typical interview areas","Transferable AI skills","Recommended interview types","Recommended practice","Potential AI work categories"].every(k => new RegExp(k, "i").test(prof)));
+  check("Seed pay shown only as 'Indicative / unverified range' with source, status and last-verified (#15)", /Indicative \/ unverified range/.test(prof) && /User-provided seed/.test(prof) && /Last verified: never/.test(prof) && /not a current market rate or a guarantee/.test(prof) && !/you will earn/i.test(prof));
+  check("No opportunity is implied: 'No Current Opportunity Verified' (#4)", /No Current Opportunity Verified/.test(prof));
+  await s.goto(BASE + "#/professions/carpenter");
+  const carp = await appText(s);
+  check("Carpenter: practice available, transferable available, AI opportunity not verified, no 'Carpenter AI Trainer'", /Interview practice: Available/.test(carp) && /Transferable skills: Available/.test(carp) && /Current AI opportunity: Not verified/.test(carp) && !/Carpenter AI Trainer/i.test(carp));
+  check("Pay never drives recommendations (no CV/careers → nothing recommended, even with seeded pay)", await s.evaluate(() => recommendedProfessions().length === 0));
+  check("Accountant recommends Spreadsheet Evaluation practice", await s.evaluate(() => PROF.accountant.recommended_practice.includes("spreadsheet_evaluation")));
+  check("No console errors (types/specialty/profile)", s.errors.length === 0, s.errors.slice(0, 3).join(" | "));
+});
+await section("Custom profession + dynamic domain interview", async () => {
+  const c = await newPage();
+  await c.goto(BASE + "#/interview/start"); await c.waitForSelector("#profSearch");
+  await c.fill("#profSearch", "Veterinary Practice Manager"); await c.waitForTimeout(40);
+  await c.click("#addProfBtn");
+  check("“Can't find your profession?” form collects all fields (#10)", ["#cpTitle","#cpIndustry","#cpSpecialty","#cpYears","#cpResp","#cpSkills","#cpEdu","#cpCred","#cpGoal"].length === 9 && !!(await c.$("#cpGoal")) && !!(await c.$("#cpSpecialty")) && (await c.inputValue("#cpTitle")) === "Veterinary Practice Manager");
+  await c.fill("#cpIndustry", "Veterinary / Healthcare"); await c.fill("#cpResp", "Scheduling, Team supervision, Client communication, Inventory, Operations");
+  await c.click("#cpCreate"); await c.waitForTimeout(100);
+  const p = await c.evaluate(() => getProfession(App.setup.professionId));
+  check("Custom profile created with generated competencies (#34)", p && p.custom && p.status === "dynamic" && p.core_competencies.length >= 6, JSON.stringify(p && p.core_competencies));
+  check("No fabricated credential or vacancy", p.credential_notes === "None provided." && p.opportunities.length === 0);
+  await c.click("text=Continue →"); await c.click('.opt:has-text("TEXT")'); for (let i = 0; i < 4; i++) await c.click("text=Continue →"); await c.click("text=Review summary →");
+  await c.click("text=Start interview with Alex"); await c.waitForSelector(".qbox");
+  check("Alex: 'an interview focused on your experience as a Veterinary Practice Manager' (#27)", /interview focused on your experience as a Veterinary Practice Manager/.test(await c.innerText(".alexsay")));
+  const seen = []; const done = await answerUntilDone(c, (g, q) => { seen.push(q); return goodAnswer; });
+  check("Dynamic interview completes with profession-relevant questions (not generic strengths questions)", done && seen.filter(q => /Veterinary Practice Manager|scheduling|inventory|team supervision|client/i.test(q)).length >= 3 && !seen.some(q => /what are your strengths/i.test(q)));
+  // Template profession: dynamic domain interview (no specialised bank) still works.
+  await setupInterview(c, { search: "carpenter", pick: "Carpenter", type: "DOMAIN EXPERT INTERVIEW" });
+  const qs = []; const d2 = await answerUntilDone(c, (g, q) => { qs.push(q); return goodAnswer; });
+  check("Template profession (Carpenter) runs a domain interview with trades content (#31)", d2 && qs.some(q => /measure|drawing|work order|safety|fault|tool/i.test(q)));
+  check("No console errors (custom/dynamic)", c.errors.length === 0, c.errors.slice(0, 3).join(" | "));
+});
+await section("Multiple careers + CV profession detection", async () => {
+  const m = await newPage();
+  await m.goto(BASE + "#/profile/careers"); await m.waitForSelector("#careerSearch");
+  for (const q of ["Secondary School Teacher", "Project Manager", "Business Owner"]) { await m.fill("#careerSearch", q); await m.waitForTimeout(40); await m.click("#careerResults .item >> nth=0 >> text=Add"); await m.waitForSelector("#careerSearch"); }
+  const car = await m.evaluate(() => Repo.careers.all().map(c => c.rank));
+  check("Three careers kept separately (primary + secondary) (#22–23)", car.length === 3 && car.filter(r => r === "primary").length === 1, JSON.stringify(car));
+  check("Each career shows its own experience, score and readiness", (await m.$$(".career")).length === 3 && /Domain readiness/i.test(await appText(m)));
+  await m.click('.career[data-career="project-manager"] >> text=Interview as Project Manager'); await m.waitForSelector("#stepper");
+  check("User picks which profession Alex uses", (await m.evaluate(() => App.setup.professionId)) === "project-manager");
+  await m.evaluate(() => { CV.analyze(`WORK EXPERIENCE\nSenior Project Manager — Horizon Builders Ltd (Jan 2019 – Present)\n- Managed schedules and vendor risks\nProcurement Officer, Delta Supplies | 2015 - 2018\n- Followed procurement procedures`, "paste"); CV.update(c => c.items.forEach(i => i.status = "confirmed")); });
+  await m.goto(BASE + "#/profile/careers"); await m.waitForSelector("#cvDetect");
+  const det = await m.innerText("#cvDetect");
+  check("CV detection asks 'Add these to my Professional Profile?' (#24)", /Add these to my Professional Profile\?/.test(det) && /Procurement/.test(det));
+  const before = await m.evaluate(() => Repo.careers.all().length);
+  check("Detected professions are not added silently", before === 3);
+  await m.$$eval("input[name=cvprof]:not([disabled])", n => n.forEach(x => { x.checked = true; }));
+  await m.click("#cvDetectAdd");
+  check("Confirmed detections are added", (await m.evaluate(() => Repo.careers.all().length)) > before);
+  check("No console errors (careers/CV)", m.errors.length === 0, m.errors.slice(0, 3).join(" | "));
+});
+await section("Admin professions manager + bulk import", async () => {
+  const a = await newPage();
+  await a.goto(BASE + "#/admin"); await a.fill("#admPin", "2468"); await a.check("#admAck"); await a.click("#admEnter"); await a.waitForSelector("#admList");
+  await a.goto(BASE + "#/admin/roles"); await a.waitForSelector("#admProfAdd");
+  await a.evaluate(() => { window.prompt = () => "Drone Survey Pilot"; }); await a.click("#admProfAdd"); await a.waitForSelector("#roleForm");
+  await a.selectOption("#r_category", "construction"); await a.selectOption("#r_family", "trades"); await a.fill("#r_kw", "UAV Pilot, Drone Operator"); await a.fill("#r_spec", "Mapping, Inspection");
+  await a.fill("#r_comps", "trade_process, measurement, safety_aware, troubleshooting"); await a.check('input[name=r_types][value="domain"]');
+  await a.selectOption("#r_rec", "domain"); await a.click("#roleSave"); await a.waitForSelector("#admProfAdd");
+  const found = await a.evaluate(() => ProfessionLib.search("UAV pilot").results.map(r => r.p.title)[0]);
+  check("Admin adds a profession with aliases, category, family, specialties, competencies, recommended type — no code edit (#28)", found === "Drone Survey Pilot" && await a.evaluate(() => { const p = PROF["admin-drone-survey-pilot"]; return p.category === "construction" && p.specialties.includes("Mapping") && recommendedType(p) === "domain"; }));
+  await a.click("#admBulkBtn"); await a.fill("#bulkText", "Profession,Category,Family,Aliases,Competencies,RecommendedType,Status\nVeterinary Practice Manager,Veterinary & Animal Care,Operations,Vet Practice Manager,operations;communication;judgment,ai_domain,Domain template\nBad Row,Nowhere,,,notacomp,,\nAccountant,Finance & Accounting,,Bean Counter,,,");
+  await a.click("#bulkPreview"); await a.waitForSelector("#bulkRows");
+  const prev = await a.innerText("#bulkRows");
+  check("Bulk import preview validates rows (new / update existing / error)", /New/.test(prev) && /Update existing/.test(prev) && /unknown category/.test(prev));
+  await a.click("#bulkImport"); await a.waitForTimeout(100);
+  check("Bulk import adds new + merges existing (aliases), skips invalid (#29)", await a.evaluate(() => ProfessionLib.search("Vet Practice Manager").results[0].p.title === "Veterinary Practice Manager" && PROF.accountant.aliases.includes("Bean Counter") && !ProfessionLib.find("Bad Row")));
+  await a.click("#bulkCard >> text=Back"); await a.fill('input[aria-label="Search professions"]', "Drone Survey"); await a.waitForTimeout(350); await a.click('.item:has-text("Drone Survey Pilot") >> button:text-is("Edit")');
+  await a.fill("#pay_min", "30"); await a.fill("#pay_max", "45"); await a.fill("#pay_cur", "USD"); await a.selectOption("#pay_period", "hour"); await a.selectOption("#pay_status", "verified_current"); await a.click("#roleSave");
+  check("Pay verification metadata enforced ('Verified current' needs source + date)", /needs a source and a last-verified date/.test(await a.innerText("#roleErr")));
+  await a.click("#roleForm button:text-is(\"Archive\")");
+  check("Archived profession is not selectable/searchable", await a.evaluate(() => !ProfessionLib.search("Drone Survey Pilot").results.some(r => r.p.title === "Drone Survey Pilot")));
+  check("No console errors (admin professions)", a.errors.length === 0, a.errors.slice(0, 3).join(" | "));
 });
 
 /* =================== MOBILE + NAMING =================== */
