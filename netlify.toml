@@ -17,6 +17,13 @@
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
+# pdf.js (My CV page) is an ES module: serve .mjs as JavaScript so nosniff doesn't block it.
+[[headers]]
+  for = "/vendor/pdfjs/*.mjs"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"
+    Cache-Control = "public, max-age=604800"
+
 # SPA fallback: any path that isn't a real file serves index.html (status 200), so a refresh or a shared
 # deep link never 404s; index.html then converts the path into its hash route.
 [[redirects]]
