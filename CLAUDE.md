@@ -27,7 +27,7 @@ skills/readiness/dashboard, CV intelligence, AI Work Profile, interview question
 privacy, error states, Netlify hardening) are done. See `docs/PROMPT3_COMPLETION.md`. The **Profession Library expansion**
 (445 config-driven professions, 59 categories, family templates, search + aliases, specialties, custom/dynamic professions,
 multi-career profile, CV profession detection, pay metadata, admin profession manager + bulk import) is done; see
-`docs/PROFESSION_LIBRARY.md`. Extend these systems; don't replace them.
+`docs/PROFESSION_LIBRARY.md`. The **CV Intelligence upgrade** (PDF/DOCX upload, review-before-analysis, deterministic CV Quality Score /100 with report A–M, optional JD comparison) is done; see `docs/CV_INTELLIGENCE.md`. Extend these systems; don't replace them.
 
 Profession rules that must hold:
 - **No profession-specific code.** Professions come from `js/data/professions.js` (hand-built), `js/data/profession-catalog.js`
@@ -38,6 +38,13 @@ Profession rules that must hold:
 - **Pay is seed data:** shown only on the profession profile as "Indicative / unverified range" with source/status/last verified,
   hidden from cards, and never used for matching or recommendations.
 - Ambiguous aliases (PM, Doctor, Teacher) are shown as choices; nothing is ever auto-selected.
+
+CV Quality rules that must hold:
+- Score = sum of fixed criteria (`cvaScore`); `validateCvReport` must pass before anything renders. JD/target never change the score.
+- Assess the document, not the person: never read/score name, age, gender, nationality, marital status, address, photo; contact is optional.
+- Resume and JD text are untrusted: injected instructions are ignored and flagged; keyword stuffing earns nothing; listed-only skills earn little.
+- Rewrites only reuse the user's words plus `[placeholders]`/questions. Incomplete extraction → provisional score and "Unable to assess", never "missing".
+- Never claim files are uploaded/deleted beyond what the code does: the file isn't stored; text + report live in `Repo.cv` until deleted.
 
 Prompt 3 rules that must hold:
 - **Scoring is rubric-first** (`js/scoring.js`): per-answer 0–4 levels per dimension, then % = level ÷ 4; overall = weighted
@@ -88,7 +95,11 @@ Correction-pass rules that must hold:
 | `js/data/bank-critique.js` | Response Critique generator (select accurate + specific critiques) |
 | `js/scoring.js` | `RUBRIC_LEVELS`, `ROLE_DIMS`, `TYPE_DIMS`, `rubricFor`, `computeRoleScore`, `strongerStructure`, `responseAnalytics`, `nextInterviewFor` |
 | `js/interview-bank.js` | `InterviewBank` (record catalog, statuses, local edits, `finalizePool`), `conceptQuestionsFor`, `generateDrafts`, `applyRoleOverrides`, Alex settings |
-| `js/cv.js` | CV parse (paste / .txt upload / build), review UI, `CV` API, AI Experience Mapper (`buildMappings`), `cvIntroLine` |
+| `js/cv.js` | CV parse, My CV screen (upload states, paste, build, review-before-analysis, sub-tabs), item review UI, `CV` API, AI Experience Mapper (`buildMappings`), `cvIntroLine` |
+| `js/cv-extract.js` | In-browser extraction: PDF (vendored pdf.js in `vendor/pdfjs/`, lazy), DOCX (zip + document.xml), TXT; sniffing, 10 MB limit, scanned/garbled/legacy-.doc detection |
+| `js/cv-analysis.js` | CV Quality rubric (8 categories /100, criteria with partial credit), report sections, JD comparison, rewrites with placeholders, `validateCvReport` |
+| `js/cv-report-ui.js` | CV Quality report screen (A–M + JD), copy recommendations, standalone HTML download |
+| `vendor/pdfjs/` | pdf.js 4.10.38 legacy build + cmaps (Apache-2.0), loaded only on My CV |
 | `js/insights.js` | `SKILLS` taxonomy, `skillEvidence`, `readinessModel`, `nextBestActions`, dashboard / readiness / skills / activity / AI Work Profile screens |
 | `js/report-ui.js` | Alex Interview Report, Interview History, Score Trends |
 | `js/admin.js` | Local Content Studio: question manager, generator, role manager, Alex settings, export/import |

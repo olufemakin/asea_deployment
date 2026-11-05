@@ -8,7 +8,7 @@ const ctx={ window:{ localStorage:{ getItem:k=>store[k]??null, setItem:(k,v)=>st
 ctx.window.window=ctx.window; ctx.store=store; vm.createContext(ctx);
 const files=["legacy-bank","competencies","competencies-ext","professions","items","items-ext","roles","profession-catalog","practice-core","bank-ranking","bank-evaluation","bank-facts",
   "bank-annotation","bank-language","bank-generalist","bank-coding","bank-generated","bank-critique","concepts"].map(f=>"js/data/"+f+".js")
-  .concat(["js/storage.js","js/engine.js","js/profession-library.js","js/question-bank.js","js/scoring.js","js/interview-bank.js","js/practice.js","js/cv.js"]);
+  .concat(["js/storage.js","js/engine.js","js/profession-library.js","js/question-bank.js","js/scoring.js","js/interview-bank.js","js/practice.js","js/cv.js","js/cv-analysis.js"]);
 vm.runInContext(files.map(f=>fs.readFileSync(f,"utf8")).join("\n;\n"), ctx);
 const R=src=>vm.runInContext(src, ctx);
 R(`
@@ -106,4 +106,12 @@ console.log("QUESTION BANK (published per difficulty)");
 r.audit.forEach(a=>console.log("  "+a.label.padEnd(30)+" E "+String(a.easy).padStart(2)+"  M "+String(a.medium).padStart(2)+"  H "+String(a.hard).padStart(2)+"  "+a.status.toUpperCase()));
 console.log("Practice bank:", JSON.stringify(r.summary));
 if(r.issues.length){ r.issues.slice(0,30).forEach(i=>console.log(" -",i)); throw new Error(r.issues.length+" practice issues"); }`);
+// CV Quality analysis: every fictional sample validates, totals add up and are deterministic.
+ctx.CV_SAMPLES=require("./fixtures/cv-samples.js");
+R(`const cvIssues=[], tot={};
+Object.keys(CV_SAMPLES).forEach(k=>{ const r=analyzeCvQuality(CV_SAMPLES[k],{ now:"2026-11-01", jd:"- 2+ years of experience reviewing content\\n- Attention to detail" }); const v=validateCvReport(r);
+  if(!v.ok) cvIssues.push(k+": "+v.errors.join(", ")); if(analyzeCvQuality(CV_SAMPLES[k],{ now:"2026-11-01" }).total!==r.total) cvIssues.push(k+": JD changed the score"); tot[k]=r.total; });
+if(!(tot.strong>tot.transferable && tot.transferable>tot.weak)) cvIssues.push("score order "+JSON.stringify(tot));
+console.log("CV Quality samples:", JSON.stringify(tot));
+if(cvIssues.length){ cvIssues.forEach(i=>console.log(" -",i)); throw new Error(cvIssues.length+" CV issues"); }`);
 console.log("ENGINE CHECK OK");

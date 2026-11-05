@@ -1,13 +1,14 @@
 /* =============================================================================
-   CV Intelligence — paste / upload (.txt, .md) / build from profile, rule-based
-   extraction, review (Confirm / Edit / Delete), AI Experience Mapper with evidence
-   labels (Accept / Edit / Ignore), and the confirmed-facts snapshot used by Alex.
+   CV Intelligence — upload (PDF / DOCX / TXT, read in the browser by js/cv-extract.js),
+   paste, or build from profile; review and correct the extracted text; CV Quality
+   report (js/cv-analysis.js, rendered by js/cv-report-ui.js); rule-based item
+   extraction with review (Confirm / Edit / Delete); AI Experience Mapper with
+   evidence labels (Accept / Edit / Ignore); confirmed-facts snapshot used by Alex.
 
    NO FABRICATION: every extracted item stores the exact line it came from. Nothing
    is inferred into a fact: only items the user confirms (or typed themselves) are
-   trusted, and only mappings the user accepts count as CV evidence. PDF and Word
-   files are not parsed (that can't be done reliably in the browser without a
-   server), so the user is asked to paste the text instead.
+   trusted, and only mappings the user accepts count as CV evidence. Files are never
+   uploaded anywhere; the original file is not stored.
    ========================================================================== */
 "use strict";
 
@@ -131,9 +132,9 @@ const CV = {
   hasConfirmed(){ return CV.confirmed().length>0; },
   pendingCount(){ const c=Repo.cv.get(); return c ? c.items.filter(i=>i.status==="pending").length : 0; },
   acceptedMappings(){ const c=Repo.cv.get(); return c&&c.mappings ? c.mappings.filter(m=>m.status==="accepted" && m.label!=="required") : []; },
-  analyze(text, source){
+  analyze(text, source, extra){
     const r=parseCV(text);
-    const c={ text:String(text||"").slice(0,60000), source, analyzedAt:Date.now(), items:r.items, mappings:[] };
+    const c=Object.assign({ text:String(text||"").slice(0,60000), source, analyzedAt:Date.now(), items:r.items, mappings:[] }, extra||{});
     Repo.cv.save(c); return c;
   },
   update(fn){ const c=Repo.cv.get(); if(!c) return null; fn(c); c.mappings=buildMappings(c); return Repo.cv.save(c); },
@@ -156,12 +157,21 @@ function cvIntroLine(cv){
 /* ---------- Screens ------------------------------------------------------- */
 function scrCV(){
   const c=CV.get();
-  const head=pageHead("Profile","My CV","Add your experience so Alex can personalise interviews. Nothing is used until you confirm it, and it stays in this browser.")+tabs(PROFILE_TABS,"#/cv");
-  if(!c || App.cvMode){ el.innerHTML=head+cvEntryHTML(); return; }
+  const head=pageHead("Profile","My CV","Upload, paste or build your CV. It's read in this browser, you check the text, then you get a CV Quality report. Nothing is used by Alex until you confirm it.")+tabs(PROFILE_TABS,"#/cv");
+  if(!c || App.cvMode || App.cvJob){ el.innerHTML=head+cvEntryHTML(); cvWireDrop(); return; }
+  const view=App.cvView||(c.report?"report":"items");
+  const pend=CV.pendingCount();
+  const sub=`<nav class="tabs cvtabs" aria-label="CV views">
+      ${c.text?`<button class="tabbtn ${view==="report"?"active":""}" id="cvTabReport" aria-pressed="${view==="report"}" onclick="App.cvView='report';scrCV()">CV Quality report</button>`:""}
+      <button class="tabbtn ${view==="items"?"active":""}" id="cvTabItems" aria-pressed="${view==="items"}" onclick="App.cvView='items';scrCV()">Review extracted items${pend?` (${pend} to review)`:""}</button>
+      ${c.text?`<button class="tabbtn ${view==="text"?"active":""}" id="cvTabText" aria-pressed="${view==="text"}" onclick="App.cvView='text';scrCV()">Extracted text</button>`:""}</nav>`;
+  el.innerHTML=head+sub+(view==="report"&&c.text?cvReportHTML(c):view==="text"&&c.text?cvTextViewHTML(c):cvItemsHTML(c));
+}
+function cvItemsHTML(c){
   const by=k=>c.items.filter(i=>i.kind===k), pend=CV.pendingCount(), conf=CV.confirmed().length;
-  el.innerHTML=head+`<div class="card"><div class="row between center wrapw"><div><h2 style="margin:0">Review extracted information</h2>
-      <div class="small muted">${c.items.length} items found · <b id="cvConfirmed">${conf}</b> confirmed · ${pend} to review · source: ${H(c.source==="profile"?"built from your profile":c.source==="upload"?"uploaded text file":"pasted text")}</div></div>
-      <div class="row wrapw" style="gap:8px"><button class="btn sm" onclick="cvConfirmAll()">Confirm all shown</button><button class="btn sm ghost" onclick="App.cvMode='paste';scrCV()">Replace CV</button><button class="btn sm danger" onclick="cvDeleteAll()">Delete CV data</button></div></div>
+  return `<div class="card"><div class="row between center wrapw"><div><h2 style="margin:0">Review extracted information</h2>
+      <div class="small muted">${c.items.length} items found · <b id="cvConfirmed">${conf}</b> confirmed · ${pend} to review · source: ${H(cvSourceLabel(c))}</div></div>
+      <div class="row wrapw" style="gap:8px"><button class="btn sm" onclick="cvConfirmAll()">Confirm all shown</button><button class="btn sm ghost" onclick="cvReplace()">Replace CV</button><button class="btn sm danger" onclick="cvDeleteAll()">Delete CV data</button></div></div>
       <p class="note">Only confirmed items become trusted context for Alex and your skills. Check every item against your real experience: edit anything that's wrong and delete anything that isn't yours. Interview IQ never adds employers, titles, dates, metrics or achievements you didn't write.</p></div>
     ${CV_KINDS.map(([k,l])=>`<div class="card cvsec" data-kind="${k}"><div class="row between center"><h3 style="margin:0">${l} <span class="faint small">(${by(k).length})</span></h3><button class="btn sm ghost" onclick="cvAdd('${k}')">+ Add</button></div>
       ${by(k).length?`<div class="list" style="margin-top:10px">${by(k).map(cvItemHTML).join("")}</div>`:`<p class="small muted" style="margin:8px 0 0">Nothing found. Add one if it applies to you.</p>`}</div>`).join("")}
@@ -174,22 +184,50 @@ function cvItemHTML(i){
     <div class="m faint">${i.origin==="user"?"Entered by you":`From your CV: “${H(clip(i.source,160))}”`}</div></div>
     <div class="row wrapw" style="gap:6px">${i.status!=="confirmed"?`<button class="btn sm good" onclick="cvSet('${i.id}','confirmed')">Confirm</button>`:""}<button class="btn sm" onclick="App.cvEdit='${i.id}';scrCV()">Edit</button><button class="btn sm ghost" onclick="cvDel('${i.id}')">Delete</button></div></div>`;
 }
+const cvSourceLabel=c=>c.source==="profile"?"built from your profile":c.source==="upload"?`uploaded ${(CVX_FORMATS[c.format]||"file").replace(/^Plain text$/,"text file")}`:"pasted text";
+function cvTextViewHTML(c){
+  return `<div class="card cvx"><h2>Extracted text</h2><p class="small muted">This is the text the report was built from. Correct anything that was read wrongly, then re-analyse. Your edits replace the stored text.</p>
+    <label class="fld" for="cvText">Resume text</label><textarea id="cvText" class="cvtext" spellcheck="false">${H(c.text)}</textarea>
+    ${cvTargetFields(c.target, c.jd)}
+    <div id="cvErr" class="small cverr" role="alert"></div>
+    <div class="row wrapw" style="gap:10px;margin-top:12px"><button class="btn primary" id="cvAnalyze" onclick="cvAnalyzeText()">Re-analyse</button><button class="btn ghost" onclick="App.cvView='report';scrCV()">Cancel</button></div></div>`;
+}
+function cvTargetFields(target, jd){
+  return `<details class="cvopt-box" ${target||jd?"open":""}><summary>Optional: target job title and job description</summary>
+    <p class="small muted" style="margin:8px 0 10px">Used only to tailor advice and compare requirements. They don't change your CV Quality score.</p>
+    <label class="fld" for="cvTarget">Target job title</label><input id="cvTarget" maxlength="80" value="${H(target||"")}" placeholder="e.g. AI Response Evaluator">
+    <label class="fld" for="cvJD" style="margin-top:12px">Job description</label><textarea id="cvJD" maxlength="12000" placeholder="Paste the job description or the requirements list">${H(jd||"")}</textarea></details>`;
+}
 function cvEntryHTML(){
-  const mode=App.cvMode||"choose", p=App.setup&&App.setup.professionId?getProfession(App.setup.professionId):null, prof=p&&p.profile||{};
-  const choose=`<div class="grid g3" id="cvEntry">
-      <button class="card linkcard cvopt" id="cvUpload" onclick="App.cvMode='upload';scrCV()"><div class="ic">📄</div><div class="t">Upload CV</div><div class="d">A .txt or .md file. For PDF or Word, copy the text and use Paste CV.</div></button>
-      <button class="card linkcard cvopt" id="cvPaste" onclick="App.cvMode='paste';scrCV()"><div class="ic">📋</div><div class="t">Paste CV</div><div class="d">Paste the text of your CV and we'll pull out roles, skills and more for you to review.</div></button>
-      <button class="card linkcard cvopt" id="cvProfile" onclick="App.cvMode='profile';scrCV()"><div class="ic">🧩</div><div class="t">Build From Profile</div><div class="d">Type your experience into a short form instead.</div></button></div>`;
-  const back=CV.get()||mode!=="choose"?`<button class="btn ghost" onclick="App.cvMode=${CV.get()?"null":"'choose'"};scrCV()">← Back</button>`:"";
-  if(mode==="choose") return (CV.get()?"":emptyCard("🧾","No CV yet","Add your experience to personalize your interviews.","",""))+choose;
-  if(mode==="upload") return `<div class="card"><h2>Upload CV</h2><p class="small muted">Plain-text files (.txt, .md) are read in your browser and never uploaded anywhere. PDF and Word files can't be read reliably in the browser: open the file, copy all the text and use <a href="javascript:void(0)" onclick="App.cvMode='paste';scrCV()">Paste CV</a>.</p>
-      <input type="file" id="cvFile" accept=".txt,.md,.text,text/plain,text/markdown" onchange="cvFile(this)" aria-label="Choose CV text file"><div id="cvErr" class="small" role="alert" style="color:#ffb4b4;margin-top:8px"></div><div style="margin-top:12px">${back}</div></div>`;
-  if(mode==="paste") return `<div class="card"><h2>Paste CV</h2><label class="fld" for="cvText">CV text</label>
-      <textarea id="cvText" style="min-height:260px" placeholder="Paste the full text of your CV here (roles, dates, responsibilities, education, skills…)"></textarea>
-      <div id="cvErr" class="small" role="alert" style="color:#ffb4b4;margin-top:8px"></div>
-      <div class="row wrapw" style="gap:10px;margin-top:12px"><button class="btn primary" id="cvAnalyze" onclick="cvAnalyzePaste()">Analyze</button>${back}</div>
-      <p class="note">Your CV text stays in this browser. Remove anything you don't want stored, such as your address or phone number.</p></div>`;
-  return `<div class="card"><h2>Build From Profile</h2><p class="small muted">Everything you type here is treated as confirmed, because it comes from you. Leave out anything you're unsure of.</p>
+  const job=App.cvJob, c=CV.get(), mode=App.cvMode&&App.cvMode!=="choose"?App.cvMode:"upload", p=App.setup&&App.setup.professionId?getProfession(App.setup.professionId):null, prof=p&&p.profile||{};
+  const draft=App.cvDraft||{};
+  const back=c?`<button class="btn ghost" onclick="cvCancelEntry()">← Back to my CV</button>`:"";
+  const intro=`<div class="card cvx cvhero"><span class="kicker cvk">CV Intelligence</span>
+      <h2 class="cvtitle">Improve Your CV for AI Training Opportunities</h2>
+      <p class="muted" style="margin:6px 0 0">Upload your resume to understand its strengths, identify gaps, discover transferable skills, and get practical recommendations for AI training roles.</p>
+      ${c?"":`<p class="small faint" style="margin:8px 0 0">Add your experience to personalize your interviews.</p>`}
+      <div class="seg" role="group" aria-label="How to add your CV" id="cvEntry" style="margin-top:16px">
+        <button class="segbtn ${mode==="upload"?"sel":""}" id="cvUpload" aria-pressed="${mode==="upload"}" onclick="cvSetMode('upload')"><span aria-hidden="true">📄</span> Upload CV</button>
+        <button class="segbtn ${mode==="paste"?"sel":""}" id="cvPaste" aria-pressed="${mode==="paste"}" onclick="cvSetMode('paste')"><span aria-hidden="true">📋</span> Paste CV</button>
+        <button class="segbtn ${mode==="profile"?"sel":""}" id="cvProfile" aria-pressed="${mode==="profile"}" onclick="cvSetMode('profile')"><span aria-hidden="true">🧩</span> Build From Profile</button></div></div>`;
+  let body="";
+  if(job) body=cvJobHTML(job);
+  else if(mode==="upload") body=`<div class="card cvx">
+      <div class="cvdrop" id="cvDrop"><div class="ic" aria-hidden="true">⬆</div>
+        <div class="t">Drag and drop your resume here</div>
+        <div class="small muted">PDF or Word (.docx) · up to 10 MB · PDFs exported from WPS Office, Word, Google Docs and LibreOffice are supported</div>
+        <button class="btn primary" id="cvBrowse" style="margin-top:14px" onclick="document.getElementById('cvFile').click()">Browse files</button>
+        <input type="file" id="cvFile" class="sr" tabindex="-1" accept=".pdf,.docx,.doc,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,text/plain" onchange="cvFile(this)" aria-label="Choose resume file"></div>
+      <p class="small faint" style="margin:10px 0 0">Legacy Word (.doc) files can't be read reliably in the browser: save them as .docx or PDF first. Scanned (image-only) PDFs can't be read either, because this version has no OCR.</p>
+      ${cvTargetFields(draft.target, draft.jd)}
+      <div id="cvErr" class="small cverr" role="alert"></div>${back?`<div style="margin-top:12px">${back}</div>`:""}</div>`;
+  else if(mode==="paste") body=`<div class="card cvx"><h2>Paste CV</h2><label class="fld" for="cvText">CV text</label>
+      <textarea id="cvText" class="cvtext" placeholder="Paste the full text of your CV here (roles, dates, responsibilities, education, skills…)">${H(draft.text||"")}</textarea>
+      ${cvTargetFields(draft.target, draft.jd)}
+      <div id="cvErr" class="small cverr" role="alert"></div>
+      <div class="row wrapw" style="gap:10px;margin-top:12px"><button class="btn primary" id="cvAnalyze" onclick="cvAnalyzeText()">Analyze</button>${back}</div>
+      <p class="note">Remove anything you don't want stored, such as your address or phone number. They aren't needed for the analysis.</p></div>`;
+  else body=`<div class="card"><h2>Build From Profile</h2><p class="small muted">Everything you type here is treated as confirmed, because it comes from you. Leave out anything you're unsure of. (The CV Quality report needs resume text, so use Upload or Paste for that.)</p>
     <div class="grid g2">
       <div><label class="fld" for="bfTitle">Job title *</label><input id="bfTitle" maxlength="80" value="${H(p&&!p.custom?p.title:(p&&p.title)||"")}"></div>
       <div><label class="fld" for="bfEmployer">Employer (optional)</label><input id="bfEmployer" maxlength="80"></div>
@@ -202,25 +240,94 @@ function cvEntryHTML(){
       <div><label class="fld" for="bfEdu">Education (optional)</label><input id="bfEdu" value="${H(prof.education||"")}"></div>
       <div><label class="fld" for="bfLang">Languages (comma-separated)</label><input id="bfLang"></div></div>
     <label class="fld" for="bfCert">Certifications (optional)</label><input id="bfCert" value="${H(prof.credentials||"")}">
-    <div id="cvErr" class="small" role="alert" style="color:#ffb4b4;margin-top:8px"></div>
+    <div id="cvErr" class="small cverr" role="alert"></div>
     <div class="row wrapw" style="gap:10px;margin-top:12px"><button class="btn primary" onclick="cvBuild()">Save my experience</button>${back}</div></div>`;
+  return intro+body+cvProcessingHTML();
+}
+const CV_STEPS=[["uploading","Uploading"],["extracting","Extracting text"],["review","Review text"],["analysing","Analysing"],["completed","Completed"]];
+function cvJobHTML(job){
+  const idx=CV_STEPS.findIndex(s=>s[0]===job.state), failed=job.state==="failed", at=failed?CV_STEPS.findIndex(s=>s[0]===job.failedAt):idx;
+  const steps=`<ol class="cvsteps" aria-label="Progress">${CV_STEPS.map(([k,l],i)=>`<li class="${i<at?"done":i===at?(failed?"fail":"cur"):""}" ${i===at?'aria-current="step"':""}><span class="n">${i<at?"✓":failed&&i===at?"!":i+1}</span>${l}</li>`).join("")}</ol>`;
+  const file=job.fileName?`<div class="cvfile"><span aria-hidden="true">📄</span><div class="grow"><div class="t">${H(job.fileName)}</div><div class="small faint">${job.size!=null?(job.size/1048576<0.1?Math.max(1,Math.round(job.size/1024))+" KB":(job.size/1048576).toFixed(1)+" MB"):""}${job.format?" · "+H(CVX_FORMATS[job.format]||job.format):""}</div></div></div>`:"";
+  const ctl=`<div class="row wrapw" style="gap:8px;margin-top:14px">${job.file?`<button class="btn sm" id="cvRetry" onclick="cvRetry()">Retry</button>`:""}<button class="btn sm" id="cvReplaceFile" onclick="cvPickReplacement()">Replace file</button><button class="btn sm ghost" id="cvRemove" onclick="cvRemoveFile()">Remove</button><button class="btn sm ghost" onclick="cvSetMode('paste')">Paste text instead</button></div>
+    <input type="file" id="cvFile" class="sr" tabindex="-1" accept=".pdf,.docx,.doc,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,text/plain" onchange="cvFile(this)" aria-label="Choose another resume file">`;
+  if(failed) return `<div class="card cvx">${steps}${file}<div class="cvfail" id="cvFail" role="alert"><b>${job.failedAt==="analysing"?"Analysis failed":"We couldn't read this file"}</b><p style="margin:6px 0 0">${H(job.error)}</p></div>${ctl}</div>`;
+  if(job.state==="review"){ const x=job.extraction||{}, partial=x.status==="partial";
+    return `<div class="card cvx">${steps}${file}
+      <h2 style="margin-top:14px">Review the extracted text</h2>
+      <div class="row wrapw center" style="gap:8px"><span class="badge ${partial?"ok":"good"}" id="cvExtractStatus">${partial?"Extraction incomplete":"Text extracted"}</span><span class="small muted">${x.words||0} words${x.pages?` from ${x.pages} page${x.pages>1?"s":""}`:""} · ${H(CVX_FORMATS[x.format]||"")}</span></div>
+      ${(x.limitations||[]).length?`<ul class="tips small" id="cvLimits">${x.limitations.map(l=>`<li>${H(l)}</li>`).join("")}</ul>`:""}
+      <p class="small muted">Check the text below and correct anything that was read wrongly (for example merged words or sections in the wrong order) before analysing. Missing text isn't treated as missing experience, but it can't be credited either.</p>
+      <label class="fld" for="cvText">Extracted resume text</label><textarea id="cvText" class="cvtext" spellcheck="false">${H(x.text||"")}</textarea>
+      ${partial?`<label class="check" style="margin-top:10px"><input type="checkbox" id="cvComplete"> I've checked and corrected the text above, and it's my complete resume</label><p class="small faint" style="margin:4px 0 0">Without this, the score is shown as provisional.</p>`:""}
+      ${cvTargetFields((App.cvDraft||{}).target, (App.cvDraft||{}).jd)}
+      <div id="cvErr" class="small cverr" role="alert"></div>
+      <div class="row wrapw" style="gap:8px;margin-top:14px"><button class="btn primary" id="cvAnalyze" onclick="cvAnalyzeText()">Analyse CV</button><button class="btn sm" onclick="cvPickReplacement()">Replace file</button><button class="btn sm ghost" id="cvRemove" onclick="cvRemoveFile()">Remove</button></div>
+      <input type="file" id="cvFile" class="sr" tabindex="-1" accept=".pdf,.docx,.doc,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,text/plain" onchange="cvFile(this)" aria-label="Choose another resume file"></div>`; }
+  return `<div class="card cvx" aria-busy="true">${steps}${file}<div class="cvbusy" id="cvBusy" role="status" aria-live="polite"><span class="spin" aria-hidden="true"></span>${H(job.step||CV_STEPS[Math.max(0,idx)][1]+"…")}</div></div>`;
+}
+function cvProcessingHTML(){
+  return `<details class="card cvproc" id="cvProcessing"><summary><b>How your resume is processed</b></summary>
+    <ul class="tips small">
+      <li>Your file is read by your own browser on this device. It is <b>not uploaded</b>: this site has no server that receives files, and no AI service or API is called.</li>
+      <li>PDFs are read with a copy of the open-source pdf.js library served with this site; Word files are unzipped and read in the browser. Scanned (image-only) pages can't be read because there's no OCR.</li>
+      <li>The original file is not stored. The extracted text (after your corrections), the optional job title and description, the extracted items and the report are saved in this browser's storage ${typeof Repo!=="undefined"&&Repo.kind!=="browser"?"(your browser is blocking storage, so only until you close this tab)":"so they're there when you come back"}, until you click <b>Delete CV data</b> or clear your browser's site data. Anyone using this browser profile could see them.</li>
+      <li>The analysis is a fixed set of rules applied to the text. Instructions written inside a resume or job description are treated as text and can't change those rules.</li>
+      <li>Your name, photo, age, gender, marital status, nationality and address are not used or scored. Contact details are optional.</li></ul></details>`;
 }
 function cvErr(m){ const e=document.getElementById("cvErr"); if(e) e.textContent=m; }
-function cvAnalyzePaste(){
-  const t=(document.getElementById("cvText")||{}).value||"";
-  if(words(t).length<15){ cvErr("Please paste more of your CV (at least a few lines) so there is something to analyze."); return; }
-  const c=CV.analyze(t,"paste"); App.cvMode=null;
-  if(!c.items.length){ cvErr(""); }
-  scrCV();
+function cvSaveDraft(){ const v=id=>{ const e=document.getElementById(id); return e?e.value:undefined; }; const d=App.cvDraft||{};
+  ["target","jd"].forEach(k=>{ const x=v(k==="target"?"cvTarget":"cvJD"); if(x!==undefined) d[k]=x; }); if(App.cvMode==="paste" && !App.cvJob){ const t=v("cvText"); if(t!==undefined) d.text=t; } App.cvDraft=d; }
+function cvSetMode(m){ cvSaveDraft(); App.cvJob=null; App.cvMode=m; scrCV(); }
+function cvCancelEntry(){ App.cvJob=null; App.cvMode=null; App.cvDraft=null; scrCV(); }
+function cvReplace(){ App.cvJob=null; App.cvMode="upload"; const c=CV.get(); App.cvDraft={ target:c&&c.target||"", jd:c&&c.jd||"" }; scrCV(); }
+function cvWireDrop(){
+  const z=document.getElementById("cvDrop"); if(!z) return;
+  ["dragenter","dragover"].forEach(ev=>z.addEventListener(ev, e=>{ e.preventDefault(); z.classList.add("over"); }));
+  ["dragleave","drop"].forEach(ev=>z.addEventListener(ev, e=>{ e.preventDefault(); z.classList.remove("over"); }));
+  z.addEventListener("drop", e=>{ const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) cvStartFile(f); });
 }
-function cvFile(inp){
-  const f=inp.files&&inp.files[0]; if(!f) return;
-  if(/\.(pdf|docx?|odt|rtf|pages)$/i.test(f.name) || /pdf|word|officedocument/.test(f.type)){ cvErr("PDF and Word files can't be read reliably in the browser. Open the file, copy the text and use Paste CV instead."); inp.value=""; return; }
-  if(f.size>500000){ cvErr("That file is too large for a CV text file (500 KB max)."); return; }
-  const r=new FileReader();
-  r.onload=()=>{ const t=String(r.result||""); if(words(t).length<15){ cvErr("This file doesn't contain enough readable text."); return; } CV.analyze(t,"upload"); App.cvMode=null; scrCV(); };
-  r.onerror=()=>cvErr("The file couldn't be read. Try pasting the text instead.");
-  r.readAsText(f);
+function cvPickReplacement(){ const i=document.getElementById("cvFile"); if(i) i.click(); }
+function cvFile(inp){ const f=inp.files&&inp.files[0]; inp.value=""; if(f) cvStartFile(f); }
+function cvRemoveFile(){ App.cvJob=null; App.cvMode="upload"; scrCV(); }
+function cvRetry(){ const j=App.cvJob; if(j&&j.file) cvStartFile(j.file); }
+function cvJobSet(patch){ App.cvJob=Object.assign(App.cvJob||{}, patch); if(location.hash.replace(/^#\/?/,"")==="cv") scrCV(); }
+async function cvStartFile(f){
+  cvSaveDraft();
+  const run=Symbol(); App.cvRun=run;
+  App.cvJob={ state:"uploading", step:"Reading file…", fileName:f.name, size:f.size, file:f, format:null }; scrCV();
+  const live=s=>{ if(App.cvRun!==run) return; const b=document.getElementById("cvBusy"); if(b) b.lastChild.textContent=s; };
+  let r; try{ r=await cvxExtract(f, s=>{ if(App.cvRun!==run) return; if(App.cvJob.state==="uploading" && /Extract|page/i.test(s)) cvJobSet({ state:"extracting", step:s }); else live(s); }); }
+  catch(e){ r=cvxError("unexpected","Something went wrong while reading this file. Retry, or use Paste text."); }
+  if(App.cvRun!==run) return;
+  if(!r.ok){ cvJobSet({ state:"failed", failedAt:App.cvJob.state==="uploading"?"uploading":"extracting", error:r.message, code:r.code, file:["too_large","empty","doc_legacy","unsupported"].includes(r.code)?null:f }); return; }
+  cvJobSet({ state:"review", format:r.format, extraction:r });
+}
+function cvAnalyzeText(){
+  const t=(document.getElementById("cvText")||{}).value||"";
+  if(cvxWords(t)<CVX_MIN_WORDS){ cvErr(`Please add more of your CV (at least ${CVX_MIN_WORDS} words) so there is something to analyse.`); return; }
+  cvSaveDraft();
+  const d=App.cvDraft||{}, job=App.cvJob, prev=CV.get(), editing=!job && App.cvMode!=="paste" && prev && App.cvView==="text";
+  const ext=job&&job.extraction ? { status:job.extraction.status, format:job.extraction.format, limitations:job.extraction.limitations, pages:job.extraction.pages||null, edited:t.trim()!==String(job.extraction.text).trim() }
+    : editing ? Object.assign({}, prev.extraction||{ status:"complete", format:"paste", limitations:[] }, { edited:true }) : { status:"complete", format:"paste", limitations:["Pasted text has no formatting, so only wording and structure are assessed."] };
+  const confirmedComplete=!!(document.getElementById("cvComplete")||{}).checked || (editing && prev.extraction && prev.extraction.confirmedComplete);
+  const target=String(d.target||"").trim().slice(0,80), jd=String(d.jd||"").trim().slice(0,12000);
+  const source=job?"upload":editing?prev.source:"paste";
+  if(job) cvJobSet({ state:"analysing", step:"Analysing your resume…" }); else { App.cvJob={ state:"analysing", step:"Analysing your resume…" }; scrCV(); }
+  setTimeout(()=>{
+    let report, v;
+    try{ report=analyzeCvQuality(t, { target, jd, extraction:ext, confirmedComplete }); v=validateCvReport(report); }catch(e){ v={ ok:false, errors:[String(e&&e.message||e)] }; }
+    if(!v.ok){ App.cvJob=Object.assign(App.cvJob||{}, { state:"failed", failedAt:"analysing", error:"The analysis didn't pass its internal checks, so no score is shown. Check the text (or paste it again) and retry.", file:job&&job.file||null }); scrCV(); return; }
+    ext.confirmedComplete=confirmedComplete;
+    const keep=editing&&prev?{ items:prev.items }:null;
+    const c=CV.analyze(t, source, { format:ext.format, extraction:ext, target, jd, report });
+    if(keep){ // keep the user's confirmations for lines that are still present
+      const old=Object.fromEntries(keep.items.map(i=>[i.kind+"|"+i.value.toLowerCase(), i]));
+      CV.update(cc=>{ cc.items=cc.items.map(i=>{ const o=old[i.kind+"|"+i.value.toLowerCase()]; return o?Object.assign(i,{ status:o.status, edited:o.edited }):i; }).concat(keep.items.filter(i=>i.origin==="user")); });
+    }
+    App.cvJob=null; App.cvMode=null; App.cvDraft=null; App.cvView="report"; scrCV();
+    const h=document.getElementById("cvScore"); if(h) h.focus();
+  }, 40);
 }
 function cvBuild(){
   const v=id=>((document.getElementById(id)||{}).value||"").trim(), title=v("bfTitle");
@@ -233,7 +340,7 @@ function cvBuild(){
   v("bfAch").split(/\n+/).forEach(x=>u("achievement", x.replace(/^[-•*]\s*/,"")));
   v("bfSkills").split(/[,;\n]+/).forEach(x=>u("skill", x)); v("bfTools").split(/[,;\n]+/).forEach(x=>u("tool", x));
   v("bfLang").split(/[,;\n]+/).forEach(x=>u("language", x)); if(v("bfEdu")) u("education", v("bfEdu")); v("bfCert").split(/[;\n]+/).forEach(x=>u("certification", x));
-  const c={ text:"", source:"profile", analyzedAt:Date.now(), items, mappings:[] }; c.mappings=buildMappings(c); Repo.cv.save(c); App.cvMode=null; scrCV();
+  const c={ text:"", source:"profile", analyzedAt:Date.now(), items, mappings:[] }; c.mappings=buildMappings(c); Repo.cv.save(c); App.cvMode=null; App.cvView="items"; scrCV();
 }
 function cvSet(id, status){ CV.update(c=>{ const i=c.items.find(x=>x.id===id); if(i) i.status=status; }); scrCV(); }
 function cvDel(id){ CV.update(c=>{ c.items=c.items.filter(x=>x.id!==id); }); scrCV(); }
@@ -241,7 +348,7 @@ function cvSaveEdit(id){ const v=(document.getElementById("cvEditBox")||{}).valu
 function cvAdd(kind){ const v=prompt("Add "+CV_KINDS.find(k=>k[0]===kind)[1].toLowerCase().replace(/s$/,"")+" (exactly as it applies to you):"); if(!v||v.trim().length<2) return;
   CV.update(c=>{ c.items.push({ id:cvId(), kind, value:v.trim(), source:"Entered by you", status:"confirmed", origin:"user", title:kind==="role"?v.trim():undefined }); }); scrCV(); }
 function cvConfirmAll(){ CV.update(c=>c.items.forEach(i=>{ if(i.status==="pending") i.status="confirmed"; })); scrCV(); }
-function cvDeleteAll(){ if(!confirm("Delete your CV text, extracted items and mappings from this browser?")) return; Repo.cv.clear(); App.cvMode=null; App.setup.useCv=false; saveSetup(); scrCV(); }
+function cvDeleteAll(){ if(!confirm("Delete your CV text, report, extracted items and mappings from this browser?")) return; Repo.cv.clear(); App.cvMode=null; App.cvJob=null; App.cvDraft=null; App.cvView=null; App.setup.useCv=false; saveSetup(); scrCV(); }
 
 /* ---------- AI Experience Mapper ----------------------------------------- */
 const MAP_LABEL={ supported:["good","EVIDENCE SUPPORTED"], potential:["ok","POTENTIALLY SUPPORTED"], required:["bad","EVIDENCE REQUIRED"] };

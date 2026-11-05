@@ -119,3 +119,12 @@ Done:
 - [x] Admin → Professions (add/edit/archive, aliases, category, family, specialties, competencies, types, tasks, pay + verification, verified opportunities) + CSV bulk import
 - [x] Fixed a practice autosave race (flag within 250 ms of typing could be lost) with an in-memory active session
 - [x] Tests: regression 334/334 (3 consecutive runs), engine-check 1,894 profession × type combos, 0 issues
+
+
+## CV Intelligence upgrade (2026-11)
+- [x] In-browser PDF (vendored pdf.js 4.10.38) / DOCX / TXT extraction; 10 MB limit; empty, unsupported, legacy .doc, corrupt, password, scanned and garbled files fail with clear steps
+- [x] Upload states (uploading → extracting → review → analysing → completed / failed) with retry / replace / remove; review and correct text before analysis
+- [x] Deterministic CV Quality Score /100 (8 categories, criteria with partial credit, validated totals), provisional when extraction is incomplete
+- [x] Report A–M, optional JD comparison (no match %), copy recommendations, HTML download, re-analyse, delete
+- [x] Fairness / untrusted-content rules (personal data ignored, injection ignored, stuffing uncredited, no fabricated rewrites)
+- [x] Tests: engine-check CV samples + regression CV sections; docs/CV_INTELLIGENCE.md
