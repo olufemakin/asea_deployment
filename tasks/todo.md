@@ -128,3 +128,6 @@ Done:
 - [x] Report A–M, optional JD comparison (no match %), copy recommendations, HTML download, re-analyse, delete
 - [x] Fairness / untrusted-content rules (personal data ignored, injection ignored, stuffing uncredited, no fabricated rewrites)
 - [x] Tests: engine-check CV samples + regression CV sections; docs/CV_INTELLIGENCE.md
+
+## Launch Scripts sales page (2026-11)
+- [x] Standalone sales page at `launch-scripts/index.html` (served at /launch-scripts/); independent of the app. Checkout link + price in its CONFIG block; the 7 reviews are placeholders to replace with real customer reviews
