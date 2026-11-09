@@ -5,280 +5,256 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Sold-Out Launch Studio · Learn With Tolu</title>
+<script>if(/\/launch-calendar$/.test(location.pathname))location.replace(location.pathname+"/"+location.search+location.hash);</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Playfair+Display:ital,wght@1,700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--n9:#07152b;--n8:#0c2142;--n7:#12305a;--g:#d4a849;--g2:#f1d48a;--c:#f5f1e6;--m:#a9b6c9;--ok:#7fd8a6}
+:root{--n9:#07152b;--n8:#0c2142;--n7:#12305a;--n6:#1b3f70;--g:#d4a849;--g2:#f1d48a;--c:#f5f1e6;--m:#a9b6c9;--ok:#7fd8a6;--line:rgba(212,168,73,.28)}
 *{box-sizing:border-box;margin:0;padding:0}
 [hidden]{display:none!important}
+html{scroll-behavior:smooth}
 body{font-family:Poppins,system-ui,sans-serif;background:var(--n9);color:var(--c);line-height:1.55;-webkit-font-smoothing:antialiased}
-button{font:inherit;cursor:pointer}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
 a{color:var(--g2)}
-.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+.wrap{max-width:900px;margin:0 auto;padding:0 16px}
 .k{font-size:.7rem;font-weight:800;letter-spacing:2px;color:var(--g);text-transform:uppercase}
 em{font-family:"Playfair Display",serif;font-style:italic;color:var(--g)}
-.anton{font-family:Anton,Impact,sans-serif;font-weight:400;text-transform:uppercase}
+.anton{font-family:Anton,Impact,sans-serif;font-weight:400;text-transform:uppercase;letter-spacing:.3px}
+.muted{color:var(--m)}
 
-header{background:linear-gradient(180deg,var(--n7),var(--n9));padding:26px 0 22px;position:relative;overflow:hidden}
-header:after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;background:var(--g);right:-90px;top:-110px}
-header .wrap{position:relative;z-index:1}
-h1{font-size:clamp(2rem,7vw,3.2rem);line-height:1.02;margin:8px 0 10px}
+/* header */
+header.top{background:linear-gradient(180deg,var(--n7),var(--n9));padding:22px 0 18px;position:relative;overflow:hidden}
+header.top:after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;background:var(--g);right:-90px;top:-110px}
+header.top .wrap{position:relative;z-index:1}
+h1{font-size:clamp(2rem,7vw,3.2rem);line-height:1.02;margin:6px 0 8px}
 h1 em{text-transform:none}
-.lede{color:#dfe6ef;font-size:.95rem;max-width:560px}
+.lede{color:#dfe6ef;font-size:.95rem;max-width:600px}
+.views{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.views a{text-decoration:none;font-weight:800;font-size:.85rem;padding:9px 15px;border-radius:99px;border:1px solid var(--g);color:var(--g2)}
+.views a[aria-current=page]{background:var(--g);color:var(--n9)}
 
-.setup{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
-.field{background:var(--n8);border:1px solid rgba(212,168,73,.35);border-radius:14px;padding:12px 14px}
-.field label{display:block;font-size:.68rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--g2);margin-bottom:6px}
-.field input,.field select{width:100%;font:inherit;font-size:1rem;background:var(--n9);color:var(--c);border:1px solid rgba(169,182,201,.3);border-radius:10px;padding:9px 10px;color-scheme:dark}
-.field small{display:block;color:var(--m);font-size:.78rem;margin-top:6px}
-
-.sticky{position:sticky;top:0;z-index:20;background:rgba(7,21,43,.96);backdrop-filter:blur(6px);border-bottom:1px solid rgba(212,168,73,.25)}
-.bar{display:flex;align-items:center;gap:12px;padding:10px 0}
-.prog{flex:1;height:10px;background:var(--n7);border-radius:99px;overflow:hidden}
-.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--g),var(--g2));transition:width .3s}
-.pct{font-weight:800;font-size:.85rem;color:var(--g2);min-width:92px;text-align:right}
-.tabs{display:flex;gap:8px;overflow-x:auto;padding:0 0 10px;scrollbar-width:none}
-.tabs::-webkit-scrollbar{display:none}
-.tab{flex:0 0 auto;border:1px solid rgba(212,168,73,.45);background:transparent;color:var(--g2);border-radius:99px;padding:7px 13px;font-size:.8rem;font-weight:700}
-.tab[aria-pressed=true]{background:var(--g);color:var(--n9);border-color:var(--g)}
-
-.today{margin:18px 0 6px;background:var(--g);color:var(--n9);border-radius:16px;padding:16px 18px;display:flex;align-items:center;gap:14px;justify-content:space-between;flex-wrap:wrap}
-.today b{font-family:Anton,sans-serif;font-weight:400;font-size:1.35rem;text-transform:uppercase;display:block;line-height:1.1}
-.today span{font-size:.88rem;font-weight:600}
-.today button{background:var(--n9);color:var(--g2);border:0;border-radius:99px;padding:10px 16px;font-weight:800;font-size:.85rem}
-.today.muted{background:var(--n8);color:var(--c);border:1px dashed rgba(212,168,73,.6)}
-.today.muted button{background:var(--g);color:var(--n9)}
-
-main{padding:10px 0 60px}
-.phase-h{margin:26px 0 10px;display:flex;align-items:baseline;justify-content:space-between;gap:10px;border-bottom:2px solid var(--g);padding-bottom:6px}
-.phase-h h2{font-size:1.5rem}
-.phase-h small{color:var(--m);font-size:.8rem}
-
-.day{background:var(--n8);border:1px solid rgba(255,255,255,.07);border-radius:14px;margin-bottom:10px;overflow:hidden;scroll-margin-top:110px}
-.day.is-today{border:2px solid var(--g);box-shadow:0 0 0 4px rgba(212,168,73,.15)}
-.day.done{opacity:.72}
-.day.launch .head{background:var(--g);color:var(--n9)}
-.day.launch .head .meta,.day.launch .head .num small{color:var(--n9)}
-.head{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:transparent;border:0;color:inherit;padding:12px 14px}
-.num{flex:0 0 52px;height:52px;border-radius:12px;background:var(--n7);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:Anton,sans-serif;font-size:1.5rem;line-height:1;color:var(--g)}
-.num small{font-family:Poppins,sans-serif;font-size:.55rem;font-weight:800;letter-spacing:1.5px;color:var(--m)}
-.day.done .num{background:var(--ok);color:var(--n9)}.day.done .num small{color:var(--n9)}
-.ttl{flex:1;min-width:0}
-.ttl b{display:block;font-size:.98rem;line-height:1.3}
-.meta{font-size:.76rem;color:var(--m);display:flex;gap:8px;flex-wrap:wrap;margin-top:3px;align-items:center}
-.set{background:rgba(212,168,73,.16);color:var(--g2);border-radius:99px;padding:1px 9px;font-weight:700}
-.day.launch .set{background:var(--n9);color:var(--g)}
-.chev{flex:0 0 auto;font-size:1.1rem;transition:transform .2s;color:var(--g)}
-.day.open .chev{transform:rotate(180deg)}
-.det{padding:0 14px 14px}
-.task{display:flex;gap:12px;align-items:flex-start;background:var(--n9);border-radius:12px;padding:12px;margin-top:8px}
-.task input{appearance:none;flex:0 0 24px;height:24px;border:2px solid var(--g);border-radius:7px;margin-top:2px;cursor:pointer;display:grid;place-items:center}
-.task input:checked{background:var(--g)}
-.task input:checked:after{content:"✓";color:var(--n9);font-weight:900;font-size:.9rem}
-.task input:focus-visible{outline:2px solid #fff;outline-offset:2px}
-.task label{flex:1;cursor:pointer}
-.task i{display:block;font-style:normal;font-size:.66rem;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--g2)}
-.task.checked label span{text-decoration:line-through;text-decoration-color:rgba(245,241,230,.45);color:var(--m)}
-.re{margin-top:8px;border-left:3px solid var(--g);background:rgba(212,168,73,.08);border-radius:8px;padding:10px 12px;font-size:.9rem}
-.re i{display:block;font-style:normal;font-size:.66rem;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--g)}
-.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-.btn{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:9px 15px;font-weight:800;font-size:.82rem;text-decoration:none;border:1px solid var(--g);background:transparent;color:var(--g2)}
+/* cards & controls */
+.card{background:var(--n8);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:18px;margin-top:16px}
+.card h2{font-size:1.25rem;margin-bottom:2px}
+.card .sub{color:var(--m);font-size:.86rem}
+.progress{display:flex;flex-direction:column;gap:10px}
+.progress .row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.progress b{font-size:1rem}
+.pbar{height:12px;background:var(--n6);border-radius:99px;overflow:hidden}
+.pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--g),var(--g2));transition:width .35s}
+.inline{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:.85rem;color:var(--m)}
+input[type=date],input[type=text],input[type=search],select,textarea{background:var(--n9);border:1px solid rgba(169,182,201,.3);border-radius:10px;padding:9px 11px;font-size:.95rem;color-scheme:dark;width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--g);outline-offset:1px;border-color:transparent}
+textarea{min-height:80px;resize:vertical}
+label.f{display:block;font-size:.72rem;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--g2);margin:12px 0 5px}
+label.f small{text-transform:none;letter-spacing:0;font-weight:500;color:var(--m)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{border:1px solid rgba(212,168,73,.4);background:transparent;color:var(--c);border-radius:99px;padding:7px 13px;font-size:.84rem;font-weight:600}
+.chip:hover{border-color:var(--g)}
+.chip[aria-pressed=true]{background:var(--g);color:var(--n9);border-color:var(--g);font-weight:800}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:99px;padding:10px 16px;font-weight:800;font-size:.85rem;text-decoration:none;border:1px solid var(--g);background:transparent;color:var(--g2)}
 .btn.solid{background:var(--g);color:var(--n9)}
-.note{width:100%;margin-top:10px;font:inherit;font-size:.88rem;background:var(--n9);color:var(--c);border:1px solid rgba(169,182,201,.25);border-radius:10px;padding:9px 11px;min-height:44px;resize:vertical}
+.btn.small{padding:7px 12px;font-size:.78rem}
+.btn:disabled{opacity:.5;cursor:progress}
+.bizsel{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.bizsel b{color:var(--g2)}
 
-.item{background:var(--n9);border-radius:12px;padding:12px 13px;margin-top:8px;font-size:.95rem}
-.item i{display:block;font-style:normal;font-size:.66rem;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--g2);margin-bottom:2px}
-.item.ex{border-left:3px solid var(--g);background:rgba(212,168,73,.08)}.item.ex i{color:var(--g)}
-.dayck{width:100%;margin-top:12px;border:2px solid var(--g);background:var(--g);color:var(--n9);border-radius:12px;padding:14px;font-weight:800;font-size:1rem}
-.dayck.is-done{background:transparent;color:var(--ok);border-color:var(--ok)}
-.phase-tag{font-size:.7rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--m);margin:14px 0 8px}
-.next{background:var(--g);color:var(--n9);border-radius:99px;padding:1px 9px;font-weight:800}
+/* weeks & days */
+.tabs{display:flex;gap:8px;overflow-x:auto;padding:4px 0 2px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;border:1px solid rgba(212,168,73,.45);background:transparent;color:var(--g2);border-radius:99px;padding:8px 14px;font-size:.82rem;font-weight:700}
+.tab[aria-pressed=true]{background:var(--g);color:var(--n9);border-color:var(--g)}
 .tab.full{border-color:var(--ok);color:var(--ok)}.tab.full[aria-pressed=true]{background:var(--ok);color:var(--n9)}
-.weeknav{display:flex;justify-content:space-between;gap:10px;margin-top:16px}
-.day.done{opacity:1}
-.after{background:var(--n8);border-radius:16px;padding:18px;margin-top:10px}
-.after h3{font-family:Anton,sans-serif;font-weight:400;text-transform:uppercase;color:var(--g2);font-size:1.1rem;margin:16px 0 4px}
-.after h3:first-child{margin-top:0}
-.deb{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:8px}
-.deb label{font-size:.7rem;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--g2)}
-.deb input,.deb textarea{width:100%;margin-top:4px;font:inherit;font-size:.92rem;background:var(--n9);color:var(--c);border:1px solid rgba(169,182,201,.25);border-radius:10px;padding:9px 11px}
-.deb .full{grid-column:1/-1}
+.sticky{position:sticky;top:0;z-index:20;background:rgba(7,21,43,.96);backdrop-filter:blur(6px);padding:8px 0;border-bottom:1px solid var(--line);margin-top:18px}
+.weekh{margin:18px 0 12px}
+.weekh h2{font-size:1.6rem;line-height:1.1}
+.weekh .sub{color:var(--m);font-size:.84rem;margin-top:4px}
+.weekh p.why{font-family:"Playfair Display",serif;font-style:italic;color:var(--g2);margin-top:6px}
+.day{background:var(--n8);border:1px solid rgba(255,255,255,.07);border-radius:16px;margin-bottom:10px;overflow:hidden;scroll-margin-top:80px}
+.day.is-next{border-color:var(--g)}
+.day.launch{border:2px solid var(--g)}
+.dh{display:flex;align-items:center;gap:12px;padding:12px 14px}
+.tick{appearance:none;flex:0 0 26px;height:26px;border:2px solid var(--g);border-radius:8px;cursor:pointer;display:grid;place-items:center;background:transparent}
+.tick:checked{background:var(--ok);border-color:var(--ok)}
+.tick:checked:after{content:"✓";color:var(--n9);font-weight:900}
+.tick:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.dhb{flex:1;display:flex;align-items:center;gap:12px;background:none;border:0;text-align:left;min-width:0;padding:0}
+.circ{flex:0 0 40px;height:40px;border-radius:50%;background:var(--n6);color:var(--g);display:grid;place-items:center;font-family:Anton,sans-serif;font-size:1.15rem}
+.day.launch .circ,.day.is-next .circ{background:var(--g);color:var(--n9)}
+.day.done .circ{background:var(--ok);color:var(--n9)}
+.dt{flex:1;min-width:0}
+.dt b{display:block;font-size:1rem;line-height:1.25}
+.dt span{font-size:.78rem;color:var(--m)}
+.dt .nextpill{background:var(--n9);color:var(--g2);border:1px solid var(--g);border-radius:99px;padding:1px 8px;font-weight:800;font-size:.7rem;margin-left:4px}
+.pm{color:var(--g);font-size:1.3rem;font-weight:700;width:20px;text-align:center}
+.db{padding:0 14px 16px;border-top:1px solid rgba(255,255,255,.06)}
+.lines{margin-top:12px;display:grid;gap:7px;font-size:.93rem}
+.lines p b{color:var(--g)}
+.made{margin-top:14px;background:var(--n9);border:1px solid var(--line);border-radius:14px;padding:12px}
+.made-h{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.made-h .k{font-size:.66rem}
+.ftabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.ftab{border:1px solid rgba(212,168,73,.35);background:transparent;color:var(--g2);border-radius:99px;padding:5px 11px;font-size:.78rem;font-weight:700}
+.ftab[aria-pressed=true]{background:var(--g2);color:var(--n9)}
+.out{white-space:pre-wrap;font-size:.92rem;line-height:1.6;background:var(--n8);border-radius:10px;padding:12px}
+.out .ph{background:rgba(255,201,74,.16);color:#ffd77a;border-radius:4px;padding:0 3px}
+.hintbox{margin-top:14px;background:var(--n6);border-radius:12px;padding:12px;font-size:.9rem;color:#dfe6ef}
+.auth{margin-top:14px;border-top:1px solid rgba(255,255,255,.08);padding-top:12px}
+.auth .lbl{color:var(--g2);font-weight:700;font-size:.85rem}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.note{margin-top:10px;font-size:.88rem;min-height:44px}
+.weeknav{display:flex;justify-content:space-between;gap:10px;margin-top:14px}
 
-.tools{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:34px 0 0}
-footer{text-align:center;color:var(--m);font-size:.8rem;padding:26px 0 40px;border-top:1px solid rgba(212,168,73,.3);margin-top:30px}
-.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--g);color:var(--n9);font-weight:800;padding:10px 18px;border-radius:99px;font-size:.88rem;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.4)}
-@media (max-width:600px){.setup{grid-template-columns:1fr}.deb{grid-template-columns:1fr}.pct{min-width:70px}}
-@media print{.sticky,.tools,.today,.acts,.note,.weeknav,.dayck{display:none!important}.det{display:block!important}body{background:#fff;color:#000}.day,.after{break-inside:avoid}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* after launch & authority */
+.task{display:flex;gap:12px;align-items:flex-start;background:var(--n9);border-radius:12px;padding:11px;margin-top:8px}
+.task label{flex:1;cursor:pointer;font-size:.93rem}
+.task.checked label{text-decoration:line-through;color:var(--m)}
+.atabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;border-bottom:1px solid var(--line);padding-bottom:12px}
+.ctx{color:var(--g);font-weight:700;font-size:.9rem;margin-top:4px}
+.proof{display:flex;gap:10px;align-items:flex-start;background:var(--n9);border-radius:12px;padding:11px;margin-top:8px;font-size:.9rem}
+.proof .tag{font-size:.66rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;background:rgba(212,168,73,.16);color:var(--g2);border-radius:99px;padding:2px 8px;white-space:nowrap}
+.proof .ok{color:var(--ok);font-size:.75rem;font-weight:700}
+.proof .no{color:#ff9fbf;font-size:.75rem;font-weight:700}
+.bal{display:grid;gap:9px;margin-top:12px}
+.bal .r{display:grid;grid-template-columns:190px 1fr 26px;gap:10px;align-items:center;font-size:.86rem}
+.bal .b{height:10px;background:var(--n6);border-radius:99px;overflow:hidden}
+.bal .b i{display:block;height:100%;background:var(--g)}
+.status{color:var(--g2);font-size:.88rem;margin-top:10px;min-height:1.3em}
+.err{color:#ff9fbf;font-size:.88rem;margin-top:8px;min-height:1.2em}
+.saved{background:var(--n9);border-radius:12px;padding:11px;margin-top:8px;font-size:.88rem}
+.saved .meta{color:var(--m);font-size:.75rem;margin-bottom:4px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--g);color:var(--n9);font-weight:800;padding:10px 18px;border-radius:99px;font-size:.88rem;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:90vw;text-align:center}
+footer{text-align:center;color:var(--m);font-size:.8rem;padding:26px 0 40px;border-top:1px solid var(--line);margin-top:30px}
+@media (max-width:640px){header.top:after{width:120px;height:120px;right:-60px;top:-70px}.grid2{grid-template-columns:1fr}.bal .r{grid-template-columns:120px 1fr 22px}}
+@media print{.sticky,.views,.acts,.note,.weeknav,.made,.auth,.toast{display:none!important}body{background:#fff;color:#000}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
-<header>
+<header class="top">
   <div class="wrap">
-    <span class="k">120 Launch Scripts Bundle · Your 30-day launch calendar</span>
+    <span class="k">120 Launch Scripts Bundle</span>
     <h1 class="anton">Sold-Out <em>Launch Studio</em></h1>
-    <p class="lede">Your 30-day launch, one day at a time. Open the day, post, add your story, do the action, and tick it off. Your progress is saved on this device.</p>
-    <div class="setup">
-      <div class="field">
-        <label for="launch">My launch day (Day 22)</label>
-        <input type="date" id="launch">
-        <small id="range">Optional. Add it and every day shows its real date.</small>
-      </div>
-      <div class="field">
-        <label for="biz">My business</label>
-        <select id="biz"></select>
-        <small>Pick yours and every day shows an example for your type of business.</small>
-      </div>
-    </div>
+    <p class="lede" id="lede">Your 30-day launch calendar, one day at a time. Open today's day, do the post, the story and the action, then tick it off.</p>
+    <nav class="views" aria-label="Studio sections">
+      <a href="#calendar" id="nav-calendar">📅 30-Day Calendar</a>
+      <a href="#authority" id="nav-authority">📖 Authority Content Studio</a>
+    </nav>
   </div>
 </header>
 
-<div class="sticky">
-  <div class="wrap">
-    <div class="bar"><div class="prog" aria-hidden="true"><i id="progBar"></i></div><div class="pct" id="pct" aria-live="polite">0 / 30 days done</div></div>
-    <div class="tabs" id="tabs" role="toolbar" aria-label="Choose a week"></div>
-  </div>
-</div>
-
 <main class="wrap">
-  <div class="today muted" id="today"></div>
-  <div id="list"></div>
-  <div class="weeknav" id="weeknav"></div>
+  <!-- ===================== CALENDAR ===================== -->
+  <section id="view-calendar">
+    <div class="card progress">
+      <div class="row"><b id="pText">0 of 30 days done</b><span class="muted" id="pPct">0%</span></div>
+      <div class="pbar" aria-hidden="true"><i id="pBar"></i></div>
+      <div class="inline"><label for="launch">Launch day (Day 22), optional:</label><input type="date" id="launch" style="width:auto"><span id="range"></span></div>
+    </div>
 
-  <section id="after-sec">
-    <div class="phase-h"><h2 class="anton">After the launch</h2><small id="afterDates">Days 31–37</small></div>
-    <div class="after" id="after"></div>
+    <div class="card" id="bizCard">
+      <h2 class="anton">1. Pick your business</h2>
+      <p class="sub">Each day will give you a reel script, carousel, story and status post made for your business.</p>
+      <div id="bizPicked" hidden class="bizsel" style="margin-top:12px"></div>
+      <div id="bizPick">
+        <input type="search" id="bizSearch" placeholder="Search: wigs, cakes, real estate…" style="margin-top:12px" aria-label="Search businesses">
+        <div class="chips" id="bizChips"></div>
+        <div class="grid2" style="margin-top:12px;align-items:end">
+          <div><label class="f" for="bizOther">Not listed? Type your business</label><input type="text" id="bizOther" maxlength="60" placeholder="e.g. Hair salon, Car rental"></div>
+          <div><button class="btn" type="button" id="bizOtherGo">Use my business</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sticky"><div class="tabs" id="weekTabs" role="toolbar" aria-label="Choose a week"></div></div>
+    <div id="weekView"></div>
   </section>
 
-  <div class="tools">
-    <button class="btn" type="button" id="print">Print / save as PDF</button>
-    <button class="btn" type="button" id="reset">Reset my progress</button>
-  </div>
+  <!-- ===================== AUTHORITY ===================== -->
+  <section id="view-authority" hidden>
+    <div class="card">
+      <h2 class="anton" style="font-size:1.7rem">Authority Content Studio</h2>
+      <p class="sub">Your experience. Your perspective. Useful knowledge worth sharing.</p>
+      <div class="atabs" role="toolbar" aria-label="Authority sections">
+        <button class="chip" type="button" data-atab="profile">Profile</button>
+        <button class="chip" type="button" data-atab="create">Create</button>
+        <button class="chip" type="button" data-atab="proof">Proof library</button>
+        <button class="chip" type="button" data-atab="balance">Weekly balance</button>
+      </div>
+
+      <div data-apanel="profile">
+        <p class="sub" style="margin-top:12px">Tell the studio about your business once. Every post, script and day plan uses it.</p>
+        <div class="bizsel" style="margin-top:10px"><span>Business: <b id="profBiz">not picked yet</b></span><a href="#calendar" class="btn small">Change business</a></div>
+        <div class="grid2">
+          <div><label class="f" for="pf-thing">What you sell</label><input type="text" id="pf-thing" data-prof="thing" maxlength="80"></div>
+          <div><label class="f" for="pf-who">Who it's for</label><input type="text" id="pf-who" data-prof="who" maxlength="120"></div>
+          <div><label class="f" for="pf-pain">The problem you solve <small>(what they're tired of)</small></label><input type="text" id="pf-pain" data-prof="pain" maxlength="140"></div>
+          <div><label class="f" for="pf-want">The result they get <small>(so they can…)</small></label><input type="text" id="pf-want" data-prof="want" maxlength="140"></div>
+          <div><label class="f" for="pf-buy">How they buy <small>(order, book, join…)</small></label><input type="text" id="pf-buy" data-prof="buy" maxlength="40"></div>
+          <div><label class="f" for="pf-proof">Your proof <small>(e.g. customer photos)</small></label><input type="text" id="pf-proof" data-prof="proof" maxlength="100"></div>
+        </div>
+        <label class="f" for="pf-exp">Your experience <small>(optional: how long, what you've done; only true facts)</small></label>
+        <textarea id="pf-exp" data-prof="experience" maxlength="500"></textarea>
+        <label class="f" for="pf-method">Your method or way of working <small>(optional)</small></label>
+        <textarea id="pf-method" data-prof="method" maxlength="500"></textarea>
+        <p class="status" id="profSaved"></p>
+      </div>
+
+      <div data-apanel="create" hidden>
+        <p class="ctx" id="aCtx"></p>
+        <div class="chips" id="pillarChips"></div>
+        <div class="grid2">
+          <div><label class="f" for="aPillar">Content pillar</label><select id="aPillar"></select></div>
+          <div><label class="f" for="aFormat">Content format</label><select id="aFormat"></select></div>
+        </div>
+        <label class="f" for="aQuestion">Daily authority question</label><select id="aQuestion"></select>
+        <label class="f" for="aDetails">Your teaching details</label>
+        <textarea id="aDetails" maxlength="1500" placeholder="Answer the question in your own words: the point, why it matters, your method and one practical step someone can take."></textarea>
+        <div id="aProofPick"></div>
+        <div class="acts">
+          <button class="btn solid" type="button" id="aAI">✨ Write it with AI</button>
+          <button class="btn" type="button" id="aQuick">Quick draft (no AI)</button>
+        </div>
+        <p class="status" id="aStatus" aria-live="polite"></p>
+        <p class="err" id="aErr" role="alert"></p>
+        <div id="aOutWrap" hidden>
+          <div class="out" id="aOut"></div>
+          <div class="acts"><button class="btn small" type="button" id="aCopy">Copy</button><button class="btn small solid" type="button" id="aSave">Save to my content</button></div>
+        </div>
+      </div>
+
+      <div data-apanel="proof" hidden>
+        <p class="sub" style="margin-top:12px">Keep your real proof in one place. Only items you have permission to share are used in posts.</p>
+        <div class="grid2">
+          <div><label class="f" for="prType">Type</label><select id="prType"><option>Testimonial</option><option>Result</option><option>Before &amp; after</option><option>Screenshot / message</option><option>Qualification</option><option>Media / feature</option></select></div>
+          <div><label class="f" for="prSource">From <small>(name or "a customer")</small></label><input type="text" id="prSource" maxlength="80"></div>
+        </div>
+        <label class="f" for="prText">What they said / what happened <small>(exact words, no edits)</small></label>
+        <textarea id="prText" maxlength="600"></textarea>
+        <div class="task"><input type="checkbox" class="tick" id="prPerm"><label for="prPerm">I have permission to share this publicly.</label></div>
+        <div class="acts"><button class="btn solid" type="button" id="prAdd">Add to proof library</button></div>
+        <p class="err" id="prErr" role="alert"></p>
+        <div id="prList"></div>
+      </div>
+
+      <div data-apanel="balance" hidden>
+        <p class="sub" style="margin-top:12px">Authority content you saved in the last 7 days, by pillar. Aim to cover several pillars each week.</p>
+        <div class="bal" id="balBars"></div>
+        <p class="hintbox" id="balTip"></p>
+        <h3 class="anton" style="margin-top:18px;color:var(--g2)">My saved content</h3>
+        <div id="savedList"></div>
+      </div>
+    </div>
+  </section>
 </main>
 <footer>learnwithtolu@gmail.com · @learnwithtolu</footer>
 <div class="toast" id="toast" hidden></div>
 
-<script>
-var DAYS=[{"set":"Pre-Launch Visibility","title":"Announce that something is coming","post":"Tell your audience you're working on something new for them. No details yet, just the who and the why.","stories":"Poll: \"Would you want this?\" Status: a blurred sneak peek.","action":"Update your bio and link so new visitors know what you do.","ex":{"product":"\"Something new is coming to the shop. Here's who it's for…\"","fashion":"\"A new collection is coming. Here's the vibe…\"","food":"\"Something delicious is coming to [area].\"","coach":"\"I'm opening something new for [audience] soon.\"","digital":"\"I'm creating something to help you [result].\"","service":"\"New service or new slots coming for [audience].\"","re":"\"Something new is coming for first-time buyers in [area].\""}},{"set":"Pre-Launch Visibility","title":"Get your circle talking","post":"Post a 'meet me / what I do' intro for new followers.","stories":"Ask friends & family to reshare. Status: \"Share this with one person who needs it.\"","action":"Message 10 friends personally and ask them to share your post.","ex":{"product":"Ask past buyers to reshare your 'meet the maker' post.","fashion":"Ask friends to reshare a behind-the-scenes fitting or makeup video.","food":"Ask friends to reshare your kitchen intro.","coach":"Ask your network to reshare your intro.","digital":"Ask your audience to share your free resource.","service":"Ask past clients to recommend you.","re":"Ask past clients and colleagues to reshare your intro."}},{"set":"Storytelling","title":"Share your 'why'","post":"Tell the story of why you started this business and who you do it for.","stories":"A throwback photo with one line about the moment you decided.","action":"Write your 3 key launch stories in your notes app to reuse.","ex":{"product":"Why you started making or selling this product.","fashion":"Why you started designing, styling or doing beauty.","food":"Why you cook, bake or sell food: the family recipe story.","coach":"Why you became a coach or consultant.","digital":"Why you created this course or product.","service":"Why you started your service business.","re":"Why you became an agent: the family you helped get their first keys."}},{"set":"Problem Awareness","title":"Name the problem","post":"Describe the struggle your audience faces daily, in their own words.","stories":"Question box: \"What's your biggest struggle with ___?\"","action":"Save every reply. These are your future captions.","ex":{"product":"The everyday frustration your product fixes.","fashion":"Struggling to find pieces or looks that fit their body, skin or budget.","food":"No time to cook healthy or tasty meals during the week.","coach":"Feeling stuck on [goal] despite trying everything.","digital":"Wasting hours on YouTube trying to learn [skill].","service":"The hassle of unreliable [service] providers.","re":"The stress of rent hikes, fake listings and agents who disappear."}},{"set":"Problem Awareness","title":"Make them feel seen","post":"Post 'the real reason you're still stuck isn't what you think.'","stories":"Quiz sticker: myth vs truth about the problem.","action":"Reply to every comment and DM from the last 3 days.","ex":{"product":"\"The real reason [problem] keeps happening isn't you. It's the tools.\"","fashion":"\"You're not hard to dress. You've just been shopping the wrong cuts.\"","food":"\"Skipping lunch isn't a time problem. It's a planning problem.\"","coach":"\"You don't need more motivation. You need a plan.\"","digital":"\"You don't lack talent. You lack a clear path.\"","service":"\"Getting [service] done shouldn't be this stressful.\"","re":"\"The real reason you haven't bought yet isn't money. It's not knowing the process.\""}},{"set":"Authority Building","title":"Show you know your stuff","post":"Teach one quick, useful tip your audience can use today.","stories":"3-frame mini lesson. Status: the tip as one bold line.","action":"Pin your best value post to the top of your profile.","ex":{"product":"3 quick tips to get more out of [product type].","fashion":"3 styling or skincare tips for [occasion or season].","food":"3 quick kitchen or meal-prep tips.","coach":"A quick framework or tip they can use today.","digital":"A free mini-lesson or template.","service":"3 tips to get the best from a [service].","re":"3 checks to do before paying for any property or land."}},{"set":"Community Building","title":"Open your community","post":"Invite people into a free WhatsApp group / broadcast / Close Friends list for launch updates.","stories":"Status with the join link: \"Insiders hear it first.\"","action":"Create the group, write the welcome message, and pin the rules.","ex":{"product":"Free WhatsApp group for restock alerts and early access.","fashion":"Close Friends list for first look at the collection.","food":"WhatsApp group for menu drops and pre-orders.","coach":"Free group or masterclass waitlist for [audience].","digital":"Free community or email list for the launch.","service":"WhatsApp list for priority booking.","re":"\"Join my free property alerts group for early access to new listings.\""}},{"set":"Storytelling","title":"Share a lesson the hard way","post":"Post 'my journey, my mistakes, and what I learned.'","stories":"Behind-the-scenes of you working on the offer.","action":"Record a 30-second selfie video you can reuse on launch week.","ex":{"product":"A batch or order that went wrong, and what you changed.","fashion":"A design or look that flopped, and what you learned.","food":"A recipe that failed, and how you perfected it.","coach":"A mistake you made in your own journey.","digital":"How you learned [skill] the hard way.","service":"A job that went wrong early on, and what you changed.","re":"A deal that nearly fell through, and what it taught you about due diligence."}},{"set":"Authority Building","title":"Prove it with a result","post":"Share a real result, before/after, or case study from your work.","stories":"Screenshot of real feedback (with permission).","action":"Ask 3 past customers if you can share their feedback.","ex":{"product":"A real customer photo or message (with permission).","fashion":"A real client transformation or styled look (with permission).","food":"Real customer photo or message about your food (with permission).","coach":"A real client win (with permission).","digital":"A student result or feedback (with permission).","service":"A real before and after from a client job (with permission).","re":"A real client you helped close, shared with their permission."}},{"set":"Waitlist Building","title":"Open the waitlist","post":"Announce the waitlist and what waitlisters get (early access, a perk).","stories":"Link sticker to the waitlist. Status: \"Reply WAITLIST and I'll add you.\"","action":"Set up the waitlist form or a WhatsApp broadcast list.","ex":{"product":"\"Join the list to shop before everyone else.\"","fashion":"\"Join the list for first access to the drop.\"","food":"\"Join the pre-order list for first slots.\"","coach":"\"Join the waitlist for first spots and a bonus call.\"","digital":"\"Join the waitlist for the founding-member price.\"","service":"\"Join the list for first booking slots.\"","re":"\"Join the list to get first viewing slots before we go public.\""}},{"set":"Offer Positioning","title":"Introduce what's coming","post":"Explain what the offer is and the problem it solves. No price yet.","stories":"\"What's inside\" teaser frames.","action":"Write your offer one-liner: I help ___ get ___ without ___.","ex":{"product":"Close-ups and 'what's inside' teasers of the new product.","fashion":"Mood board, fabric or shade swatches, sketches.","food":"Menu teaser and tasting photos.","coach":"Introduce the programme: who it's for and what changes.","digital":"Outline of the modules or a product preview.","service":"Introduce the service package and who it's for.","re":"Introduce the property, estate or service: location, type, who it's for."}},{"set":"Problem Awareness","title":"Hit the pain point hard","post":"Post a problem story with a clear emotional trigger.","stories":"Poll: \"Have you ever ___?\"","action":"DM everyone who voted yes and start a real conversation.","ex":{"product":"Poll: \"Ever bought a [product] that broke in a week?\"","fashion":"\"Tired of [fashion or beauty pain]?\"","food":"\"Ordered food that arrived cold and late?\"","coach":"\"Still [painful situation] after another year?\"","digital":"\"Bought courses you never finished?\"","service":"\"Paid for [service] and had to redo it?\"","re":"\"Paid a deposit and the agent vanished?\" Then your verification process."}},{"set":"Community Building","title":"Spark conversation","post":"Ask a question post that gets people talking.","stories":"Daily check-in in your group or Close Friends.","action":"Welcome every new community member by name.","ex":{"product":"\"Which colour or scent should we launch first?\"","fashion":"\"Which look would you wear first: A or B?\"","food":"\"Jollof or fried rice? Settle it in the comments.\"","coach":"\"What's the #1 thing stopping you from [goal]?\"","digital":"\"What do you most want to learn about [topic]?\"","service":"\"What's your worst [service] experience?\"","re":"\"Buy or keep renting? Tell me why\" in your property group."}},{"set":"Waitlist Building","title":"Waitlist perks & urgency","post":"Share exclusive perks for people on the waitlist.","stories":"Countdown sticker: waitlist closes soon.","action":"Send your waitlist a personal update message.","ex":{"product":"Waitlist gets first pick or a launch-day bonus gift.","fashion":"Waitlist gets early access or a styling or consultation bonus.","food":"Pre-order list gets first delivery slots or a free side.","coach":"Waitlist gets a discount window or a bonus session.","digital":"Waitlist gets founding price or a bonus template.","service":"List gets priority slots or a launch discount.","re":"Waitlist gets early viewing dates or a reservation window."}},{"set":"Offer Positioning","title":"Reveal the offer","post":"Full reveal: price, what's included, bonuses, and who it's for.","stories":"Swipe-through of everything they get.","action":"Prepare your payment link or booking process and test it.","ex":{"product":"Reveal price, sizes, bundles and delivery details.","fashion":"Reveal the pieces or services, prices and sizes.","food":"Reveal the menu, prices, delivery areas and order days.","coach":"Reveal the programme, price, schedule and bonuses.","digital":"Reveal the modules, price, access length and bonuses.","service":"Reveal packages, prices and how booking works.","re":"Reveal: price or payment plan, features, documents, inspection dates."}},{"set":"Social Proof","title":"Let others speak","post":"Share testimonials or real feedback (only real ones).","stories":"Repost customer stories and DMs (with permission).","action":"Collect any proof you don't have yet: ask, screenshot, save.","ex":{"product":"Real reviews and unboxing posts from customers (with permission).","fashion":"Real client photos and reviews (with permission).","food":"Real customer reviews (with permission).","coach":"Real client testimonials (with permission).","digital":"Real student testimonials (with permission).","service":"Real client reviews (with permission).","re":"Real buyer or tenant feedback, shared with their permission."}},{"set":"Anticipation & Hype","title":"Behind the scenes","post":"Show the making-of: packing, filming, preparing.","stories":"A day-in-the-life of launch prep.","action":"Plan your launch-day posting times and set reminders.","ex":{"product":"Packing orders, sourcing, product testing.","fashion":"Photoshoot, fittings, packaging.","food":"Cooking and packing day, ingredients shopping.","coach":"Preparing the curriculum, filming, setting up.","digital":"Recording lessons, building templates.","service":"Tools, team, preparing for bookings.","re":"Site visit or inspection prep video."}},{"set":"Objection Handling","title":"\"What if…\" answers","post":"Answer the top 3 objections you keep hearing.","stories":"Question box: \"What's stopping you?\"","action":"Turn every objection into an FAQ reply you can paste.","ex":{"product":"\"What if it doesn't fit/work for me?\" Explain your returns or exchange policy.","fashion":"\"What if it doesn't fit?\" Explain sizing help and exchanges.","food":"\"What if it arrives late?\" Explain your delivery promise.","coach":"\"What if I don't have time?\" Explain the time it really takes.","digital":"\"What if I'm a beginner?\" Explain who it suits.","service":"\"What if I'm not happy?\" Explain your guarantee or process.","re":"\"What if the documents aren't genuine?\" Explain your verification."}},{"set":"Waitlist Building","title":"Last call for the waitlist","post":"Remind people the waitlist gets in first.","stories":"Status: \"Last chance to get on the list.\"","action":"Message everyone who showed interest but hasn't joined.","ex":{"product":"Last call: the waitlist shops first.","fashion":"Last call for early access to the drop.","food":"Last call for first pre-order slots.","coach":"Last call for the waitlist.","digital":"Last call for founding-member access.","service":"Last call for priority booking.","re":"Final call for early viewing slots."}},{"set":"Anticipation & Hype","title":"The countdown begins","post":"Post '2 days to go' and build the hype.","stories":"Countdown sticker plus reminder.","action":"Prepare launch-day graphics, captions and DM replies.","ex":{"product":"\"2 days to go\" with a product teaser.","fashion":"\"2 days to the drop.\"","food":"\"2 days until orders open.\"","coach":"\"2 days until doors open.\"","digital":"\"2 days to launch.\"","service":"\"2 days until bookings open.\"","re":"\"2 days to go: inspections open Saturday.\""}},{"set":"Anticipation & Hype","title":"Tomorrow is the day","post":"Post 'doors open tomorrow' with what to expect.","stories":"\"Turn on notifications\" frame. Status: \"Tomorrow!\"","action":"Send your waitlist an early-access link or time.","ex":{"product":"Tell the waitlist exactly what time the shop opens.","fashion":"Exact drop time and how to order.","food":"Exact time orders open and how to order.","coach":"Exact enrolment time and link.","digital":"Exact launch time and how to buy.","service":"Exact booking time and link or number.","re":"Tell the waitlist exactly when booking opens."}},{"set":"Launch Day","title":"LAUNCH DAY: doors open","post":"Open cart with a strong call to action. Post at your best time.","stories":"Go heavy: 5–8 frames through the day. Status every few hours.","action":"Go LIVE if you can, and reply to every DM within the hour.","ex":{"product":"Shop is open: link, delivery info, how to order.","fashion":"The drop is live: link and size guide.","food":"Orders open: menu, link or WhatsApp number.","coach":"Doors open: link, start date, what happens after paying.","digital":"Doors open: link and what they get instantly.","service":"Bookings open: link, slots, how to pay.","re":"Bookings open: link, contact, inspection schedule."}},{"set":"Social Proof","title":"Celebrate early buyers","post":"Thank early buyers and share first reactions (with permission).","stories":"Repost buyer shoutouts and unboxings.","action":"Message every buyer personally to say thank you.","ex":{"product":"Repost first unboxings and orders (with permission).","fashion":"Repost customers wearing or using your work (with permission).","food":"Repost first orders and customer photos (with permission).","coach":"Welcome the first clients publicly (with permission).","digital":"Welcome the first students (with permission).","service":"Shout out first clients (with permission).","re":"Celebrate first reservations or keys handed over (with permission)."}},{"set":"Objection Handling","title":"Clear the doubts","post":"Mid-cart objection post: price, time, 'is it for me?'","stories":"FAQ frames, one question per frame.","action":"Follow up with everyone who asked but didn't buy.","ex":{"product":"Delivery times, sizing and payment questions answered.","fashion":"Sizing, delivery and booking questions answered.","food":"Allergens, delivery areas and portion questions answered.","coach":"Time, price and results questions answered honestly.","digital":"Access, refund and time questions answered.","service":"Pricing, availability and area questions answered.","re":"Payment plan, location and title questions answered."}},{"set":"Social Proof","title":"Proof keeps selling","post":"Share a strong testimonial or early win.","stories":"Screenshot carousel of real feedback.","action":"Ask happy buyers for a short video review.","ex":{"product":"A real customer video or review.","fashion":"Real client video or review.","food":"A happy customer video.","coach":"A client story video.","digital":"A student's first win.","service":"A client video review.","re":"A buyer's walkthrough or a happy-client video."}},{"set":"Offer Positioning","title":"Spotlight one strong point","post":"Zoom in on the one feature or bonus people love most.","stories":"Bonus stack reminder.","action":"Check your stock or slots and update what's left (be truthful).","ex":{"product":"Spotlight the one feature buyers love most.","fashion":"Spotlight your bestseller or signature service.","food":"Spotlight your signature dish.","coach":"Spotlight the bonus or support people value most.","digital":"Spotlight the most useful module or template.","service":"Spotlight what makes your service different.","re":"Spotlight: road access, security, amenities, or the payment plan."}},{"set":"Objection Handling","title":"\"This is NOT for you if…\"","post":"Post who it's not for, so the right people feel sure.","stories":"Poll: \"Is this for you?\"","action":"DM people who engaged this week with a soft check-in.","ex":{"product":"\"Not for you if you want the cheapest option on the market.\"","fashion":"\"Not for you if you want fast fashion at any cost.\"","food":"\"Not for you if you want food in 10 minutes.\"","coach":"\"Not for you if you want results without doing the work.\"","digital":"\"Not for you if you won't open it after buying.\"","service":"\"Not for you if you want the cheapest quote in town.\"","re":"\"Not for you if you want a quick flip with no paperwork.\""}},{"set":"Social Proof","title":"Before and after","post":"Show a transformation or case-study highlight.","stories":"Before/after frames.","action":"Plan your final-48-hours posts and reminders.","ex":{"product":"Before and after using the product (real results only).","fashion":"Real before and after: makeup, hair or outfit.","food":"Ingredients to finished dish.","coach":"A real client's before and after.","digital":"A student's work before vs. after.","service":"Real job before and after.","re":"Land before vs. built, or an empty unit vs. a happy tenant."}},{"set":"Sell-Out & Urgency","title":"Final 24 hours","post":"\"Cart closes tomorrow\" post with clear urgency (only the real deadline).","stories":"Countdown sticker. Statuses every few hours.","action":"Go LIVE for a final Q&A and answer last-minute questions.","ex":{"product":"\"Launch price or bundle ends tomorrow at [time].\"","fashion":"\"The collection or launch price ends tomorrow.\"","food":"\"Launch menu or price ends tomorrow.\"","coach":"\"Enrolment closes tomorrow at [time].\"","digital":"\"Founding price ends tomorrow.\"","service":"\"Launch slots or price end tomorrow.\"","re":"\"Offer price or plan ends tomorrow at [time].\""}},{"set":"Sell-Out & Urgency","title":"Cart closes","post":"Last call, then a thank-you post when doors close.","stories":"Final countdown, then \"Doors closed, thank you!\"","action":"Close the cart on time and start a list for next time.","ex":{"product":"Close the launch offer; open a restock waitlist.","fashion":"Close the drop; open a list for the next collection.","food":"Close orders; open next week's pre-order list.","coach":"Close enrolment; open the next-round waitlist.","digital":"Close the cart; open the waitlist for the next intake.","service":"Close launch bookings; start a list for the next slots.","re":"Close reservations; start a list for the next phase."}}], BIZ={"biz":[["any","Any business"],["product","Product seller"],["fashion","Fashion & beauty"],["food","Food & drinks"],["coach","Coach / consultant"],["digital","Courses & digital products"],["service","Service business"],["re","Real estate"]],"writer":{"product":"Physical product","fashion":"Fashion & beauty","food":"Food & drinks","coach":"Coaching or consulting","digital":"Course or digital product","service":"Service business","re":"Real estate"}};
-var STAGE_IDS={"Pre-Launch Visibility":"pre-launch-visibility","Problem Awareness":"problem-awareness","Storytelling":"storytelling","Authority Building":"authority","Offer Positioning":"offer-positioning","Community Building":"community","Waitlist Building":"waitlist","Anticipation & Hype":"anticipation","Launch Day":"launch-day","Objection Handling":"objections","Social Proof":"social-proof","Sell-Out & Urgency":"urgency"};
-var PHASES=[{name:"Warm-up",from:1,to:7},{name:"Build desire",from:8,to:14},{name:"Anticipation",from:15,to:21},{name:"Launch day",from:22,to:22},{name:"Sell out",from:23,to:30}];
-var WEEKS=[{id:"w1",name:"Week 1",from:1,to:7},{id:"w2",name:"Week 2",from:8,to:14},{id:"w3",name:"Week 3",from:15,to:21},{id:"w4",name:"Week 4",from:22,to:28},{id:"w5",name:"Final days",from:29,to:30},{id:"after",name:"After launch"}];
-var AFTER=[
- {h:"Deliver like a pro",items:["Send every buyer a welcome or confirmation message within 24 hours","Tell them exactly what happens next and when","Deliver on time, every time"]},
- {h:"Collect real reviews",items:["Ask once they've had a win, not the day they pay","Make it easy: \"What was your favourite part? What changed for you?\"","Get permission before sharing, and only ever post real reviews"]},
- {h:"Keep the momentum",items:["Post a thank-you and celebrate your community","Share delivery and buyer wins as they come in (with permission)","Open a waitlist for your next round","Check in with people who almost bought"]}];
-var DEBRIEF=[["waitlist","Waitlist size"],["sales","Sales"],["bestDay","Best day"],["bestScript","Best script"],["worked","What worked","full"],["next","Next time I'll…","full"]];
-var KEY="lwt-launch-calendar-v1", st=load(), week=null, openN=null;
-var $=function(id){return document.getElementById(id)};
-function load(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}}
-st.days=st.days||{}; st.notes=st.notes||{}; st.after=st.after||{}; st.debrief=st.debrief||{};
-if(st.done){for(var m=1;m<=30;m++)if(st.done[m+":post"]&&st.done[m+":stories"]&&st.done[m+":action"])st.days[m]=1;delete st.done;save();} // earlier per-task ticks
-if(!BIZ.biz.some(function(b){return b[0]===st.biz}))st.biz="any";
-function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
-function toast(t){var el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(function(){el.hidden=true},1700)}
-
-// dates
-function parseDate(v){if(!/^\d{4}-\d{2}-\d{2}$/.test(v||""))return null;var p=v.split("-");return new Date(+p[0],p[1]-1,+p[2])}
-function dateFor(n){var l=parseDate(st.launch);if(!l)return null;var d=new Date(l);d.setDate(d.getDate()+(n-22));return d}
-function fmt(d,long){return d?d.toLocaleDateString(undefined,long?{weekday:"long",day:"numeric",month:"long"}:{weekday:"short",day:"numeric",month:"short"}):""}
-function todayNum(){var d1=dateFor(1);if(!d1)return null;var t=new Date();t.setHours(0,0,0,0);return Math.round((t-d1)/864e5)+1}
-function phaseOf(n){for(var i=0;i<PHASES.length;i++)if(n>=PHASES[i].from&&n<=PHASES[i].to)return PHASES[i]}
-function weekOf(n){for(var i=0;i<WEEKS.length;i++)if(n>=WEEKS[i].from&&n<=WEEKS[i].to)return WEEKS[i].id}
-
-// progress
-function doneCount(){var c=0;for(var n=1;n<=30;n++)if(st.days[n])c++;return c}
-function nextTodo(){for(var n=1;n<=30;n++)if(!st.days[n])return n;return null}
-function progress(){var c=doneCount();$("progBar").style.width=(c/30*100)+"%";$("pct").textContent=c+" / 30 days done";}
-function bizName(){for(var i=0;i<BIZ.biz.length;i++)if(BIZ.biz[i][0]===st.biz)return BIZ.biz[i][1];return""}
-
-// render
-function dayHTML(n){
-  var d=DAYS[n-1],date=dateFor(n),tn=todayNum(),done=!!st.days[n],open=openN===n,b=st.biz;
-  var writer="/script-writer/?stage="+STAGE_IDS[d.set]+(BIZ.writer[b]?"&type="+encodeURIComponent(BIZ.writer[b]):"");
-  var item=function(lbl,txt,cls){return '<div class="item'+(cls||"")+'"><i>'+lbl+'</i>'+esc(txt)+'</div>'};
-  return '<article class="day'+(n===22?" launch":"")+(tn===n?" is-today":"")+(done?" done":"")+(open?" open":"")+'" id="day-'+n+'" data-n="'+n+'">'+
-   '<button class="head" type="button" aria-expanded="'+open+'" aria-controls="det-'+n+'"><div class="num"><small>'+(done?"DONE":"DAY")+'</small>'+(done?"✓":n)+'</div>'+
-   '<div class="ttl"><b>Day '+n+': '+esc(d.title)+'</b><div class="meta">'+(date?"<span>"+fmt(date)+"</span>":"")+'<span class="set">'+esc(d.set)+' Scripts</span>'+(tn===n?"<span>· Today</span>":"")+(nextTodo()===n?'<span class="next">Up next</span>':"")+'</div></div><span class="chev" aria-hidden="true">▾</span></button>'+
-   '<div class="det" id="det-'+n+'"'+(open?"":" hidden")+'>'+
-   item("Post",d.post)+item("Story idea · Instagram Stories / WhatsApp Status",d.stories)+item("Action",d.action)+
-   (b!=="any"&&d.ex[b]?item("Example for "+bizName(),d.ex[b]," ex"):"")+
-   '<button class="dayck'+(done?" is-done":"")+'" type="button" data-tick="'+n+'" aria-pressed="'+done+'">'+(done?"✓ Day "+n+" done · tap to undo":"Tick off Day "+n)+'</button>'+
-   '<div class="acts"><a class="btn solid" href="'+writer+'">✨ Write this post with AI</a><button class="btn" type="button" data-copy="'+n+'">Copy this day\'s plan</button></div>'+
-   '<textarea class="note" data-note="'+n+'" placeholder="My notes for Day '+n+' (script used, results, ideas)…">'+esc(st.notes[n]||"")+'</textarea>'+
-   '</div></article>';
-}
-function renderList(){
-  var w=WEEKS.filter(function(x){return x.id===week})[0];
-  $("after-sec").hidden=week!=="after";
-  if(week==="after"){$("list").innerHTML="";var a=dateFor(31),b=dateFor(37);$("afterDates").textContent="Days 31–37"+(a?" · "+fmt(a)+" – "+fmt(b):"");renderNav();return;}
-  var a1=dateFor(w.from),b1=dateFor(w.to),done=0;for(var n=w.from;n<=w.to;n++)if(st.days[n])done++;
-  var html='<div class="phase-h"><h2 class="anton">'+w.name+'</h2><small>Days '+w.from+'–'+w.to+(a1?" · "+fmt(a1)+" – "+fmt(b1):"")+' · '+done+'/'+(w.to-w.from+1)+' done</small></div>',ph=null;
-  for(n=w.from;n<=w.to;n++){var p=phaseOf(n);if(p!==ph){ph=p;html+='<div class="phase-tag">'+p.name+'</div>';}html+=dayHTML(n);}
-  $("list").innerHTML=html;renderNav();
-}
-function renderNav(){
-  var i=WEEKS.map(function(x){return x.id}).indexOf(week),prev=WEEKS[i-1],next=WEEKS[i+1];
-  $("weeknav").innerHTML=(prev?'<button class="btn" type="button" data-week="'+prev.id+'">← '+prev.name+'</button>':"<span></span>")+(next?'<button class="btn" type="button" data-week="'+next.id+'">'+next.name+' →</button>':"<span></span>");
-}
-function renderTabs(){
-  $("tabs").innerHTML=WEEKS.map(function(x){var d=0,t=0;if(x.from){for(var n=x.from;n<=x.to;n++){t++;if(st.days[n])d++}}
-    return '<button class="tab'+(t&&d===t?" full":"")+'" type="button" data-week="'+x.id+'" aria-pressed="'+(week===x.id)+'">'+x.name+(t&&d===t?" ✓":"")+'</button>'}).join("");
-}
-function renderToday(){
-  var el=$("today"),nx=nextTodo(),tn=todayNum(),line="";
-  if(tn!==null&&tn>=1&&tn<=30)line="Today is Day "+tn+(tn===22?": Launch Day!":"")+". ";
-  else if(tn!==null&&tn<1)line="Day 1 is in "+(1-tn)+" day"+(tn===0?"":"s")+". ";
-  if(nx===null){el.className="today";el.innerHTML='<div><b>All 30 days done 🎉</b><span>'+line+'Deliver, collect real reviews and debrief.</span></div><button type="button" data-week="after">After launch →</button>';return;}
-  el.className="today"+(st.launch?"":" muted");
-  el.innerHTML='<div><b>Up next: Day '+nx+'</b><span>'+line+esc(DAYS[nx-1].title)+' · '+esc(DAYS[nx-1].set)+' Scripts</span></div><button type="button" data-go="'+nx+'">Open Day '+nx+' →</button>';
-}
-function renderAfter(){
-  var html="";
-  AFTER.forEach(function(g,gi){html+="<h3>"+g.h+"</h3>"+g.items.map(function(it,ii){var k=gi+"-"+ii,c=!!st.after[k],id="a"+k;
-    return '<div class="task'+(c?" checked":"")+'"><input type="checkbox" id="'+id+'" data-after="'+k+'"'+(c?" checked":"")+'><label for="'+id+'"><span>'+esc(it)+'</span></label></div>'}).join("")});
-  html+='<h3>My launch debrief</h3><div class="deb">'+DEBRIEF.map(function(f){var tag=f[2]?"textarea":"input";
-    return '<div class="'+(f[2]||"")+'"><label for="d-'+f[0]+'">'+f[1]+'</label><'+tag+' id="d-'+f[0]+'" data-deb="'+f[0]+'"'+(tag==="input"?' value="'+esc(st.debrief[f[0]]||"")+'">':'>'+esc(st.debrief[f[0]]||"")+'</textarea>')+'</div>'}).join("")+'</div>';
-  $("after").innerHTML=html;
-}
-function renderAll(){renderTabs();renderToday();renderList();renderAfter();progress();
-  $("range").textContent=st.launch?"Day 1: "+fmt(dateFor(1))+" · Cart closes (Day 30): "+fmt(dateFor(30)):"Optional. Add it and every day shows its real date.";}
-function goDay(n,scroll){n=+n;week=weekOf(n);openN=n;renderAll();if(scroll!==false){var el=$("day-"+n);if(el)el.scrollIntoView({behavior:"smooth",block:"start"});}}
-function planText(n){var d=DAYS[n-1],date=dateFor(n),b=st.biz;
-  return "DAY "+n+(date?" ("+fmt(date,true)+")":"")+": "+d.title+"\nScript set: "+d.set+" Scripts\n\nPOST: "+d.post+"\nSTORY IDEA (Stories / WhatsApp Status): "+d.stories+"\nACTION: "+d.action+(b!=="any"&&d.ex[b]?"\nEXAMPLE ("+bizName()+"): "+d.ex[b]:"");}
-function copyText(t){
-  function fb(){var a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();try{document.execCommand("copy");toast("Copied")}catch(e){toast("Couldn't copy")}document.body.removeChild(a)}
-  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(function(){toast("Copied")},fb);else fb();
-}
-
-// setup
-$("biz").innerHTML=BIZ.biz.map(function(b){return'<option value="'+b[0]+'">'+esc(b[1])+'</option>'}).join("");
-$("launch").value=st.launch||""; $("biz").value=st.biz||"any";
-$("launch").addEventListener("change",function(){st.launch=this.value;save();renderAll();if(st.launch)toast("Dates filled in")});
-$("biz").addEventListener("change",function(){st.biz=this.value;save();renderList()});
-document.addEventListener("click",function(e){
-  var w=e.target.closest("[data-week]");if(w){week=w.dataset.week;openN=null;renderTabs();renderList();window.scrollTo({top:$("list").offsetTop-120,behavior:"smooth"});return;}
-  var g=e.target.closest("[data-go]");if(g){goDay(g.dataset.go);return;}
-  var h=e.target.closest(".head");
-  if(h){var n=+h.parentNode.dataset.n;openN=openN===n?null:n;renderList();if(openN)$("day-"+n).scrollIntoView({block:"nearest"});return;}
-  var t=e.target.closest("[data-tick]");
-  if(t){n=+t.dataset.tick;if(st.days[n])delete st.days[n];else st.days[n]=1;save();
-    if(st.days[n]){var nx=nextTodo();toast(nx===null?"All 30 days done. You launched! 🎉":"Day "+n+" done ✓ Up next: Day "+nx);openN=n;}
-    renderTabs();renderToday();renderList();progress();return;}
-  var c=e.target.closest("[data-copy]");if(c)copyText(planText(+c.dataset.copy));
-});
-document.addEventListener("change",function(e){var t=e.target;
-  if(t.dataset.after){if(t.checked)st.after[t.dataset.after]=1;else delete st.after[t.dataset.after];save();t.parentNode.classList.toggle("checked",t.checked);}});
-document.addEventListener("input",function(e){var t=e.target;
-  if(t.dataset.note){st.notes[t.dataset.note]=t.value;save();}else if(t.dataset.deb){st.debrief[t.dataset.deb]=t.value;save();}});
-$("print").addEventListener("click",function(){try{window.print()}catch(e){toast("Use your browser's Print menu")}});
-$("reset").addEventListener("click",function(){
-  var b=this;if(b.dataset.confirm){st={days:{},notes:{},after:{},debrief:{},launch:st.launch,biz:st.biz};save();goDay(1,false);b.textContent="Reset my progress";delete b.dataset.confirm;toast("Progress reset");}
-  else{b.dataset.confirm=1;b.textContent="Tap again to confirm reset";setTimeout(function(){if(b.dataset.confirm){delete b.dataset.confirm;b.textContent="Reset my progress"}},4000);}
-});
-// Open on the next day still to do.
-var first=nextTodo(); if(first===null){week="after";renderAll();} else goDay(first,false);
-</script>
+<script src="businesses.js"></script>
+<script src="days.js"></script>
+<script src="studio.js"></script>
 </body>
 </html>

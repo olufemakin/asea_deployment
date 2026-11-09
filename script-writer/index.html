@@ -137,7 +137,7 @@ footer{text-align:center;color:var(--muted);font-size:.85rem;padding:0 0 40px}
 
 <script>
 var STAGES=[["pre-launch-visibility","Pre-Launch Visibility"],["problem-awareness","Problem Awareness"],["storytelling","Storytelling"],["authority","Authority Building"],["offer-positioning","Offer Positioning"],["community","Community Building"],["waitlist","Waitlist Building"],["anticipation","Anticipation & Hype"],["launch-day","Launch Day"],["objections","Objection Handling"],["social-proof","Social Proof"],["urgency","Sell-Out & Urgency"]];
-var PLATFORMS=[["instagram-caption","Instagram post"],["instagram-stories","Instagram Stories"],["reel","Reel / TikTok"],["whatsapp-status","WhatsApp Status"],["whatsapp-broadcast","WhatsApp message"],["facebook-post","Facebook post"],["facebook-stories","Facebook Stories"],["email","Email"],["linkedin","LinkedIn"],["x-thread","X thread"]];
+var PLATFORMS=[["instagram-caption","Instagram post"],["instagram-stories","Instagram Stories"],["reel","Reel / TikTok"],["whatsapp-status","WhatsApp Status"],["whatsapp-broadcast","WhatsApp message"],["facebook-post","Facebook post"],["facebook-stories","Facebook Stories"],["email","Email"],["linkedin","LinkedIn"],["x-thread","X thread"],["carousel","Carousel"],["live-selling","Live selling script"]];
 var TONES=[["warm","Warm"],["bold","Bold"],["playful","Playful"],["professional","Professional"],["conversational","Like a friend"]];
 var ENDPOINT="/.netlify/functions/launch-script", KEY="lwt-script-writer";
 var $=function(id){return document.getElementById(id)};
@@ -160,9 +160,12 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(data()))}catch(e){}}
   FIELDS.forEach(function(f){if(d[f])$(f).value=d[f]});
   ["stage","platform","tone"].forEach(function(n){var el=d[n]&&document.getElementById(n+"-"+d[n]);if(el)el.checked=true});}catch(e){}})();
 // Links from the 30-Day Launch Calendar preselect a stage (?stage=launch-day) and business type (?type=Real estate).
-(function fromLink(){try{var q=new URLSearchParams(location.search),s=q.get("stage"),t=q.get("type");
+(function fromLink(){try{var q=new URLSearchParams(location.search),s=q.get("stage"),t=q.get("type"),pl=q.get("platform");
   var el=s&&document.getElementById("stage-"+s);if(el)el.checked=true;
-  if(t&&!$("offerType").value)$("offerType").value=t.slice(0,80);}catch(e){}})();
+  var pe=pl&&document.getElementById("platform-"+pl);if(pe)pe.checked=true;
+  if(t&&!$("offerType").value)$("offerType").value=t.slice(0,80);
+  if(q.get("audience")&&!$("audience").value)$("audience").value=q.get("audience").slice(0,400);
+  if(q.get("problem")&&!$("problem").value)$("problem").value=q.get("problem").slice(0,600);}catch(e){}})();
 
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function splitText(t){var i=t.search(/\n\s*HOW TO POST IT\s*\n/);return i<0?{script:t,tips:""}:{script:t.slice(0,i),tips:t.slice(i).replace(/^\s*HOW TO POST IT\s*/,"")};}
