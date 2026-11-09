@@ -4,9 +4,10 @@
 // so `new Anthropic()` needs no key in this repo.
 //
 // Optional site env vars:
-//   SCRIPT_WRITER_ACCESS_CODE  if set, requests must send this code (give it to bundle buyers)
+//   ACCESS_SECRET              if set (paywall on), requests need the paid-access cookie (see access.mjs)
 //   SCRIPT_WRITER_MODEL        override the model (default claude-opus-5-5)
 import Anthropic from "@anthropic-ai/sdk";
+import { verifyToken, readCookie } from "../shared/access-token.mjs";
 
 const MODEL = process.env.SCRIPT_WRITER_MODEL || "claude-opus-5-5";
 
@@ -52,7 +53,7 @@ const TONES = {
 
 const LIMITS = { offerName: 120, offerType: 80, audience: 400, problem: 600, transformation: 600, price: 80, bonuses: 400, deadline: 120, extra: 600 };
 
-const SYSTEM = `You write launch content for small business owners who bought a launch-scripts bundle. Each request gives you one business's offer details, the launch stage they are in, and the platform they will post on. Write ONE ready-to-post script for exactly that stage and platform, in the requested tone.
+const SYSTEM = `You write launch content for small business owners who use the Sold-Out Launch Studio (launch scripts and a 30-day launch calendar). Each request gives you one business's offer details, the launch stage they are in, and the platform they will post on. Write ONE ready-to-post script for exactly that stage and platform, in the requested tone.
 
 How to write it:
 - Open with a scroll-stopping hook in the audience's own everyday language. No corporate buzzwords.
@@ -160,9 +161,9 @@ export default async (req) => {
   let raw;
   try { raw = await req.json(); } catch { return json(400, { error: "Invalid request." }); }
 
-  const code = process.env.SCRIPT_WRITER_ACCESS_CODE;
-  if (code && clean(raw.accessCode, 100) !== code) {
-    return json(401, { error: "That access code isn't right. You'll find it in your bundle delivery email." });
+  const secret = process.env.ACCESS_SECRET;
+  if (secret && !(await verifyToken(secret, readCookie(req.headers.get("cookie"))))) {
+    return json(401, { error: "The AI writer is for Sold-Out Launch Studio members. Restore your access to keep going.", access: "/access/" });
   }
 
   let system, prompt;

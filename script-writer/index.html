@@ -69,7 +69,7 @@ footer{text-align:center;color:var(--muted);font-size:.85rem;padding:0 0 40px}
   <div class="wrap">
     <div class="top">
       <a class="brand" href="/launch-scripts/">learnwith<span>tolu</span></a>
-      <span class="toplinks"><a class="back" href="/launch-calendar/">📅 Sold-Out Launch Studio</a> <a class="back" href="/launch-scripts/">← Bundle</a></span>
+      <span class="toplinks"><a class="back" href="/launch-calendar/">📅 Sold-Out Launch Studio</a> <a class="back" href="/launch-scripts/">← About the Studio</a></span>
     </div>
     <h1>AI Launch <em>Script Writer</em></h1>
     <p class="sub">Tell it about your offer, pick your launch stage and where you're posting, and get a script written for <strong>your</strong> business that you can copy and post right away.</p>
@@ -111,8 +111,6 @@ footer{text-align:center;color:var(--muted);font-size:.85rem;padding:0 0 40px}
       <div class="step">4 · Tone</div>
       <div class="chips" id="tones"></div>
 
-      <label for="accessCode">Bundle access code <small>(from your bundle delivery email)</small></label>
-      <input id="accessCode" name="accessCode" maxlength="100" autocomplete="off">
 
       <button class="btn submit" id="go" type="submit">✨ Write my script</button>
       <p class="err" id="err" role="alert"></p>
@@ -141,7 +139,7 @@ var PLATFORMS=[["instagram-caption","Instagram post"],["instagram-stories","Inst
 var TONES=[["warm","Warm"],["bold","Bold"],["playful","Playful"],["professional","Professional"],["conversational","Like a friend"]];
 var ENDPOINT="/.netlify/functions/launch-script", KEY="lwt-script-writer";
 var $=function(id){return document.getElementById(id)};
-var FIELDS=["offerName","offerType","audience","problem","transformation","price","deadline","bonuses","extra","accessCode"];
+var FIELDS=["offerName","offerType","audience","problem","transformation","price","deadline","bonuses","extra"];
 var lastText="", busy=false;
 
 function chips(el,name,list,def){
@@ -196,7 +194,7 @@ function generate(){
   .then(function(res){
     var type=res.headers.get("content-type")||"";
     if(!res.ok){
-      if(type.indexOf("json")>=0)return res.json().then(function(j){throw new Error(j.error||"Something went wrong.")});
+      if(type.indexOf("json")>=0)return res.json().then(function(j){if(res.status===401){location.href="/access/?next="+encodeURIComponent(location.pathname+location.search);}throw new Error(j.error||"Something went wrong.")});
       throw new Error(res.status===404?"The script writer isn't switched on for this site yet.":"Something went wrong. Please try again.");
     }
     var reader=res.body.getReader(), dec=new TextDecoder();

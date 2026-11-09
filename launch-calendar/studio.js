@@ -272,27 +272,26 @@ function dayAI(n, btn) {
   var d = DAYS[n - 1], f = st.fmt[n] || "reel", p = prof(), err = $("aierr-" + n);
   if (/^\[/.test(p.who) || /^\[/.test(p.pain)) { err.innerHTML = 'Fill in <a href="#authority" data-goatab="profile">your Profile</a> first (who it\'s for and the problem you solve).'; return; }
   btn.disabled = true; btn.textContent = "Writing…"; err.textContent = "";
-  var body = {accessCode:accessCode(), offerName:p.thing, offerType:bizName(), audience:p.who, problem:p.pain, transformation:p.want, stage:STAGE_IDS[d.set], platform:FORMATS.filter(function (x) { return x[0] === f; })[0][2], tone:"warm",
+  var body = {offerName:p.thing, offerType:bizName(), audience:p.who, problem:p.pain, transformation:p.want, stage:STAGE_IDS[d.set], platform:FORMATS.filter(function (x) { return x[0] === f; })[0][2], tone:"warm",
     extra:"This is Day " + n + " of a 30-day launch plan: " + d.title + ". Today's post idea: " + d.post + (p.proof && !/^\[/.test(p.proof) ? " Their proof is " + p.proof + " (use a [placeholder] for any specific quote)." : "")};
   stream(body, function (t) { var o = $("out-" + n); if (o) o.innerHTML = rich(t); }).then(function (r) {
     st.ai[n + ":" + f] = r.text; delete ui.tpl[n + ":" + f]; save(); renderWeek(); var o2 = $("day-" + n); if (o2) o2.querySelector(".made").scrollIntoView({block:"start"}); if (r.note) { var e = $("aierr-" + n); if (e) e.textContent = r.note; }
-  }).catch(function (e) { err.textContent = e.message + (e.status === 401 ? " Add your code in Authority Studio → Create." : ""); btn.disabled = false; btn.textContent = "✨ Try again"; });
+  }).catch(function (e) { if (e.status === 401) return toAccess(); err.textContent = e.message; btn.disabled = false; btn.textContent = "✨ Try again"; });
 }
-function accessCode() { var w = read(WRITER_KEY) || {}; return st.code || w.accessCode || ""; }
 function aiWrite() {
   var det = $("aDetails").value.trim();
   $("aErr").textContent = "";
   if (det.length < 20) { $("aErr").textContent = "Add your teaching details first (a few sentences in your own words)."; return; }
   if (!bizRow(st.biz)) { $("aErr").textContent = "Pick your business in the calendar first so the post fits you."; return; }
   var p = {}, raw = prof(); Object.keys(raw).forEach(function (k) { p[k] = /^\[.*\]$/.test(String(raw[k]).trim()) ? "" : raw[k]; });
-  var body = {mode:"authority", accessCode:accessCode(), business:bizName(), thing:p.thing, who:p.who, pain:p.pain, want:p.want, experience:p.experience || "", method:p.method || "",
+  var body = {mode:"authority", business:bizName(), thing:p.thing, who:p.who, pain:p.pain, want:p.want, experience:p.experience || "", method:p.method || "",
     pillar:$("aPillar").value, format:$("aFormat").value, question:$("aQuestion").selectedOptions[0].textContent, details:det,
     proof:chosenProof().map(function (x) { return x.type + ': "' + x.text + '" (' + (x.source || "a customer") + ")"; })};
   $("aAI").disabled = true; $("aStatus").textContent = "Writing your authority content…"; showOut(""); var text = "";
   fetch(ENDPOINT, {method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify(body)}).then(function (res) {
     if (!res.ok) {
       if ((res.headers.get("content-type") || "").indexOf("json") >= 0) return res.json().then(function (j) {
-        if (res.status === 401) askCode();
+        if (res.status === 401) toAccess();
         throw new Error(j.error || "Something went wrong.");
       });
       throw new Error(res.status === 404 ? "The AI writer only works on the live site. Use Quick draft here." : "Something went wrong. Please try again.");
@@ -308,12 +307,7 @@ function aiWrite() {
   }).catch(function (e) { $("aErr").textContent = e.message || "Something went wrong."; })
     .then(function () { $("aAI").disabled = false; $("aStatus").textContent = ""; });
 }
-function askCode() {
-  if ($("codeRow")) return;
-  var d = document.createElement("div"); d.id = "codeRow"; d.className = "grid2"; d.style.marginTop = "8px";
-  d.innerHTML = '<div><label class="f" for="codeIn">Bundle access code</label><input type="text" id="codeIn" maxlength="100"></div><div style="align-self:end"><button class="btn" type="button" id="codeSave">Save code</button></div>';
-  $("aErr").after(d);
-}
+function toAccess() { location.href = "/access/?next=" + encodeURIComponent(location.pathname); }
 function renderProof() {
   $("prList").innerHTML = st.proof.length ? st.proof.map(function (x) {
     return '<div class="proof"><span class="tag">' + esc(x.type) + '</span><div style="flex:1">"' + esc(x.text) + '"<br><span class="muted">' + esc(x.source || "a customer") + "</span> · " + (x.perm ? '<span class="ok">Permission given</span>' : '<span class="no">No permission: not used in posts</span>') + '</div><button class="btn small" type="button" data-delproof="' + x.id + '">Remove</button></div>';
@@ -409,7 +403,6 @@ document.addEventListener("click", function (e) {
     var fm = $("aFormat"); st.saved.push({id:Date.now().toString(36), at:Date.now(), cat:PILLAR_CAT[$("aPillar").value] || "auth", pillar:$("aPillar").value, format:fm.value, formatName:fm.selectedOptions[0].textContent, day:ui.aDay, text:ui.aiText});
     save(); toast("Saved to My content · Weekly balance updated"); return;
   }
-  if (t.id === "codeSave") { st.code = $("codeIn").value.trim(); save(); $("codeRow").remove(); $("aErr").textContent = "Code saved. Press Write it with AI again."; return; }
   if (t.id === "prAdd") {
     var tx = $("prText").value.trim(); $("prErr").textContent = "";
     if (tx.length < 5) { $("prErr").textContent = "Add the exact words or result first."; return; }

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Your access · Sold-Out Launch Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Playfair+Display:ital,wght@1,700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--n9:#07152b;--n8:#0c2142;--n7:#12305a;--g:#d4a849;--g2:#f1d48a;--c:#f5f1e6;--m:#a9b6c9;--ok:#7fd8a6}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+body{font-family:Poppins,system-ui,sans-serif;background:linear-gradient(180deg,var(--n7),var(--n9) 45%);color:var(--c);min-height:100vh;line-height:1.6}
+.wrap{max-width:560px;margin:0 auto;padding:40px 18px 60px}
+.k{font-size:.72rem;font-weight:800;letter-spacing:2px;color:var(--g);text-transform:uppercase}
+h1{font-family:Anton,Impact,sans-serif;font-weight:400;text-transform:uppercase;font-size:clamp(2rem,8vw,2.8rem);line-height:1.05;margin:8px 0 10px}
+h1 em{font-family:"Playfair Display",serif;font-style:italic;text-transform:none;color:var(--g)}
+h2{font-family:Anton,sans-serif;font-weight:400;text-transform:uppercase;font-size:1.25rem;margin-bottom:6px}
+p{color:#dfe6ef}
+.card{background:var(--n8);border:1px solid rgba(212,168,73,.3);border-radius:18px;padding:22px;margin-top:18px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;border:0;cursor:pointer;font:inherit;font-weight:800;font-size:1.02rem;border-radius:999px;padding:15px 20px;background:var(--g);color:var(--n9);text-decoration:none;margin-top:14px}
+.btn.ghost{background:transparent;color:var(--g2);border:1px solid var(--g)}
+.btn:disabled{opacity:.55;cursor:progress}
+label{display:block;font-size:.75rem;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--g2);margin:14px 0 6px}
+label small{text-transform:none;letter-spacing:0;font-weight:500;color:var(--m)}
+input{width:100%;font:inherit;font-size:1rem;color:var(--c);background:var(--n9);border:1px solid rgba(169,182,201,.3);border-radius:10px;padding:11px 12px}
+input:focus{outline:2px solid var(--g);outline-offset:1px;border-color:transparent}
+.msg{margin-top:12px;font-size:.92rem;min-height:1.3em}
+.msg.err{color:#ff9fbf}.msg.ok{color:var(--ok)}
+.muted{color:var(--m);font-size:.86rem}
+.spin{display:inline-block;width:18px;height:18px;border:3px solid rgba(212,168,73,.3);border-top-color:var(--g);border-radius:50%;animation:s 1s linear infinite;vertical-align:-3px;margin-right:8px}
+@keyframes s{to{transform:rotate(360deg)}}
+a{color:var(--g2)}
+footer{text-align:center;color:var(--m);font-size:.82rem;margin-top:30px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <span class="k">learnwithtolu</span>
+  <h1>Sold-Out <em>Launch Studio</em></h1>
+
+  <!-- after Stripe checkout -->
+  <section class="card" id="claim" hidden aria-live="polite">
+    <h2 id="claimTitle"><span class="spin"></span>Unlocking your Studio…</h2>
+    <p id="claimText">Confirming your payment with Stripe. This takes a few seconds.</p>
+    <div id="claimGo" hidden>
+      <a class="btn" id="goStudio" href="/launch-calendar/">📅 Open the Sold-Out Launch Studio</a>
+      <a class="btn ghost" href="/script-writer/">✨ Open the AI Script Writer</a>
+      <p class="muted" style="margin-top:12px">Bookmark this page or the Studio. Access is saved in this browser. On another phone or browser, use "Restore my access" with your receipt.</p>
+    </div>
+  </section>
+
+  <!-- buy -->
+  <section class="card" id="buy">
+    <p id="buyIntro">The Studio and the AI Script Writer are for members. Get instant access, or restore it if you've already paid.</p>
+    <a class="btn" id="buyBtn" href="/launch-scripts/#get-it">Get instant access →</a>
+    <p class="muted" id="buyNote" style="margin-top:10px">Secure checkout by Stripe. You'll come straight back here to open the Studio.</p>
+  </section>
+
+  <!-- restore -->
+  <section class="card" id="restore">
+    <h2>Already paid? Restore my access</h2>
+    <p class="muted">Use this on a new phone or browser. You'll need the email you paid with and the receipt number from your Stripe receipt email.</p>
+    <form id="restoreForm" novalidate>
+      <label for="email">Email you paid with</label>
+      <input type="email" id="email" autocomplete="email" required>
+      <label for="receipt">Receipt number <small>(e.g. 1234-5678, in your receipt email)</small></label>
+      <input type="text" id="receipt" autocomplete="off" required>
+      <button class="btn" type="submit" id="restoreBtn">Restore my access</button>
+      <p class="msg" id="restoreMsg" role="alert"></p>
+    </form>
+  </section>
+
+  <p class="muted" style="text-align:center;margin-top:18px" id="signout" hidden><a href="#" id="signoutLink">Remove access from this browser</a></p>
+  <footer>Questions? learnwithtolu@gmail.com</footer>
+</main>
+<script>
+(function(){
+var API="/.netlify/functions/access", $=function(id){return document.getElementById(id)};
+var q=new URLSearchParams(location.search), next=q.get("next")||"/launch-calendar/";
+if(!/^\/(launch-calendar|script-writer)(\/|$)/.test(next))next="/launch-calendar/";
+$("goStudio").href=next.indexOf("/script-writer")===0?"/launch-calendar/":next;
+
+function post(body){return fetch(API,{method:"POST",headers:{"content-type":"application/json"},credentials:"same-origin",body:JSON.stringify(body)})
+  .then(function(r){return r.json().catch(function(){return{}}).then(function(j){if(!r.ok)throw new Error(j.error||"Something went wrong. Please try again.");return j;});});}
+
+function unlocked(title,text){
+  $("claim").hidden=false;$("buy").hidden=true;$("restore").hidden=true;$("signout").hidden=false;
+  $("claimTitle").textContent=title;$("claimText").textContent=text;$("claimGo").hidden=false;
+}
+
+// Config: checkout link + whether this browser already has access.
+fetch(API,{credentials:"same-origin"}).then(function(r){return r.json()}).then(function(c){
+  if(c.checkoutUrl)$("buyBtn").href=c.checkoutUrl;
+  if(!c.enabled){$("buyIntro").textContent="Access is open while checkout is being set up. Go straight in:";$("buyBtn").textContent="Open the Studio →";$("buyBtn").href=next;$("buyNote").hidden=true;}
+  if(c.member&&c.enabled&&!q.get("session_id"))unlocked("You already have access 🎉","This browser is unlocked. Jump back in:");
+}).catch(function(){});
+
+// Back from Stripe Checkout: ?session_id=cs_...
+var sid=q.get("session_id");
+if(sid){
+  $("claim").hidden=false;$("buy").hidden=true;
+  var tries=0;(function claim(){
+    post({action:"claim",session_id:sid}).then(function(){
+      unlocked("You're in! 🎉","Thank you for your purchase. Your Studio is unlocked in this browser.");
+      history.replaceState(null,"",location.pathname+(q.get("next")?"?next="+encodeURIComponent(next):""));
+      setTimeout(function(){location.href=$("goStudio").href},2500);
+    }).catch(function(e){
+      if(++tries<4&&/couldn't confirm/i.test(e.message)){setTimeout(claim,2500);return;}
+      $("claimTitle").textContent="We couldn't unlock it yet";$("claimText").textContent=e.message;$("buy").hidden=false;
+    });
+  })();
+}
+
+$("restoreForm").addEventListener("submit",function(e){
+  e.preventDefault();var m=$("restoreMsg"),b=$("restoreBtn");m.className="msg";m.textContent="";
+  var email=$("email").value.trim(),receipt=$("receipt").value.trim();
+  if(!email||!receipt){m.className="msg err";m.textContent="Enter your email and receipt number.";return;}
+  b.disabled=true;b.textContent="Checking…";
+  post({action:"restore",email:email,receipt:receipt}).then(function(){
+    unlocked("Access restored 🎉","Welcome back. This browser is unlocked.");setTimeout(function(){location.href=$("goStudio").href},2500);
+  }).catch(function(err){m.className="msg err";m.textContent=err.message;})
+  .then(function(){b.disabled=false;b.textContent="Restore my access";});
+});
+
+$("signoutLink").addEventListener("click",function(e){e.preventDefault();post({action:"logout"}).then(function(){location.href="/access/"});});
+})();
+</script>
+</body>
+</html>
