@@ -99,7 +99,7 @@ function renderBiz() {
 }
 function pickBiz(id) {
   st.biz = id; st.prof = defaults(bizRow(id)); ui.changeBiz = false; save();
-  renderBiz(); renderWeek(); renderProfile();
+  renderBiz(); renderWeek(); renderProfile(); renderLive();
   toast(id.indexOf("custom:") === 0 ? "Added. Fill in your Profile so posts fit your business." : "Posts are now made for " + bizName());
 }
 
@@ -117,6 +117,45 @@ function writerLink(n, platform) {
   var d = DAYS[n - 1], p = prof(), q = "stage=" + STAGE_IDS[d.set] + "&platform=" + platform;
   if (bizRow(st.biz)) q += "&type=" + encodeURIComponent(bizName()) + "&audience=" + encodeURIComponent(p.who) + "&problem=" + encodeURIComponent(p.pain);
   return "/script-writer/?" + q;
+}
+
+/* ---------- live stream selling script (bonus) ---------- */
+var LIVE_P = {
+  tiktok: {name:"TikTok LIVE", ai:"tiktok-live", engage:"Tap the screen a few times if you can hear me, and share this LIVE with one friend who needs it.", buy:"tap the link in my bio or comment [KEYWORD] and I'll send it to you", pin:"Pin a comment: \"How to buy: [link in bio / comment KEYWORD]\".",
+    prep:"Before you go live: test your sound and light, write your pinned comment, and post a video earlier today saying what time you'll be live. TikTok LIVE needs your account to meet TikTok's LIVE requirements."},
+  instagram: {name:"Instagram LIVE", ai:"instagram-live", engage:"Drop a 🔥 in the comments if you can hear me, and tell me where you're watching from.", buy:"DM me the word [KEYWORD] or tap the link in my bio", pin:"Pin a comment: \"How to buy: DM me [KEYWORD] or tap the link in my bio\".",
+    prep:"Before you go live: post a Story with a countdown sticker, test your sound and light, and write your pinned comment. After the LIVE, share the replay so people who missed it can watch."}
+};
+var LIVE_PARTS = [
+  ["0:00–2:00","Opening hook","Grab attention and give people a reason to stay.",
+   "SAY: \"Hi, hi, welcome! If you're {who} and you're tired of {pain}, stay with me for the next 25 minutes, because I'm going to show you how to {want}.\"\nSAY: \"{engage}\"\nDO: Start talking straight away. Don't wait for people to join; the replay and new viewers will catch up."],
+  ["2:00–5:00","Introduction","Say who you are and what this LIVE is about.",
+   "SAY: \"If you're new here, I'm [your name] and I help {who}. [One true line about your experience].\"\nSAY: \"Here's the plan: first I'll teach you [today's topic], then I'll show you something I've made for you, and then I'll answer all your questions.\"\nDO: Greet people by name as they join. Every few minutes say: \"If you just joined, welcome! We're talking about [today's topic].\""],
+  ["5:00–11:00","Teaching","Give real value so people trust you before you sell.",
+   "SAY: \"The biggest mistake I see is [common mistake].\"\nSAY: \"Here's what to do instead: [tip 1]. [tip 2]. [tip 3].\"\nDO: Show it, don't just say it: [demonstrate your {thing} / show a real before-and-after / share your screen].\nASK: \"Type YES if this is helpful.\""],
+  ["11:00–16:00","Showing the offer","Show exactly what they get, what it costs and how to buy.",
+   "SAY: \"Now, I promised to show you something. This is [offer name].\"\nSAY: \"It's for {who} who want to {want}. Here's what you get: [what's included].\"\nSAY: \"The price is [price]. For people on this LIVE only: [LIVE-only bonus or offer, only if it's real].\"\nDO: Hold it close to the camera or show it on screen. {pin}"],
+  ["16:00–22:00","Answering comments","Read questions out loud and answer them; every answer is a mini sales pitch.",
+   "SAY: \"Let me answer your questions.\" Read each comment out loud, then answer.\nPREPARE:\n• \"How much is it?\" → [price and payment options]\n• \"How do I get it?\" → \"{buy}.\"\n• \"Is it for me?\" → \"It's for you if [who it's for]. It's not for you if [who it's not for].\"\n• \"How long does it take?\" → [delivery or start time]\nDO: Every few minutes, recap for new viewers: \"If you just joined: [one-line offer]. To get it, {buy}.\""],
+  ["22:00–25:00","Close with a call to buy","Make one clear ask, then thank everyone.",
+   "SAY: \"Before I go: [offer name] helps you {want}. If you want it, {buy} right now.\"\nSAY: \"[Real deadline or limit, only if it's true].\"\nSAY: \"Thank you so much for being here. If you bought today, check your DMs for [next step].\"\nDO: Stay on a minute or two for last questions, then follow up with everyone who asked but didn't buy."]
+];
+function liveText(k, i) {
+  var P = LIVE_P[k], pr = prof() || {}, pt = LIVE_PARTS[i];
+  var v = {who:pr.who, pain:pr.pain, want:pr.want, thing:pr.thing, engage:P.engage, buy:P.buy, pin:P.pin};
+  var body = pt[3].replace(/\{(\w+)\}/g, function (m, key) { var x = v[key]; return x && !/^\[/.test(x) ? x : "[" + ({who:"who you help", pain:"the problem you solve", want:"the result they get", thing:"product"}[key] || key) + "]"; });
+  return pt[0] + " · " + pt[1].toUpperCase() + "\n" + body;
+}
+function renderLive() {
+  var k = st.live || "tiktok", P = LIVE_P[k];
+  document.querySelectorAll("[data-live]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.live === k); });
+  $("livePrep").textContent = P.prep;
+  $("liveParts").innerHTML = LIVE_PARTS.map(function (pt, i) {
+    return '<div class="part"><div class="part-h"><span><span class="time">' + pt[0] + "</span> · <b>" + (i + 1) + ". " + pt[1] + '</b></span><button class="btn small" type="button" data-livecopy="' + i + '">Copy</button></div><p class="goal">' + pt[2] + '</p><div class="out">' + rich(liveText(k, i).split("\n").slice(1).join("\n")) + "</div></div>";
+  }).join("");
+  var pr = prof(), q = "stage=live-selling&platform=" + P.ai;
+  if (bizRow(st.biz)) q += "&type=" + encodeURIComponent(bizName()) + (pr && !/^\[/.test(pr.who) ? "&audience=" + encodeURIComponent(pr.who) + "&problem=" + encodeURIComponent(pr.pain) : "");
+  $("liveAI").href = "/script-writer/?" + q;
 }
 
 /* ---------- calendar ---------- */
@@ -351,6 +390,9 @@ document.addEventListener("click", function (e) {
   if ((el = t.closest("[data-copyfmt]"))) { var dn = +el.dataset.copyfmt, fk = dn + ":" + (st.fmt[dn] || "reel"); return copyText(st.ai[fk] && !ui.tpl[fk] ? st.ai[fk] : gen(DAYS[dn - 1], st.fmt[dn] || "reel")); }
   if ((el = t.closest("[data-tpl]"))) { ui.tpl[el.dataset.tpl] = !ui.tpl[el.dataset.tpl]; return renderWeek(); }
   if ((el = t.closest("[data-aigen]"))) return dayAI(+el.dataset.aigen, el);
+  if ((el = t.closest("[data-live]"))) { st.live = el.dataset.live; save(); return renderLive(); }
+  if ((el = t.closest("[data-livecopy]"))) return copyText(liveText(st.live || "tiktok", +el.dataset.livecopy));
+  if (t.id === "liveCopyAll") { var k2 = st.live || "tiktok"; return copyText(LIVE_P[k2].name + " SELLING SCRIPT (25 minutes)\n\n" + LIVE_PARTS.map(function (_, i) { return liveText(k2, i); }).join("\n\n")); }
   if ((el = t.closest("[data-mixreset]"))) { st.mix = defaultMix(); save(); return renderBalance(); }
   if ((el = t.closest("[data-afterpillar]"))) { ui.aDay = null; $("aPillar").value = el.dataset.afterpillar; $("aQuestion").selectedIndex = 0; return setATab("create"); }
   if ((el = t.closest("[data-auth]"))) {
@@ -392,7 +434,7 @@ document.addEventListener("input", function (e) {
   if (t.id === "bizSearch") return renderBiz();
   if (t.dataset.note) { st.notes[t.dataset.note] = t.value; save(); return; }
   if (t.dataset.deb) { st.debrief[t.dataset.deb] = t.value; save(); return; }
-  if (t.dataset.prof) { st.prof = st.prof || prof() || defaults(BUSINESS_CUSTOM); st.prof[t.dataset.prof] = t.value; save(); $("profSaved").textContent = "Saved ✓"; clearTimeout(renderProfile.t); renderProfile.t = setTimeout(function () { $("profSaved").textContent = ""; }, 1200); }
+  if (t.dataset.prof) { st.prof = st.prof || prof() || defaults(BUSINESS_CUSTOM); st.prof[t.dataset.prof] = t.value; save(); renderLive(); $("profSaved").textContent = "Saved ✓"; clearTimeout(renderProfile.t); renderProfile.t = setTimeout(function () { $("profSaved").textContent = ""; }, 1200); }
 });
 $("bizOther").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); $("bizOtherGo").click(); } });
 window.addEventListener("hashchange", route);
@@ -401,7 +443,7 @@ window.addEventListener("hashchange", route);
 $("aPillar").innerHTML = Object.keys(PILLARS).map(function (k) { return '<option>' + esc(k) + "</option>"; }).join("");
 $("aFormat").innerHTML = AFORMATS.map(function (f) { return '<option value="' + f[0] + '">' + esc(f[1]) + "</option>"; }).join("");
 $("launch").value = st.launch || "";
-renderBiz(); renderProfile();
+renderBiz(); renderProfile(); renderLive();
 var first = nextTodo(); if (first === null) { ui.week = "after"; renderWeek(); } else goDay(first, false);
 route();
 })();

@@ -23,6 +23,7 @@ const STAGES = {
   "objections": "Objection Handling: answer the 'what if…' questions before they become 'maybe later'",
   "social-proof": "Social Proof: share wins, shoutouts and feedback",
   "urgency": "Sell-Out & Urgency: final countdown and last call for people on the fence",
+  "live-selling": "Live Stream Selling: sell in real time on a live video: hook viewers, teach something useful, show the offer, answer comments live and close with a clear call to buy",
 };
 
 const PLATFORMS = {
@@ -37,7 +38,8 @@ const PLATFORMS = {
   "linkedin": "LinkedIn post (professional but human, line breaks, CTA)",
   "x-thread": "X / Twitter thread (5–8 posts, each under 280 characters)",
   "carousel": "Instagram / Facebook carousel (5–8 slides: a hook cover slide, value slides, a call-to-action slide; text for each slide, then a caption)",
-  "live-selling": "Live-selling script for an Instagram/Facebook/TikTok Live (10–15 minutes of talking points: warm welcome, why you're live, product or offer walk-through, how to buy, answering common questions, repeated calls to action, closing)",
+  "tiktok-live": "TikTok LIVE selling script, 25 minutes in 6 timed parts: 0:00–2:00 Opening hook, 2:00–5:00 Introduction, 5:00–11:00 Teaching, 11:00–16:00 Showing the offer, 16:00–22:00 Answering comments, 22:00–25:00 Close with a call to buy. For each part give the time range, what to say (spoken lines) and what to do on screen; prepare answers to likely comments; re-explain the offer every few minutes for people who just joined. TikTok habits: welcome new joiners by name, ask viewers to share the LIVE, keep a pinned comment with how to buy, keep energy high and sentences short",
+  "instagram-live": "Instagram LIVE selling script, 25 minutes in 6 timed parts: 0:00–2:00 Opening hook, 2:00–5:00 Introduction, 5:00–11:00 Teaching, 11:00–16:00 Showing the offer, 16:00–22:00 Answering comments, 22:00–25:00 Close with a call to buy. For each part give the time range, what to say (spoken lines) and what to do on screen; prepare answers to likely comments; re-explain the offer every few minutes for people who just joined. Instagram habits: announce the LIVE in Stories beforehand, pin a comment with how to buy (link in bio or a DM keyword), greet people by name, save or share the replay afterwards",
 };
 
 const TONES = {
@@ -185,7 +187,7 @@ export default async (req) => {
   const client = new Anthropic();
   const params = {
     model: MODEL,
-    max_tokens: 4000, // one post or script; keeps replies short and fast
+    max_tokens: /-live$/.test(raw.platform || "") ? 8000 : 4000, // a 25-minute live script needs more room than one post
     output_config: { effort: "low" },
     system,
     messages: [{ role: "user", content: prompt }],

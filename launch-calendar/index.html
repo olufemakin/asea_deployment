@@ -132,6 +132,11 @@ input[type=number]{background:var(--n9);border:1px solid rgba(169,182,201,.3);bo
 .ok{color:var(--ok);font-weight:700}
 .alloc{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.9rem;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06)}
 .made-h b{color:var(--g2);font-size:.92rem}
+.part{background:var(--n9);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:12px}
+.part-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.part-h b{font-size:1rem}.part-h .time{font-family:Anton,sans-serif;color:var(--g);font-size:1.05rem;letter-spacing:.5px}
+.part .goal{color:var(--m);font-size:.84rem;margin:2px 0 8px}
+.live{border:1px solid var(--g);margin-top:28px}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--g);color:var(--n9);font-weight:800;padding:10px 18px;border-radius:99px;font-size:.88rem;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:90vw;text-align:center}
 footer{text-align:center;color:var(--m);font-size:.8rem;padding:26px 0 40px;border-top:1px solid var(--line);margin-top:30px}
 @media (max-width:640px){header.top:after{width:120px;height:120px;right:-60px;top:-70px}.grid2{grid-template-columns:1fr}.bal .r{grid-template-columns:120px 1fr 22px}}
@@ -177,6 +182,22 @@ footer{text-align:center;color:var(--m);font-size:.8rem;padding:26px 0 40px;bord
 
     <div class="sticky"><div class="tabs" id="weekTabs" role="toolbar" aria-label="Choose a week"></div></div>
     <div id="weekView"></div>
+
+    <section class="card live" id="liveSec" aria-labelledby="liveTitle">
+      <span class="k">Bonus</span>
+      <h2 class="anton" id="liveTitle" style="font-size:1.6rem">Live Stream Selling Script</h2>
+      <p class="sub">A 25-minute live script in 6 timed parts that works for any business. Fill in the [brackets], go live, and sell in real time.</p>
+      <div class="chips" id="liveTabs" role="toolbar" aria-label="Choose a platform">
+        <button class="chip" type="button" data-live="tiktok">TikTok LIVE</button>
+        <button class="chip" type="button" data-live="instagram">Instagram LIVE</button>
+      </div>
+      <p class="hintbox" id="livePrep"></p>
+      <div id="liveParts"></div>
+      <div class="acts" style="margin-top:14px">
+        <button class="btn solid" type="button" id="liveCopyAll">Copy full script</button>
+        <a class="btn" id="liveAI" href="/script-writer/?stage=live-selling&platform=tiktok-live">✨ Write my live script with AI</a>
+      </div>
+    </section>
   </section>
 
   <!-- ===================== AUTHORITY ===================== -->
