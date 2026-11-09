@@ -159,6 +159,10 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(data()))}catch(e){}}
 (function restore(){try{var d=JSON.parse(localStorage.getItem(KEY)||"null");if(!d)return;
   FIELDS.forEach(function(f){if(d[f])$(f).value=d[f]});
   ["stage","platform","tone"].forEach(function(n){var el=d[n]&&document.getElementById(n+"-"+d[n]);if(el)el.checked=true});}catch(e){}})();
+// Links from the 30-Day Launch Calendar preselect a stage (?stage=launch-day) and business type (?type=Real estate).
+(function fromLink(){try{var q=new URLSearchParams(location.search),s=q.get("stage"),t=q.get("type");
+  var el=s&&document.getElementById("stage-"+s);if(el)el.checked=true;
+  if(t&&!$("offerType").value)$("offerType").value=t.slice(0,80);}catch(e){}})();
 
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function splitText(t){var i=t.search(/\n\s*HOW TO POST IT\s*\n/);return i<0?{script:t,tips:""}:{script:t.slice(0,i),tips:t.slice(i).replace(/^\s*HOW TO POST IT\s*/,"")};}

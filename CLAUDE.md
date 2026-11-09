@@ -119,6 +119,7 @@ Correction-pass rules that must hold:
 | `tests/engine-check.js` | Headless sweep: every profession × allowed type builds a pool and finishes an interview |
 | `launch-scripts/index.html` | Separate learnwithtolu sales page (100+ Launch Scripts Bundle), not part of the interview app; served at `/launch-scripts/` |
 | `script-writer/index.html` + `netlify/functions/launch-script.mjs` | Separate AI Launch Script Writer at `/script-writer/`. The ONE server-side piece in the repo: a Netlify Function calling Claude via Netlify AI Gateway (`@anthropic-ai/sdk`, `package.json`). Env: `SCRIPT_WRITER_ACCESS_CODE` (gate), `SCRIPT_WRITER_MODEL`. The interview app itself stays no-backend/no-LLM |
+| `launch-calendar/index.html` | Separate interactive 30-Day Launch Execution Calendar (navy & gold, `noindex`) for bundle buyers at `/launch-calendar/`: launch date → real dates, today view, tick-offs/notes/debrief saved in localStorage, real estate toggle, links to `/script-writer/?stage=…` |
 | `logo.png` / `logo.svg` | Header logo + fallback; `log.png.jpeg` is the source logo asset (unused) |
 
 Scripts are classic (not modules) and share globals; load order is in `index.html`.
