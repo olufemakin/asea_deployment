@@ -117,6 +117,8 @@ Correction-pass rules that must hold:
 | `tests/regression.mjs` | Playwright browser regression suite (334 checks incl. Prompt 3 journeys 1–6 and the profession library; voice flows mocked) |
 | `tests/spa-server.py` | Local stand-in for Netlify's `/* → /index.html` fallback (deep-link test) |
 | `tests/engine-check.js` | Headless sweep: every profession × allowed type builds a pool and finishes an interview |
+| `launch-scripts/index.html` | Separate learnwithtolu sales page (100+ Launch Scripts Bundle), not part of the interview app; served at `/launch-scripts/` |
+| `script-writer/index.html` + `netlify/functions/launch-script.mjs` | Separate AI Launch Script Writer at `/script-writer/`. The ONE server-side piece in the repo: a Netlify Function calling Claude via Netlify AI Gateway (`@anthropic-ai/sdk`, `package.json`). Env: `SCRIPT_WRITER_ACCESS_CODE` (gate), `SCRIPT_WRITER_MODEL`. The interview app itself stays no-backend/no-LLM |
 | `logo.png` / `logo.svg` | Header logo + fallback; `log.png.jpeg` is the source logo asset (unused) |
 
 Scripts are classic (not modules) and share globals; load order is in `index.html`.

@@ -3,6 +3,11 @@
   publish = "."
   command = ""
 
+# AI Script Writer (/script-writer/) calls this function; Netlify AI Gateway supplies the Claude credentials.
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
 [[headers]]
   for = "/*"
   [headers.values]

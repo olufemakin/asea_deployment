@@ -1,0 +1,8 @@
+{
+  "name": "asea-deployment",
+  "private": true,
+  "description": "Static site; dependencies are only for the Netlify Function in netlify/functions.",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0"
+  }
+}

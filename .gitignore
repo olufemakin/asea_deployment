@@ -2,3 +2,4 @@
 test-output/
 test-results.zip
 interview-iq-deploy.zip
+node_modules/

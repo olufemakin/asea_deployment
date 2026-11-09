@@ -131,3 +131,4 @@ Done:
 
 ## Launch Scripts sales page (2026-11)
 - [x] Standalone sales page at `launch-scripts/index.html` (served at /launch-scripts/); independent of the app. Checkout link + price in its CONFIG block; the 7 reviews are placeholders to replace with real customer reviews
+- [x] AI Launch Script Writer at `/script-writer/`: offer details + launch stage (12) + platform (10) + tone → one tailored script streamed from `netlify/functions/launch-script.mjs` (Claude via Netlify AI Gateway). Never invents proof/deadlines (placeholders instead); optional `SCRIPT_WRITER_ACCESS_CODE`; sales page links to it under the buy button. Tested locally against a mock streaming endpoint (ok / fallback rejected / refusal / rate limit / access code)
