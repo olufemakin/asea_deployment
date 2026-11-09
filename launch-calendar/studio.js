@@ -23,8 +23,16 @@ var PILLARS = {
   "Customer problems":["What question do customers ask you most?","What problem do customers come to you with first?","What does life look like for {who} before they find you?"],
   "Lessons from experience":["What's the biggest lesson your business has taught you?","What would you tell yourself on day one?","Tell a story about a customer that changed how you work."],
   "Practical tutorials":["Walk people through one simple step-by-step process.","What's a quick tip people can use today?","How should customers use or care for {thing}?"],
-  "Behind-the-scenes expertise":["What does your process look like that customers never see?","What quality checks do you do before anything reaches a customer?","What skills or tools does your work need?"]
+  "Behind-the-scenes expertise":["What does your process look like that customers never see?","What quality checks do you do before anything reaches a customer?","What skills or tools does your work need?"],
+  "Service education":["How does buying or booking with you work, step by step?","What's included when someone buys {thing}, and what isn't?","What should customers prepare before working with you?"],
+  "Frequently asked questions":["What's the question you answer most in your DMs?","What do people always ask about price, delivery or timing?","What do first-time customers worry about before they buy?"],
+  "Market observations":["What change are you seeing in your industry right now?","What trend do you think customers should ignore, and why?","What do customers want today that they didn't a year ago?"]
 };
+var CATS = [["auth","Authority & education",30],["story","Personal storytelling",25],["engage","Audience engagement",20],["offer","Offer positioning",15],["sell","Direct selling",10]];
+var SET_CAT = {"Pre-Launch Visibility":"engage","Problem Awareness":"auth","Storytelling":"story","Authority Building":"auth","Offer Positioning":"offer","Community Building":"engage","Waitlist Building":"offer","Anticipation & Hype":"engage","Launch Day":"sell","Objection Handling":"offer","Social Proof":"offer","Sell-Out & Urgency":"sell"};
+var PILLAR_CAT = {"Lessons from experience":"story","Customer problems":"engage","Frequently asked questions":"engage"};
+var AFTER_PILLARS = ["Lessons from experience","Service education","Frequently asked questions","Behind-the-scenes expertise","Market observations","Practical tutorials"];
+var TIPS = {reel:"Film in natural light, put the hook on screen in the first second and keep it under 30 seconds.",carousel:"Put your face or your product on the cover slide and keep each slide to one idea.",story:"Post the frames an hour or two apart and use a sticker so people can reply.",status:"Post the first status in the morning and the others through the day so more people see it."};
 var AFORMATS = [["facebook","Educational Facebook post"],["carousel","Instagram carousel"],["reel","Reel script"],["caption","Instagram caption"],["status","WhatsApp Status series"],["linkedin","LinkedIn post"],["email","Email newsletter"]];
 var AFTER = [
   {h:"Deliver like a pro",items:["Send every buyer a welcome or confirmation message within 24 hours","Tell them exactly what happens next and when","Deliver on time, every time"]},
@@ -39,9 +47,11 @@ function read(k) { try { return JSON.parse(localStorage.getItem(k)) || null; } c
 var st = read(KEY) || {};
 if (!st.v) { var old = read(OLD_KEY) || {}; st = {v:2, days:old.days||{}, notes:old.notes||{}, after:old.after||{}, debrief:old.debrief||{}, launch:old.launch||""}; }
 ["days","notes","after","debrief","fmt"].forEach(function (k) { st[k] = st[k] || {}; });
-st.proof = st.proof || []; st.saved = st.saved || []; st.prof = st.prof || null;
+st.proof = st.proof || []; st.saved = st.saved || []; st.prof = st.prof || null; st.ai = st.ai || {};
+function defaultMix() { var m = {}; CATS.forEach(function (c) { m[c[0]] = c[2]; }); return m; }
+st.mix = st.mix || defaultMix(); st.ppw = st.ppw || 7;
 function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
-var ui = {week:null, open:{}, atab:"create", aDay:null, aiText:""};
+var ui = {week:null, open:{}, atab:"create", aDay:null, aiText:"", tpl:{}};
 
 /* ---------- helpers ---------- */
 function esc(s) { return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
@@ -95,12 +105,14 @@ function pickBiz(id) {
 
 /* ---------- content generators ---------- */
 function gen(d, f) {
-  var p = prof(), h = fill(d.hook, p), a = d.pts.map(function (x) { return fill(x, p); }), c = fill(d.cta, p);
-  if (f === "reel") return "🎬 Shot idea: " + fill(d.shot, p) + "\n\n0–3s · HOOK (say it + put it on screen)\n" + h + "\n\n3–10s\n" + a[0] + "\n\n10–20s\n" + a[1] + " " + a[2] + "\n\nLast 3s · CALL TO ACTION\n" + c + "\n\nCAPTION\n" + h + " " + a[0] + "\n\n" + c;
-  if (f === "carousel") return "Slide 1 (cover): " + h + "\nSlide 2: " + a[0] + "\nSlide 3: " + a[1] + "\nSlide 4: " + a[2] + "\nSlide 5: " + c + "\n\nCAPTION\n" + h + "\n\n" + a[1] + "\n\n" + c;
-  if (f === "story") return "Frame 1: " + h + "\nFrame 2: " + a[0] + "\nFrame 3: " + d.stories + "\nFrame 4: " + c + " (add a link, poll or question sticker)";
-  return fill(d.status, p) + "\n\nLater today, post again:\n• " + a[1] + "\n• " + c;
+  var p = prof(), h = fill(d.hook, p), a = d.pts.map(function (x) { return fill(x, p); }), c = fill(d.cta, p), t = d.title.toUpperCase(), body;
+  if (f === "reel") body = "🎬 Shot idea: " + fill(d.shot, p) + "\n\n0–3s · HOOK (say it + put it on screen)\n" + h + "\n\n3–10s\n" + a[0] + "\n\n10–20s\n" + a[1] + " " + a[2] + "\n\nLast 3s · CALL TO ACTION\n" + c + "\n\nCAPTION\n" + h + " " + a[0] + "\n\n" + c;
+  else if (f === "carousel") body = "Slide 1 · Hook\n" + h + "\n\nSlide 2\n" + a[0] + "\n\nSlide 3\n" + a[1] + "\n\nSlide 4\n" + a[2] + "\n\nSlide 5 · Call to action\n" + c + "\n\nCAPTION\n" + h + "\n\n" + a[1] + "\n\n" + c;
+  else if (f === "story") body = "Frame 1 · Hook\n" + h + "\n\nFrame 2\n" + a[0] + "\n\nFrame 3\n" + d.stories + "\n\nFrame 4 · Call to action\n" + c + " (add a link, poll or question sticker)";
+  else body = "Status 1 (morning)\n" + fill(d.status, p) + "\n\nStatus 2 (afternoon)\n" + a[1] + "\n\nStatus 3 (evening)\n" + c;
+  return t + "\n\n" + body + "\n\nPosting tip: " + TIPS[f];
 }
+function cleanAI(t) { return String(t).replace(/\*\*/g, "").replace(/^#{1,6}\s*/gm, "").replace(/^\s*SCRIPT\s*\n/, ""); }
 function writerLink(n, platform) {
   var d = DAYS[n - 1], p = prof(), q = "stage=" + STAGE_IDS[d.set] + "&platform=" + platform;
   if (bizRow(st.biz)) q += "&type=" + encodeURIComponent(bizName()) + "&audience=" + encodeURIComponent(p.who) + "&problem=" + encodeURIComponent(p.pain);
@@ -117,9 +129,11 @@ function renderTabs() {
 function dayHTML(n) {
   var d = DAYS[n - 1], done = !!st.days[n], open = !!ui.open[n], date = dateFor(n), nx = nextTodo() === n;
   var f = st.fmt[n] || "reel", has = !!bizRow(st.biz), stage = n <= 21 ? "Pre-launch authority" : "Launch authority";
-  var made = has ? '<div class="made"><div class="made-h"><span class="k">Made for your ' + esc(bizName()) + '</span></div>' +
-      '<div class="ftabs">' + FORMATS.map(function (x) { return '<button class="ftab" type="button" data-fmt="' + x[0] + '" data-n="' + n + '" aria-pressed="' + (f === x[0]) + '">' + x[1] + "</button>"; }).join("") + "</div>" +
-      '<div class="out">' + rich(gen(d, f)) + '</div><div class="acts"><button class="btn small" type="button" data-copyfmt="' + n + '">Copy ' + FORMATS.filter(function (x) { return x[0] === f; })[0][1].toLowerCase() + '</button><a class="btn small" href="' + writerLink(n, FORMATS.filter(function (x) { return x[0] === f; })[0][2]) + '">✨ Rewrite with AI</a></div></div>'
+  var key = n + ":" + f, ai = st.ai[key], showAI = ai && !ui.tpl[key], fname = FORMATS.filter(function (x) { return x[0] === f; })[0][1];
+  var made = has ? '<div class="made"><div class="made-h"><b>Today\'s content for ' + esc(bizName()) + '</b>' + (ai ? '<button class="btn small" type="button" data-tpl="' + key + '">' + (showAI ? "Show template version" : "Show AI version") + "</button>" : "") + '</div>' +
+      '<div class="ftabs">' + FORMATS.map(function (x) { return '<button class="ftab" type="button" data-fmt="' + x[0] + '" data-n="' + n + '" aria-pressed="' + (f === x[0]) + '">' + x[1] + (st.ai[n + ":" + x[0]] ? " ✨" : "") + "</button>"; }).join("") + "</div>" +
+      '<div class="out" id="out-' + n + '">' + rich(showAI ? ai : gen(d, f)) + '</div><p class="err" id="aierr-' + n + '"></p>' +
+      '<div class="acts"><button class="btn small solid" type="button" data-copyfmt="' + n + '">Copy ' + fname.toLowerCase() + '</button><button class="btn small" type="button" data-aigen="' + n + '">' + (ai ? "✨ New AI version" : "✨ Fresh version with AI") + "</button></div></div>"
     : '<p class="hintbox">Pick your business above to get today\'s reel script, carousel, story and status post.</p>';
   return '<article class="day' + (done ? " done" : "") + (n === 22 ? " launch" : "") + (nx ? " is-next" : "") + '" id="day-' + n + '">' +
     '<div class="dh"><input type="checkbox" class="tick" data-tick="' + n + '" aria-label="Day ' + n + ' done"' + (done ? " checked" : "") + '>' +
@@ -157,7 +171,7 @@ function afterHTML() {
 }
 function goDay(n, scroll) { ui.week = weekOf(n); ui.open = {}; ui.open[n] = 1; renderWeek(); if (scroll) { var el = $("day-" + n); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); } }
 function tick(n) {
-  if (st.days[n]) delete st.days[n]; else st.days[n] = 1; save();
+  if (st.days[n]) delete st.days[n]; else st.days[n] = Date.now(); save();
   if (st.days[n]) {
     var nx = nextTodo(); toast(nx === null ? "All 30 days done. You launched! 🎉" : "Day " + n + " done ✓ Up next: Day " + nx);
     delete ui.open[n];
@@ -198,6 +212,33 @@ function quickDraft() {
   return q + "\n\n" + det + (proofLine ? "\n\n" + proofLine : "") + "\n\n" + cta;
 }
 function showOut(t) { ui.aiText = t; $("aOut").innerHTML = rich(t); $("aOutWrap").hidden = !t; }
+function stream(body, onText) {
+  var text = "";
+  return fetch(ENDPOINT, {method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify(body)}).then(function (res) {
+    if (!res.ok) {
+      if ((res.headers.get("content-type") || "").indexOf("json") >= 0) return res.json().then(function (j) { var e = new Error(j.error || "Something went wrong."); e.status = res.status; throw e; });
+      throw new Error(res.status === 404 ? "The AI writer only works on the live site." : "Something went wrong. Please try again.");
+    }
+    var r = res.body.getReader(), dec = new TextDecoder();
+    function pump() { return r.read().then(function (c) { if (c.done) return; text += dec.decode(c.value, {stream:true}); var s = text.split("\n\n[[")[0]; if (s.trim()) onText(cleanAI(s)); return pump(); }); }
+    return pump();
+  }).then(function () {
+    var m = text.match(/\n\n\[\[(ERROR|NOTE)\]\] ([^\n]*)$/), note = "";
+    if (m) { text = text.slice(0, m.index); if (m[1] === "ERROR" && !text.trim()) throw new Error(m[2]); note = m[2]; }
+    if (!text.trim()) throw new Error("Nothing came back. Please try again.");
+    return {text:cleanAI(text).trim(), note:note};
+  });
+}
+function dayAI(n, btn) {
+  var d = DAYS[n - 1], f = st.fmt[n] || "reel", p = prof(), err = $("aierr-" + n);
+  if (/^\[/.test(p.who) || /^\[/.test(p.pain)) { err.innerHTML = 'Fill in <a href="#authority" data-goatab="profile">your Profile</a> first (who it\'s for and the problem you solve).'; return; }
+  btn.disabled = true; btn.textContent = "Writing…"; err.textContent = "";
+  var body = {accessCode:accessCode(), offerName:p.thing, offerType:bizName(), audience:p.who, problem:p.pain, transformation:p.want, stage:STAGE_IDS[d.set], platform:FORMATS.filter(function (x) { return x[0] === f; })[0][2], tone:"warm",
+    extra:"This is Day " + n + " of a 30-day launch plan: " + d.title + ". Today's post idea: " + d.post + (p.proof && !/^\[/.test(p.proof) ? " Their proof is " + p.proof + " (use a [placeholder] for any specific quote)." : "")};
+  stream(body, function (t) { var o = $("out-" + n); if (o) o.innerHTML = rich(t); }).then(function (r) {
+    st.ai[n + ":" + f] = r.text; delete ui.tpl[n + ":" + f]; save(); renderWeek(); var o2 = $("day-" + n); if (o2) o2.querySelector(".made").scrollIntoView({block:"start"}); if (r.note) { var e = $("aierr-" + n); if (e) e.textContent = r.note; }
+  }).catch(function (e) { err.textContent = e.message + (e.status === 401 ? " Add your code in Authority Studio → Create." : ""); btn.disabled = false; btn.textContent = "✨ Try again"; });
+}
 function accessCode() { var w = read(WRITER_KEY) || {}; return st.code || w.accessCode || ""; }
 function aiWrite() {
   var det = $("aDetails").value.trim();
@@ -239,17 +280,46 @@ function renderProof() {
     return '<div class="proof"><span class="tag">' + esc(x.type) + '</span><div style="flex:1">"' + esc(x.text) + '"<br><span class="muted">' + esc(x.source || "a customer") + "</span> · " + (x.perm ? '<span class="ok">Permission given</span>' : '<span class="no">No permission: not used in posts</span>') + '</div><button class="btn small" type="button" data-delproof="' + x.id + '">Remove</button></div>';
   }).join("") : '<p class="muted" style="margin-top:12px;font-size:.88rem">No proof yet. Add real testimonials, results and messages as they come in.</p>';
 }
+function weekAgo() { return Date.now() - 7 * 864e5; }
+function actuals() {
+  var c = {}; CATS.forEach(function (x) { c[x[0]] = 0; });
+  for (var n = 1; n <= 30; n++) if (st.days[n] > 1 && st.days[n] >= weekAgo()) c[SET_CAT[DAYS[n - 1].set]]++;
+  st.saved.forEach(function (x) { if (x.at >= weekAgo()) c[x.cat || PILLAR_CAT[x.pillar] || "auth"]++; });
+  return c;
+}
+function rebalance(id, v) {
+  v = Math.max(0, Math.min(100, Math.round(v / 5) * 5));
+  var others = CATS.map(function (c) { return c[0]; }).filter(function (k) { return k !== id; }), rest = 100 - v, sum = 0;
+  others.forEach(function (k) { sum += st.mix[k]; });
+  others.forEach(function (k) { st.mix[k] = sum ? Math.round(st.mix[k] / sum * rest / 5) * 5 : Math.round(rest / others.length / 5) * 5; });
+  st.mix[id] = v;
+  var tot = 0; CATS.forEach(function (c) { tot += st.mix[c[0]]; });
+  if (tot !== 100) { var big = others.slice().sort(function (x, y) { return st.mix[y] - st.mix[x]; })[0]; st.mix[big] = Math.max(0, st.mix[big] + 100 - tot); }
+}
+function renderMixNumbers() {
+  var tot = 0; CATS.forEach(function (c) { tot += st.mix[c[0]]; $("mx-v-" + c[0]).textContent = st.mix[c[0]] + "%"; $("mx-" + c[0]).value = st.mix[c[0]]; });
+  $("mixTotal").textContent = "Total: " + tot + "% · Saved";
+  var act = actuals();
+  $("mixAlloc").innerHTML = CATS.map(function (c) {
+    var per = st.mix[c[0]] / 100 * st.ppw, got = act[c[0]];
+    return '<div class="alloc"><span><b>' + c[1] + ":</b> " + st.mix[c[0]] + "% · " + per.toFixed(1) + ' posts per week on average</span><span class="' + (got >= Math.round(per) && per > 0 ? "ok" : "muted") + '">This week: ' + got + "</span></div>";
+  }).join("");
+  var gaps = CATS.filter(function (c) { return act[c[0]] < Math.round(st.mix[c[0]] / 100 * st.ppw); }).sort(function (x, y) { return (st.mix[y[0]] / 100 * st.ppw - act[y[0]]) - (st.mix[x[0]] / 100 * st.ppw - act[x[0]]); });
+  $("mixTip").innerHTML = gaps.length ? "Next, post more <b>" + gaps[0][1].toLowerCase() + "</b> content to stay on your balance." : "You're on balance this week. 🎉";
+}
 function renderBalance() {
-  var since = Date.now() - 7 * 864e5, counts = {}, max = 1;
-  Object.keys(PILLARS).forEach(function (k) { counts[k] = 0; });
-  st.saved.forEach(function (s) { if (s.at >= since && counts[s.pillar] != null) counts[s.pillar]++; });
+  $("mixSliders").innerHTML = CATS.map(function (c) {
+    return '<div class="mix"><div class="mix-h"><label for="mx-' + c[0] + '">' + c[1] + '</label><b id="mx-v-' + c[0] + '"></b></div><input type="range" min="0" max="100" step="5" id="mx-' + c[0] + '" data-mix="' + c[0] + '"></div>';
+  }).join("");
+  $("ppw").value = st.ppw;
+  renderMixNumbers();
+  $("afterPillars").innerHTML = AFTER_PILLARS.map(function (k) { return '<button class="chip" type="button" data-afterpillar="' + esc(k) + '">' + esc(k) + "</button>"; }).join("");
+  var counts = {}, max = 1; Object.keys(PILLARS).forEach(function (k) { counts[k] = 0; });
+  st.saved.forEach(function (x) { if (x.at >= weekAgo() && counts[x.pillar] != null) counts[x.pillar]++; });
   Object.keys(counts).forEach(function (k) { max = Math.max(max, counts[k]); });
   $("balBars").innerHTML = Object.keys(counts).map(function (k) { return '<div class="r"><span>' + esc(k) + '</span><span class="b"><i style="width:' + (counts[k] / max * 100) + '%"></i></span><b>' + counts[k] + "</b></div>"; }).join("");
-  var zero = Object.keys(counts).filter(function (k) { return !counts[k]; }), total = 0; Object.keys(counts).forEach(function (k) { total += counts[k]; });
-  $("balTip").innerHTML = total === 0 ? "Nothing saved this week yet. Start with <b>Customer problems</b>: it's the easiest to write and shows people you understand them." :
-    zero.length ? "You've saved " + total + " this week. Next, try <b>" + esc(zero[0]) + "</b> to keep your content balanced." : "Great balance: you've covered every pillar this week. 🎉";
-  $("savedList").innerHTML = st.saved.length ? st.saved.slice().reverse().map(function (s) {
-    return '<div class="saved"><div class="meta">' + new Date(s.at).toLocaleDateString() + " · " + esc(s.pillar) + " · " + esc(s.formatName) + (s.day ? " · Day " + s.day : "") + '</div><div class="out">' + rich(s.text) + '</div><div class="acts"><button class="btn small" type="button" data-copysaved="' + s.id + '">Copy</button><button class="btn small" type="button" data-delsaved="' + s.id + '">Delete</button></div></div>';
+  $("savedList").innerHTML = st.saved.length ? st.saved.slice().reverse().map(function (x) {
+    return '<div class="saved"><div class="meta">' + new Date(x.at).toLocaleDateString() + " · " + esc(x.pillar) + " · " + esc(x.formatName) + (x.day ? " · Day " + x.day : "") + '</div><div class="out">' + rich(x.text) + '</div><div class="acts"><button class="btn small" type="button" data-copysaved="' + x.id + '">Copy</button><button class="btn small" type="button" data-delsaved="' + x.id + '">Delete</button></div></div>';
   }).join("") : '<p class="muted" style="font-size:.88rem;margin-top:8px">Saved content appears here.</p>';
 }
 function setATab(t) {
@@ -278,7 +348,11 @@ document.addEventListener("click", function (e) {
   if ((el = t.closest("[data-toggle]"))) { var k = +el.dataset.toggle; if (ui.open[k]) delete ui.open[k]; else ui.open[k] = 1; renderWeek(); return; }
   if ((el = t.closest("[data-mark]"))) return tick(+el.dataset.mark);
   if ((el = t.closest("[data-fmt]"))) { st.fmt[el.dataset.n] = el.dataset.fmt; save(); renderWeek(); return; }
-  if ((el = t.closest("[data-copyfmt]"))) { var dn = +el.dataset.copyfmt; return copyText(gen(DAYS[dn - 1], st.fmt[dn] || "reel")); }
+  if ((el = t.closest("[data-copyfmt]"))) { var dn = +el.dataset.copyfmt, fk = dn + ":" + (st.fmt[dn] || "reel"); return copyText(st.ai[fk] && !ui.tpl[fk] ? st.ai[fk] : gen(DAYS[dn - 1], st.fmt[dn] || "reel")); }
+  if ((el = t.closest("[data-tpl]"))) { ui.tpl[el.dataset.tpl] = !ui.tpl[el.dataset.tpl]; return renderWeek(); }
+  if ((el = t.closest("[data-aigen]"))) return dayAI(+el.dataset.aigen, el);
+  if ((el = t.closest("[data-mixreset]"))) { st.mix = defaultMix(); save(); return renderBalance(); }
+  if ((el = t.closest("[data-afterpillar]"))) { ui.aDay = null; $("aPillar").value = el.dataset.afterpillar; $("aQuestion").selectedIndex = 0; return setATab("create"); }
   if ((el = t.closest("[data-auth]"))) {
     var an = +el.dataset.auth; ui.aDay = an; ui.atab = "create"; $("aPillar").value = DAYS[an - 1].pillar; $("aQuestion").selectedIndex = 0;
     location.hash = "#authority"; window.scrollTo(0, 0); return;
@@ -290,7 +364,7 @@ document.addEventListener("click", function (e) {
   if (t.id === "aAI") return aiWrite();
   if (t.id === "aCopy") return copyText(ui.aiText);
   if (t.id === "aSave") {
-    var fm = $("aFormat"); st.saved.push({id:Date.now().toString(36), at:Date.now(), pillar:$("aPillar").value, format:fm.value, formatName:fm.selectedOptions[0].textContent, day:ui.aDay, text:ui.aiText});
+    var fm = $("aFormat"); st.saved.push({id:Date.now().toString(36), at:Date.now(), cat:PILLAR_CAT[$("aPillar").value] || "auth", pillar:$("aPillar").value, format:fm.value, formatName:fm.selectedOptions[0].textContent, day:ui.aDay, text:ui.aiText});
     save(); toast("Saved to My content · Weekly balance updated"); return;
   }
   if (t.id === "codeSave") { st.code = $("codeIn").value.trim(); save(); $("codeRow").remove(); $("aErr").textContent = "Code saved. Press Write it with AI again."; return; }
@@ -313,6 +387,8 @@ document.addEventListener("change", function (e) {
 });
 document.addEventListener("input", function (e) {
   var t = e.target;
+  if (t.dataset.mix) { rebalance(t.dataset.mix, +t.value); save(); return renderMixNumbers(); }
+  if (t.id === "ppw") { var v = Math.max(1, Math.min(50, +t.value || 7)); st.ppw = v; save(); return renderMixNumbers(); }
   if (t.id === "bizSearch") return renderBiz();
   if (t.dataset.note) { st.notes[t.dataset.note] = t.value; save(); return; }
   if (t.dataset.deb) { st.debrief[t.dataset.deb] = t.value; save(); return; }

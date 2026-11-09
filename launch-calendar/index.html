@@ -126,6 +126,12 @@ label.f small{text-transform:none;letter-spacing:0;font-weight:500;color:var(--m
 .err{color:#ff9fbf;font-size:.88rem;margin-top:8px;min-height:1.2em}
 .saved{background:var(--n9);border-radius:12px;padding:11px;margin-top:8px;font-size:.88rem}
 .saved .meta{color:var(--m);font-size:.75rem;margin-bottom:4px}
+.mix{margin-top:14px}.mix-h{display:flex;justify-content:space-between;font-size:.9rem;font-weight:700}
+input[type=range]{width:100%;accent-color:var(--g);height:28px}
+input[type=number]{background:var(--n9);border:1px solid rgba(169,182,201,.3);border-radius:10px;padding:7px 9px;color-scheme:dark}
+.ok{color:var(--ok);font-weight:700}
+.alloc{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.9rem;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.made-h b{color:var(--g2);font-size:.92rem}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--g);color:var(--n9);font-weight:800;padding:10px 18px;border-radius:99px;font-size:.88rem;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:90vw;text-align:center}
 footer{text-align:center;color:var(--m);font-size:.8rem;padding:26px 0 40px;border-top:1px solid var(--line);margin-top:30px}
 @media (max-width:640px){header.top:after{width:120px;height:120px;right:-60px;top:-70px}.grid2{grid-template-columns:1fr}.bal .r{grid-template-columns:120px 1fr 22px}}
@@ -241,10 +247,20 @@ footer{text-align:center;color:var(--m);font-size:.8rem;padding:26px 0 40px;bord
       </div>
 
       <div data-apanel="balance" hidden>
-        <p class="sub" style="margin-top:12px">Authority content you saved in the last 7 days, by pillar. Aim to cover several pillars each week.</p>
+        <h3 class="anton" style="margin-top:14px;font-size:1.25rem">Your weekly content balance</h3>
+        <p class="sub">Choose the mix you want. Move one slider and the others adjust so the total stays 100%.</p>
+        <div id="mixSliders"></div>
+        <div class="bizsel" style="margin-top:12px"><span class="ok" id="mixTotal"></span><button class="btn small" type="button" data-mixreset="1">Restore default balance</button></div>
+        <h3 class="anton" style="margin-top:22px;color:var(--g2)">Weekly allocation</h3>
+        <div class="inline" style="margin-top:6px"><label for="ppw">I post</label><input type="number" id="ppw" min="1" max="50" style="width:80px"><span>times a week</span></div>
+        <div id="mixAlloc" style="margin-top:8px"></div>
+        <p class="hintbox" id="mixTip"></p>
+        <h3 class="anton" style="margin-top:22px;color:var(--g2)">After your launch</h3>
+        <p class="sub">Keep building authority. Pick a pillar to create your next post.</p>
+        <div class="chips" id="afterPillars"></div>
+        <h3 class="anton" style="margin-top:22px;color:var(--g2)">Authority pillars this week</h3>
         <div class="bal" id="balBars"></div>
-        <p class="hintbox" id="balTip"></p>
-        <h3 class="anton" style="margin-top:18px;color:var(--g2)">My saved content</h3>
+        <h3 class="anton" style="margin-top:22px;color:var(--g2)">My saved content</h3>
         <div id="savedList"></div>
       </div>
     </div>

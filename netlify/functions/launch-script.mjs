@@ -107,7 +107,7 @@ const AUTH_FORMATS = {
   linkedin: "LinkedIn post (professional but human, short lines, takeaway, question to the reader)",
   email: "Email newsletter (subject line, preview text, body, one call to action)",
 };
-const AUTH_PILLARS = ["Beginner education", "Common mistakes", "Myths and misconceptions", "Customer problems", "Lessons from experience", "Practical tutorials", "Behind-the-scenes expertise"];
+const AUTH_PILLARS = ["Beginner education", "Common mistakes", "Myths and misconceptions", "Customer problems", "Lessons from experience", "Practical tutorials", "Behind-the-scenes expertise", "Service education", "Frequently asked questions", "Market observations"];
 const AUTH_LIMITS = { business: 80, thing: 120, who: 160, pain: 200, want: 200, experience: 600, method: 600, question: 240, details: 1600 };
 const AUTH_SYSTEM = `You help small business owners write authority content: posts that teach something useful from their own experience so people trust them before they buy. Each request gives the business profile, a content pillar, a format, the question being answered, and the owner's own teaching details. Write ONE piece of content in that format.
 
