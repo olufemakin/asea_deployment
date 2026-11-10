@@ -144,3 +144,4 @@ Done:
 - [x] 120 interactive launch scripts in the Studio (#scripts): 12 stages × 10, filled for the business, search, stage/used/saved filters, copy, mark used, save, AI rewrite; day cards link to their stage; sales page says 120
 - [x] Stripe Payment Link wired into the sales page and /access/ buy buttons
 - [x] Launch Studio as its own Netlify project: LAUNCH_SITE=1 edge redirect / → /launch-scripts/; setup steps in docs/PAYMENTS.md
+- [x] Stan Store option: STORE_URL drives all buy buttons; ACCESS_CODES (member codes in the Stan delivery email) unlock /access/; Stripe kept as option B (docs/PAYMENTS.md)

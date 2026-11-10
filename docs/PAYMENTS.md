@@ -1,4 +1,30 @@
-# Paid access for the Sold-Out Launch Studio (Stripe)
+# Paid access for the Sold-Out Launch Studio
+
+Two ways to sell; both unlock the same HttpOnly access cookie:
+- **Stan Store (or any store) + member access code.** Simplest. Purchases can't be checked automatically, so buyers
+  get a code in their purchase email and enter it once on `/access/`.
+- **Stripe Payment Link.** Purchases are checked with Stripe automatically (details below).
+
+## Stan Store setup
+1. In Stan Store, create a **Digital Product** "Sold-Out Launch Studio" with your price.
+2. In the product's delivery / confirmation email, give buyers:
+   - the Studio link: `https://<your-launch-project>.netlify.app/access/`
+   - the member code, e.g. `LAUNCH-2026-GOLD` (8+ characters; make up your own).
+3. In Netlify (the launch project), set:
+
+   | Variable | Value |
+   |---|---|
+   | `LAUNCH_SITE` | `1` |
+   | `STORE_URL` | your Stan Store product link (all buy buttons go here) |
+   | `ACCESS_CODES` | your code, e.g. `LAUNCH-2026-GOLD` (several codes: comma-separated) |
+   | `ACCESS_SECRET` | a long random string; setting it switches the paywall on |
+
+4. Redeploy. Test: open `/launch-calendar/` in a private window, you should land on `/access/`; enter the code.
+
+Codes can be shared. To stop a leaked code, add a new one to `ACCESS_CODES`, update the Stan delivery email, then remove
+the old one. Browsers already unlocked stay unlocked until `ACCESS_SECRET` changes.
+
+# Stripe (alternative)
 
 The Studio (`/launch-calendar/`) and the AI Script Writer (`/script-writer/`) are for paying customers.
 Payment is a **Stripe Payment Link**. No accounts and no database: a paid checkout gives the buyer's browser a

@@ -448,15 +448,16 @@ footer a{text-decoration:none}
 <script>
 /* ===== EDIT ME ===== */
 var CONFIG = {
-  checkoutUrl: "https://buy.stripe.com/3cI9AVeBe2hz58p5bx18c04",   // Stripe Payment Link. If empty, the link comes from STRIPE_CHECKOUT_URL in Netlify.
+  checkoutUrl: "https://buy.stripe.com/3cI9AVeBe2hz58p5bx18c04",   // Fallback checkout link. STORE_URL / STRIPE_CHECKOUT_URL in Netlify override it.
   price: "",         // e.g. "₦15,000" — leave empty to hide the price block
   oldPrice: ""       // e.g. "₦30,000" — optional strike-through price
 };
 (function(){
   var links = document.querySelectorAll(".js-checkout");
   function useCheckout(url){ links.forEach(function(a){ a.href = url; a.rel = "noopener"; }); }
+  // The checkout set in Netlify (STORE_URL, e.g. Stan Store, or STRIPE_CHECKOUT_URL) wins; CONFIG.checkoutUrl is the fallback.
   if (CONFIG.checkoutUrl) useCheckout(CONFIG.checkoutUrl);
-  else fetch("/.netlify/functions/access").then(function(r){ return r.json(); }).then(function(c){ if (c.checkoutUrl) useCheckout(c.checkoutUrl); }).catch(function(){});
+  fetch("/.netlify/functions/access").then(function(r){ return r.json(); }).then(function(c){ if (c.checkoutUrl) useCheckout(c.checkoutUrl); }).catch(function(){});
   if (CONFIG.price) {
     document.getElementById("price").hidden = false;
     document.getElementById("price-now").textContent = CONFIG.price;

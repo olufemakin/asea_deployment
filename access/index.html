@@ -48,7 +48,7 @@ footer{text-align:center;color:var(--m);font-size:.82rem;margin-top:30px}
     <div id="claimGo" hidden>
       <a class="btn" id="goStudio" href="/launch-calendar/">📅 Open the Sold-Out Launch Studio</a>
       <a class="btn ghost" href="/script-writer/">✨ Open the AI Script Writer</a>
-      <p class="muted" style="margin-top:12px">Bookmark this page or the Studio. Access is saved in this browser. On another phone or browser, use "Restore my access" with your receipt.</p>
+      <p class="muted" style="margin-top:12px">Bookmark this page or the Studio. Access is saved in this browser. On another phone or browser, enter your access code again (or restore with your receipt).</p>
     </div>
   </section>
 
@@ -57,6 +57,18 @@ footer{text-align:center;color:var(--m);font-size:.82rem;margin-top:30px}
     <p id="buyIntro">The Studio and the AI Script Writer are for members. Get instant access, or restore it if you've already paid.</p>
     <a class="btn" id="buyBtn" href="https://buy.stripe.com/3cI9AVeBe2hz58p5bx18c04">Get instant access →</a>
     <p class="muted" id="buyNote" style="margin-top:10px">Secure checkout by Stripe. You'll come straight back here to open the Studio.</p>
+  </section>
+
+  <!-- member code (e.g. from Stan Store) -->
+  <section class="card" id="codeCard" hidden>
+    <h2>Have a member access code?</h2>
+    <p class="muted">You'll find it in your purchase confirmation email.</p>
+    <form id="codeForm" novalidate>
+      <label for="code">Access code</label>
+      <input type="text" id="code" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+      <button class="btn" type="submit" id="codeBtn">Unlock the Studio</button>
+      <p class="msg" id="codeMsg" role="alert"></p>
+    </form>
   </section>
 
   <!-- restore -->
@@ -94,6 +106,9 @@ function unlocked(title,text){
 // Config: checkout link + whether this browser already has access.
 fetch(API,{credentials:"same-origin"}).then(function(r){return r.json()}).then(function(c){
   if(c.checkoutUrl)$("buyBtn").href=c.checkoutUrl;
+  if(c.codes)$("codeCard").hidden=false;
+  if(c.enabled&&!c.stripe)$("restore").hidden=true;
+  if(!/stripe\.com/.test($("buyBtn").href))$("buyNote").textContent="Secure checkout. After paying, use the access code from your purchase email to unlock the Studio.";
   if(!c.enabled){$("buyIntro").textContent="Access is open while checkout is being set up. Go straight in:";$("buyBtn").textContent="Open the Studio →";$("buyBtn").href=next;$("buyNote").hidden=true;}
   if(c.member&&c.enabled&&!q.get("session_id"))unlocked("You already have access 🎉","This browser is unlocked. Jump back in:");
 }).catch(function(){});
@@ -123,6 +138,14 @@ $("restoreForm").addEventListener("submit",function(e){
     unlocked("Access restored 🎉","Welcome back. This browser is unlocked.");setTimeout(function(){location.href=$("goStudio").href},2500);
   }).catch(function(err){m.className="msg err";m.textContent=err.message;})
   .then(function(){b.disabled=false;b.textContent="Restore my access";});
+});
+
+$("codeForm").addEventListener("submit",function(e){
+  e.preventDefault();var m=$("codeMsg"),b=$("codeBtn"),v=$("code").value.trim();m.className="msg";m.textContent="";
+  if(!v){m.className="msg err";m.textContent="Enter your access code.";return;}
+  b.disabled=true;b.textContent="Checking…";
+  post({action:"code",code:v}).then(function(){unlocked("You're in! 🎉","Your Studio is unlocked in this browser.");setTimeout(function(){location.href=$("goStudio").href},2500);})
+  .catch(function(err){m.className="msg err";m.textContent=err.message;}).then(function(){b.disabled=false;b.textContent="Unlock the Studio";});
 });
 
 $("signoutLink").addEventListener("click",function(e){e.preventDefault();post({action:"logout"}).then(function(){location.href="/access/"});});
