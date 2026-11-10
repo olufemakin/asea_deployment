@@ -12,18 +12,18 @@ import { verifyToken, readCookie } from "../shared/access-token.mjs";
 const MODEL = process.env.SCRIPT_WRITER_MODEL || "claude-opus-5-5";
 
 const STAGES = {
-  "pre-launch-visibility": "Pre-Launch Visibility: get seen and remembered before the offer is mentioned",
-  "problem-awareness": "Problem Awareness: name the audience's struggle so clearly they say 'that's me'",
-  "storytelling": "Storytelling: the why, the journey, the lessons, to build connection",
-  "authority": "Authority Building: show expertise without bragging",
-  "offer-positioning": "Offer Positioning: introduce what's coming and the problem it solves, before the price",
-  "community": "Community Building: make followers feel part of the launch",
-  "waitlist": "Waitlist Building: get interested people onto the waitlist",
-  "anticipation": "Anticipation & Hype: countdowns, sneak peeks, behind-the-scenes",
-  "launch-day": "Launch Day: open the cart with clarity, confidence and a strong call to action",
-  "objections": "Objection Handling: answer the 'what if…' questions before they become 'maybe later'",
-  "social-proof": "Social Proof: share wins, shoutouts and feedback",
-  "urgency": "Sell-Out & Urgency: final countdown and last call for people on the fence",
+  "pre-launch-visibility": "Warm-Up & Visibility (pre-launch visibility): get seen and remembered before the offer is mentioned",
+  "problem-awareness": "Stir the Problem (problem awareness): name the audience's struggle so clearly they say 'that's me'",
+  "storytelling": "Share Your Story (storytelling): the why, the journey, the lessons, to build connection",
+  "authority": "Prove Your Expertise (authority building): show expertise without bragging",
+  "offer-positioning": "Position Your Offer (offer positioning): introduce what's coming and the problem it solves, before the price",
+  "community": "Gather Your People (community building): make followers feel part of the launch",
+  "waitlist": "Fill Your Waitlist (waitlist building): get interested people onto the waitlist",
+  "anticipation": "Build the Hype (anticipation & hype): countdowns, sneak peeks, behind-the-scenes",
+  "launch-day": "Open the Doors (launch day): open the cart with clarity, confidence and a strong call to action",
+  "objections": "Answer the Doubts (objection handling): answer the 'what if…' questions before they become 'maybe later'",
+  "social-proof": "Show the Proof (social proof): share wins, shoutouts and feedback",
+  "urgency": "Last Call (sell-out & urgency): final countdown and last call for people on the fence",
   "live-selling": "Live Stream Selling: sell in real time on a live video: hook viewers, teach something useful, show the offer, answer comments live and close with a clear call to buy",
 };
 

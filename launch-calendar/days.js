@@ -1,7 +1,7 @@
 // Day content for Sold-Out Launch Studio. {placeholders} are filled from the chosen business (businesses.js).
 var DAYS = [
 {
-"set": "Pre-Launch Visibility",
+"set": "Warm-Up & Visibility",
 "title": "Announce that something is coming",
 "post": "Tell your audience you're working on something new for them. No details yet, just the who and the why.",
 "stories": "Poll: \"Would you want this?\" Status: a blurred sneak peek.",
@@ -19,7 +19,7 @@ var DAYS = [
 "re": "\"Something new is coming for first-time buyers in [area].\""
 },
 {
-"set": "Pre-Launch Visibility",
+"set": "Warm-Up & Visibility",
 "title": "Get your circle talking",
 "post": "Post a 'meet me / what I do' intro for new followers.",
 "stories": "Ask friends & family to reshare. Status: \"Share this with one person who needs it.\"",
@@ -37,7 +37,7 @@ var DAYS = [
 "re": "Ask past clients and colleagues to reshare your intro."
 },
 {
-"set": "Storytelling",
+"set": "Share Your Story",
 "title": "Share your 'why'",
 "post": "Tell the story of why you started this business and who you do it for.",
 "stories": "A throwback photo with one line about the moment you decided.",
@@ -55,7 +55,7 @@ var DAYS = [
 "re": "Why you became an agent: the family you helped get their first keys."
 },
 {
-"set": "Problem Awareness",
+"set": "Stir the Problem",
 "title": "Name the problem",
 "post": "Describe the struggle your audience faces daily, in their own words.",
 "stories": "Question box: \"What's your biggest struggle with ___?\"",
@@ -73,7 +73,7 @@ var DAYS = [
 "re": "The stress of rent hikes, fake listings and agents who disappear."
 },
 {
-"set": "Problem Awareness",
+"set": "Stir the Problem",
 "title": "Make them feel seen",
 "post": "Post 'the real reason you're still stuck isn't what you think.'",
 "stories": "Quiz sticker: myth vs truth about the problem.",
@@ -91,7 +91,7 @@ var DAYS = [
 "re": "\"The real reason you haven't bought yet isn't money. It's not knowing the process.\""
 },
 {
-"set": "Authority Building",
+"set": "Prove Your Expertise",
 "title": "Show you know your stuff",
 "post": "Teach one quick, useful tip your audience can use today.",
 "stories": "3-frame mini lesson. Status: the tip as one bold line.",
@@ -109,7 +109,7 @@ var DAYS = [
 "re": "3 checks to do before paying for any property or land."
 },
 {
-"set": "Community Building",
+"set": "Gather Your People",
 "title": "Open your community",
 "post": "Invite people into a free WhatsApp group / broadcast / Close Friends list for launch updates.",
 "stories": "Status with the join link: \"Insiders hear it first.\"",
@@ -127,7 +127,7 @@ var DAYS = [
 "re": "\"Join my free property alerts group for early access to new listings.\""
 },
 {
-"set": "Storytelling",
+"set": "Share Your Story",
 "title": "Share a lesson the hard way",
 "post": "Post 'my journey, my mistakes, and what I learned.'",
 "stories": "Behind-the-scenes of you working on the offer.",
@@ -145,7 +145,7 @@ var DAYS = [
 "re": "A deal that nearly fell through, and what it taught you about due diligence."
 },
 {
-"set": "Authority Building",
+"set": "Prove Your Expertise",
 "title": "Prove it with a result",
 "post": "Share a real result, before/after, or case study from your work.",
 "stories": "Screenshot of real feedback (with permission).",
@@ -163,7 +163,7 @@ var DAYS = [
 "re": "A real client you helped close, shared with their permission."
 },
 {
-"set": "Waitlist Building",
+"set": "Fill Your Waitlist",
 "title": "Open the waitlist",
 "post": "Announce the waitlist and what waitlisters get (early access, a perk).",
 "stories": "Link sticker to the waitlist. Status: \"Reply WAITLIST and I'll add you.\"",
@@ -181,7 +181,7 @@ var DAYS = [
 "re": "\"Join the list to get first viewing slots before we go public.\""
 },
 {
-"set": "Offer Positioning",
+"set": "Position Your Offer",
 "title": "Introduce what's coming",
 "post": "Explain what the offer is and the problem it solves. No price yet.",
 "stories": "\"What's inside\" teaser frames.",
@@ -199,7 +199,7 @@ var DAYS = [
 "re": "Introduce the property, estate or service: location, type, who it's for."
 },
 {
-"set": "Problem Awareness",
+"set": "Stir the Problem",
 "title": "Hit the pain point hard",
 "post": "Post a problem story with a clear emotional trigger.",
 "stories": "Poll: \"Have you ever ___?\"",
@@ -217,7 +217,7 @@ var DAYS = [
 "re": "\"Paid a deposit and the agent vanished?\" Then your verification process."
 },
 {
-"set": "Community Building",
+"set": "Gather Your People",
 "title": "Spark conversation",
 "post": "Ask a question post that gets people talking.",
 "stories": "Daily check-in in your group or Close Friends.",
@@ -235,7 +235,7 @@ var DAYS = [
 "re": "\"Buy or keep renting? Tell me why\" in your property group."
 },
 {
-"set": "Waitlist Building",
+"set": "Fill Your Waitlist",
 "title": "Waitlist perks & urgency",
 "post": "Share exclusive perks for people on the waitlist.",
 "stories": "Countdown sticker: waitlist closes soon.",
@@ -253,7 +253,7 @@ var DAYS = [
 "re": "Waitlist gets early viewing dates or a reservation window."
 },
 {
-"set": "Offer Positioning",
+"set": "Position Your Offer",
 "title": "Reveal the offer",
 "post": "Full reveal: price, what's included, bonuses, and who it's for.",
 "stories": "Swipe-through of everything they get.",
@@ -271,7 +271,7 @@ var DAYS = [
 "re": "Reveal: price or payment plan, features, documents, inspection dates."
 },
 {
-"set": "Social Proof",
+"set": "Show the Proof",
 "title": "Let others speak",
 "post": "Share testimonials or real feedback (only real ones).",
 "stories": "Repost customer stories and DMs (with permission).",
@@ -289,7 +289,7 @@ var DAYS = [
 "re": "Real buyer or tenant feedback, shared with their permission."
 },
 {
-"set": "Anticipation & Hype",
+"set": "Build the Hype",
 "title": "Behind the scenes",
 "post": "Show the making-of: packing, filming, preparing.",
 "stories": "A day-in-the-life of launch prep.",
@@ -307,7 +307,7 @@ var DAYS = [
 "re": "Site visit or inspection prep video."
 },
 {
-"set": "Objection Handling",
+"set": "Answer the Doubts",
 "title": "\"What if…\" answers",
 "post": "Answer the top 3 objections you keep hearing.",
 "stories": "Question box: \"What's stopping you?\"",
@@ -325,7 +325,7 @@ var DAYS = [
 "re": "\"What if the documents aren't genuine?\" Explain your verification."
 },
 {
-"set": "Waitlist Building",
+"set": "Fill Your Waitlist",
 "title": "Last call for the waitlist",
 "post": "Remind people the waitlist gets in first.",
 "stories": "Status: \"Last chance to get on the list.\"",
@@ -343,7 +343,7 @@ var DAYS = [
 "re": "Final call for early viewing slots."
 },
 {
-"set": "Anticipation & Hype",
+"set": "Build the Hype",
 "title": "The countdown begins",
 "post": "Post '2 days to go' and build the hype.",
 "stories": "Countdown sticker plus reminder.",
@@ -361,7 +361,7 @@ var DAYS = [
 "re": "\"2 days to go: inspections open Saturday.\""
 },
 {
-"set": "Anticipation & Hype",
+"set": "Build the Hype",
 "title": "Tomorrow is the day",
 "post": "Post 'doors open tomorrow' with what to expect.",
 "stories": "\"Turn on notifications\" frame. Status: \"Tomorrow!\"",
@@ -379,7 +379,7 @@ var DAYS = [
 "re": "Tell the waitlist exactly when booking opens."
 },
 {
-"set": "Launch Day",
+"set": "Open the Doors",
 "title": "LAUNCH DAY: doors open",
 "post": "Open cart with a strong call to action. Post at your best time.",
 "stories": "Go heavy: 5–8 frames through the day. Status every few hours.",
@@ -397,7 +397,7 @@ var DAYS = [
 "re": "Bookings open: link, contact, inspection schedule."
 },
 {
-"set": "Social Proof",
+"set": "Show the Proof",
 "title": "Celebrate early buyers",
 "post": "Thank early buyers and share first reactions (with permission).",
 "stories": "Repost buyer shoutouts and unboxings.",
@@ -415,7 +415,7 @@ var DAYS = [
 "re": "Celebrate first reservations or keys handed over (with permission)."
 },
 {
-"set": "Objection Handling",
+"set": "Answer the Doubts",
 "title": "Clear the doubts",
 "post": "Mid-cart objection post: price, time, 'is it for me?'",
 "stories": "FAQ frames, one question per frame.",
@@ -433,7 +433,7 @@ var DAYS = [
 "re": "Payment plan, location and title questions answered."
 },
 {
-"set": "Social Proof",
+"set": "Show the Proof",
 "title": "Proof keeps selling",
 "post": "Share a strong testimonial or early win.",
 "stories": "Screenshot carousel of real feedback.",
@@ -451,7 +451,7 @@ var DAYS = [
 "re": "A buyer's walkthrough or a happy-client video."
 },
 {
-"set": "Offer Positioning",
+"set": "Position Your Offer",
 "title": "Spotlight one strong point",
 "post": "Zoom in on the one feature or bonus people love most.",
 "stories": "Bonus stack reminder.",
@@ -469,7 +469,7 @@ var DAYS = [
 "re": "Spotlight: road access, security, amenities, or the payment plan."
 },
 {
-"set": "Objection Handling",
+"set": "Answer the Doubts",
 "title": "\"This is NOT for you if…\"",
 "post": "Post who it's not for, so the right people feel sure.",
 "stories": "Poll: \"Is this for you?\"",
@@ -487,7 +487,7 @@ var DAYS = [
 "re": "\"Not for you if you want a quick flip with no paperwork.\""
 },
 {
-"set": "Social Proof",
+"set": "Show the Proof",
 "title": "Before and after",
 "post": "Show a transformation or case-study highlight.",
 "stories": "Before/after frames.",
@@ -505,7 +505,7 @@ var DAYS = [
 "re": "Land before vs. built, or an empty unit vs. a happy tenant."
 },
 {
-"set": "Sell-Out & Urgency",
+"set": "Last Call",
 "title": "Final 24 hours",
 "post": "\"Cart closes tomorrow\" post with clear urgency (only the real deadline).",
 "stories": "Countdown sticker. Statuses every few hours.",
@@ -523,7 +523,7 @@ var DAYS = [
 "re": "\"Offer price or plan ends tomorrow at [time].\""
 },
 {
-"set": "Sell-Out & Urgency",
+"set": "Last Call",
 "title": "Cart closes",
 "post": "Last call, then a thank-you post when doors close.",
 "stories": "Final countdown, then \"Doors closed, thank you!\"",

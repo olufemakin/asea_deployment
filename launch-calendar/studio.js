@@ -6,13 +6,13 @@ var $ = function (id) { return document.getElementById(id); };
 var KEY = "lwt-studio-v2", OLD_KEY = "lwt-launch-calendar-v1", WRITER_KEY = "lwt-script-writer";
 var ENDPOINT = "/.netlify/functions/launch-script";
 
-var STAGE_IDS = {"Pre-Launch Visibility":"pre-launch-visibility","Problem Awareness":"problem-awareness","Storytelling":"storytelling","Authority Building":"authority","Offer Positioning":"offer-positioning","Community Building":"community","Waitlist Building":"waitlist","Anticipation & Hype":"anticipation","Launch Day":"launch-day","Objection Handling":"objections","Social Proof":"social-proof","Sell-Out & Urgency":"urgency"};
+var STAGE_IDS = {"Warm-Up & Visibility":"pre-launch-visibility","Stir the Problem":"problem-awareness","Share Your Story":"storytelling","Prove Your Expertise":"authority","Position Your Offer":"offer-positioning","Gather Your People":"community","Fill Your Waitlist":"waitlist","Build the Hype":"anticipation","Open the Doors":"launch-day","Answer the Doubts":"objections","Show the Proof":"social-proof","Last Call":"urgency"};
 var WEEKS = [
-  {id:"w1",tab:"Week 1",name:"Week 1 · Get Visible",from:1,to:7,sub:"Pre-Launch Visibility & Problem Awareness",why:"Before anyone buys, they must know the problem exists, and that you exist."},
-  {id:"w2",tab:"Week 2",name:"Week 2 · Build Trust & Demand",from:8,to:14,sub:"Storytelling, Authority, Waitlist & Offer Positioning",why:"People buy from people they trust. This week they get to know you and want what's coming."},
-  {id:"w3",tab:"Week 3",name:"Week 3 · Reveal & Build Hype",from:15,to:21,sub:"Offer Reveal, Social Proof, Objections & Anticipation",why:"Show them the offer, prove it works and let them count down with you."},
-  {id:"w4",tab:"Week 4",name:"Week 4 · Launch & Sell",from:22,to:28,sub:"Launch Day, Social Proof & Objection Handling",why:"Doors are open. Show up every day, answer every question and celebrate every buyer."},
-  {id:"w5",tab:"Days 29–30",name:"Days 29–30 · Sell Out",from:29,to:30,sub:"Sell-Out & Urgency",why:"Don't go quiet at the finish line. The last call matters."},
+  {id:"w1",tab:"Week 1",name:"Week 1 · Get Visible",from:1,to:7,sub:"Warm-Up & Visibility · Stir the Problem",why:"Before anyone buys, they must know the problem exists, and that you exist."},
+  {id:"w2",tab:"Week 2",name:"Week 2 · Build Trust & Demand",from:8,to:14,sub:"Share Your Story · Prove Your Expertise · Fill Your Waitlist · Position Your Offer",why:"People buy from people they trust. This week they get to know you and want what's coming."},
+  {id:"w3",tab:"Week 3",name:"Week 3 · Reveal & Build Hype",from:15,to:21,sub:"Position Your Offer · Show the Proof · Answer the Doubts · Build the Hype",why:"Show them the offer, prove it works and let them count down with you."},
+  {id:"w4",tab:"Week 4",name:"Week 4 · Launch & Sell",from:22,to:28,sub:"Open the Doors · Show the Proof · Answer the Doubts",why:"Doors are open. Show up every day, answer every question and celebrate every buyer."},
+  {id:"w5",tab:"Days 29–30",name:"Days 29–30 · Sell Out",from:29,to:30,sub:"Last Call",why:"Don't go quiet at the finish line. The last call matters."},
   {id:"after",tab:"After launch",name:"After launch",sub:"Deliver, collect real reviews, debrief",why:"How you finish this launch sets up the next one."}
 ];
 var FORMATS = [["reel","Reel script","reel"],["carousel","Carousel","carousel"],["story","Story","instagram-stories"],["status","Status post","whatsapp-status"]];
@@ -29,7 +29,7 @@ var PILLARS = {
   "Market observations":["What change are you seeing in your industry right now?","What trend do you think customers should ignore, and why?","What do customers want today that they didn't a year ago?"]
 };
 var CATS = [["auth","Authority & education",30],["story","Personal storytelling",25],["engage","Audience engagement",20],["offer","Offer positioning",15],["sell","Direct selling",10]];
-var SET_CAT = {"Pre-Launch Visibility":"engage","Problem Awareness":"auth","Storytelling":"story","Authority Building":"auth","Offer Positioning":"offer","Community Building":"engage","Waitlist Building":"offer","Anticipation & Hype":"engage","Launch Day":"sell","Objection Handling":"offer","Social Proof":"offer","Sell-Out & Urgency":"sell"};
+var SET_CAT = {"Warm-Up & Visibility":"engage","Stir the Problem":"auth","Share Your Story":"story","Prove Your Expertise":"auth","Position Your Offer":"offer","Gather Your People":"engage","Fill Your Waitlist":"offer","Build the Hype":"engage","Open the Doors":"sell","Answer the Doubts":"offer","Show the Proof":"offer","Last Call":"sell"};
 var PILLAR_CAT = {"Lessons from experience":"story","Customer problems":"engage","Frequently asked questions":"engage"};
 var AFTER_PILLARS = ["Lessons from experience","Service education","Frequently asked questions","Behind-the-scenes expertise","Market observations","Practical tutorials"];
 var TIPS = {reel:"Film in natural light, put the hook on screen in the first second and keep it under 30 seconds.",carousel:"Put your face or your product on the cover slide and keep each slide to one idea.",story:"Post the frames an hour or two apart and use a sticker so people can reply.",status:"Post the first status in the morning and the others through the day so more people see it."};
