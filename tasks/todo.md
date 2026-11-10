@@ -145,3 +145,4 @@ Done:
 - [x] Stripe Payment Link wired into the sales page and /access/ buy buttons
 - [x] Launch Studio as its own Netlify project: LAUNCH_SITE=1 edge redirect / → /launch-scripts/; setup steps in docs/PAYMENTS.md
 - [x] Stan Store option: STORE_URL drives all buy buttons; ACCESS_CODES (member codes in the Stan delivery email) unlock /access/; Stripe kept as option B (docs/PAYMENTS.md)
+- [x] Personal branding expanded to 20 posts; sales page no longer advertises the meme pack or private community (not built); value stack lists AI Script Writer + Live Stream Selling Script
