@@ -135,7 +135,7 @@ footer{text-align:center;color:var(--muted);font-size:.85rem;padding:0 0 40px}
 
 <script>
 var STAGES=[["pre-launch-visibility","Warm-Up & Visibility"],["problem-awareness","Stir the Problem"],["storytelling","Share Your Story"],["authority","Prove Your Expertise"],["offer-positioning","Position Your Offer"],["community","Gather Your People"],["waitlist","Fill Your Waitlist"],["anticipation","Build the Hype"],["launch-day","Open the Doors"],["objections","Answer the Doubts"],["social-proof","Show the Proof"],["urgency","Last Call"],["live-selling","Live Stream Selling"]];
-var PLATFORMS=[["instagram-caption","Instagram post"],["instagram-stories","Instagram Stories"],["reel","Reel / TikTok"],["whatsapp-status","WhatsApp Status"],["whatsapp-broadcast","WhatsApp message"],["facebook-post","Facebook post"],["facebook-stories","Facebook Stories"],["email","Email"],["linkedin","LinkedIn"],["x-thread","X thread"],["carousel","Carousel"],["tiktok-live","TikTok LIVE"],["instagram-live","Instagram LIVE"]];
+var PLATFORMS=[["instagram-caption","Instagram post"],["instagram-stories","Instagram Stories"],["reel","Reel / TikTok"],["tiktok-story","TikTok Story"],["whatsapp-status","WhatsApp Status"],["whatsapp-broadcast","WhatsApp message"],["facebook-post","Facebook post"],["facebook-stories","Facebook Stories"],["email","Email"],["linkedin","LinkedIn"],["x-thread","X thread"],["carousel","Carousel"],["tiktok-live","TikTok LIVE"],["instagram-live","Instagram LIVE"]];
 var TONES=[["warm","Warm"],["bold","Bold"],["playful","Playful"],["professional","Professional"],["conversational","Like a friend"]];
 var ENDPOINT="/.netlify/functions/launch-script", KEY="lwt-script-writer";
 var $=function(id){return document.getElementById(id)};
@@ -188,9 +188,11 @@ function generate(){
   $("meta").textContent=label(STAGES,d.stage)+" · "+label(PLATFORMS,d.platform)+" · "+label(TONES,d.tone);
   var r=$("result"); r.classList.add("empty"); r.textContent="";
   setStatus(true,"Writing your script…");
+  var ctl=window.AbortController?new AbortController():null; generate.ctl=ctl;
+  $("status").insertAdjacentHTML("beforeend",' <button class="btn ghost" type="button" id="stop" style="padding:5px 12px;font-size:.8rem">■ Stop</button>');
   if(window.innerWidth<900)document.querySelector(".out").scrollIntoView({behavior:"smooth",block:"start"});
 
-  fetch(ENDPOINT,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(d)})
+  fetch(ENDPOINT,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(d),signal:ctl?ctl.signal:undefined})
   .then(function(res){
     var type=res.headers.get("content-type")||"";
     if(!res.ok){
@@ -211,7 +213,9 @@ function generate(){
     if(!lastText.trim())throw new Error("No script came back. Please try again.");
     render(lastText); $("actions").hidden=false;
   })
-  .catch(function(e){$("err").textContent=e.message||"Something went wrong. Please try again.";
+  .catch(function(e){
+    if(e&&e.name==="AbortError"){if(lastText.trim()){var cut=lastText.split("\n\n[[")[0];lastText=cut;render(cut);$("actions").hidden=false;}$("err").textContent="Stopped. You can copy what was written or write another version.";return;}
+    $("err").textContent=e.message||"Something went wrong. Please try again.";
     if(!lastText.trim()){var r=$("result");r.classList.add("empty");r.textContent="Your tailored launch script will appear here.";}})
   .then(function(){busy=false;$("go").disabled=false;$("again").disabled=false;setStatus(false);});
 }
@@ -226,6 +230,7 @@ document.addEventListener("change",function(e){var t=e.target;
   if(t.name==="stage"&&t.value==="live-selling"&&!/-live$/.test(val("platform"))){var el=document.getElementById("platform-tiktok-live");if(el)el.checked=true;}});
 $("form").addEventListener("submit",function(e){e.preventDefault();generate();});
 $("again").addEventListener("click",generate);
+document.addEventListener("click",function(e){if(e.target.id==="stop"&&generate.ctl)generate.ctl.abort();});
 $("copyScript").addEventListener("click",function(){copy(scriptOnly(lastText),this)});
 $("copyAll").addEventListener("click",function(){copy(lastText.replace(/^\s*SCRIPT\s*\n/,"").trim(),this)});
 </script>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>You're invited · Sold-Out Launch Studio</title>
+<meta name="description" content="Join the launch list for the Sold-Out Launch Studio and be the first to know when doors open.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Playfair+Display:ital,wght@1,700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--n9:#07152b;--n8:#0c2142;--n7:#12305a;--g:#d4a849;--g2:#f1d48a;--c:#f5f1e6;--m:#a9b6c9;--ok:#7fd8a6}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+body{font-family:Poppins,system-ui,sans-serif;background:linear-gradient(180deg,var(--n7),var(--n9) 50%);color:var(--c);min-height:100vh;line-height:1.6;position:relative;overflow-x:hidden}
+body:before{content:"";position:absolute;width:260px;height:260px;border-radius:50%;background:var(--g);right:-110px;top:-120px}
+.wrap{max-width:560px;margin:0 auto;padding:44px 18px 60px;position:relative}
+.k{font-size:.72rem;font-weight:800;letter-spacing:2px;color:var(--g);text-transform:uppercase}
+h1{font-family:Anton,Impact,sans-serif;font-weight:400;text-transform:uppercase;font-size:clamp(2.2rem,9vw,3.2rem);line-height:1.02;margin:10px 0 12px}
+h1 em{font-family:"Playfair Display",serif;font-style:italic;text-transform:none;color:var(--g)}
+p{color:#dfe6ef}
+.card{background:var(--n8);border:1px solid rgba(212,168,73,.3);border-radius:18px;padding:22px;margin-top:20px}
+.when{text-align:center}
+.when .lbl{font-size:.75rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--g2)}
+.soon{font-family:Anton,sans-serif;font-size:1.8rem;text-transform:uppercase;margin-top:4px}
+.count{display:flex;justify-content:center;gap:10px;margin-top:10px}
+.count div{background:var(--n9);border-radius:12px;padding:10px 12px;min-width:66px}
+.count b{display:block;font-family:Anton,sans-serif;font-size:1.9rem;color:var(--g);line-height:1}
+.count small{font-size:.7rem;color:var(--m);text-transform:uppercase;letter-spacing:1px}
+ul{list-style:none;margin:14px 0 0;display:grid;gap:8px}
+li:before{content:"✓ ";color:var(--g);font-weight:800}
+label{display:block;font-size:.75rem;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--g2);margin:14px 0 6px}
+label small{text-transform:none;letter-spacing:0;font-weight:500;color:var(--m)}
+input[type=text],input[type=email]{width:100%;font:inherit;font-size:1rem;color:var(--c);background:var(--n9);border:1px solid rgba(169,182,201,.3);border-radius:10px;padding:11px 12px}
+input:focus{outline:2px solid var(--g);outline-offset:1px;border-color:transparent}
+.consent{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:.88rem;color:#dfe6ef}
+.consent input{width:20px;height:20px;margin-top:3px;accent-color:var(--g);flex:0 0 auto}
+.btn{display:inline-flex;align-items:center;justify-content:center;width:100%;border:0;cursor:pointer;font:inherit;font-weight:800;font-size:1.05rem;border-radius:999px;padding:15px 20px;background:var(--g);color:var(--n9);margin-top:18px}
+.btn:disabled{opacity:.55;cursor:progress}
+.msg{margin-top:12px;font-size:.92rem;min-height:1.3em}.msg.err{color:#ff9fbf}
+.done h2{font-family:Anton,sans-serif;font-weight:400;text-transform:uppercase;font-size:1.6rem}
+.muted{color:var(--m);font-size:.84rem}
+.hp{position:absolute;left:-9999px}
+footer{text-align:center;color:var(--m);font-size:.82rem;margin-top:30px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <span class="k">learnwithtolu · You're invited</span>
+  <h1>The Sold-Out <em>Launch Studio</em> is coming</h1>
+  <p>Your next launch doesn't need more hope. It needs a plan. Join the launch list and be the first to know when doors open.</p>
+
+  <section class="card when" aria-live="polite">
+    <div class="lbl">Launch date</div>
+    <div class="soon" id="soon">Coming soon</div>
+    <div class="count" id="count" hidden>
+      <div><b id="cd-d">0</b><small>days</small></div><div><b id="cd-h">0</b><small>hours</small></div><div><b id="cd-m">0</b><small>mins</small></div>
+    </div>
+    <p class="muted" id="whenText" style="margin-top:8px">We'll email you as soon as the date is set.</p>
+  </section>
+
+  <section class="card">
+    <b>What you'll get inside</b>
+    <ul>
+      <li>120 interactive, fully-written launch scripts across 12 launch stages</li>
+      <li>An interactive 30-day launch calendar made for your business</li>
+      <li>The AI Launch Script Writer</li>
+      <li>A Live Stream Selling Script for TikTok LIVE &amp; Instagram LIVE</li>
+    </ul>
+  </section>
+
+  <section class="card" id="formCard">
+    <!-- Netlify Forms: every submission is saved in Netlify (Forms → launch-invite) and can trigger an email notification. -->
+    <form name="launch-invite" method="POST" data-netlify="true" netlify-honeypot="bot-field" id="inviteForm" novalidate>
+      <input type="hidden" name="form-name" value="launch-invite">
+      <p class="hp"><label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
+      <label for="name">First name <small>(optional)</small></label>
+      <input type="text" id="name" name="name" maxlength="80" autocomplete="given-name">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" maxlength="200" autocomplete="email" required>
+      <div class="consent"><input type="checkbox" id="consent" name="consent" value="yes" required><label for="consent" style="all:unset;cursor:pointer">Yes, email me about the Sold-Out Launch Studio launch. I can unsubscribe at any time.</label></div>
+      <button class="btn" type="submit" id="go">Join the launch list →</button>
+      <p class="msg" id="msg" role="alert"></p>
+      <p class="muted">We only use your email to tell you about this launch. We never sell or share it.</p>
+    </form>
+  </section>
+
+  <section class="card done" id="done" hidden>
+    <h2>You're on the list! 🎉</h2>
+    <p>Thank you. We'll email you as soon as doors open.</p>
+  </section>
+
+  <footer>Questions? learnwithtolu@gmail.com</footer>
+</main>
+<script>
+(function(){
+var $=function(id){return document.getElementById(id)};
+// Launch date from Netlify (LAUNCH_DATE, e.g. 2026-12-01T18:00:00Z). No date = "Coming soon", no countdown.
+fetch("/.netlify/functions/access").then(function(r){return r.json()}).then(function(c){
+  var d=c.launchDate?new Date(c.launchDate):null; if(!d||isNaN(d))return;
+  $("soon").textContent=d.toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"});
+  $("whenText").textContent="Doors open at "+d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})+" your time.";
+  function tick(){var ms=d-Date.now();if(ms<=0){$("count").hidden=true;$("whenText").textContent="Doors are open!";return;}
+    $("count").hidden=false;$("cd-d").textContent=Math.floor(ms/864e5);$("cd-h").textContent=Math.floor(ms/36e5)%24;$("cd-m").textContent=Math.floor(ms/6e4)%60;}
+  tick();setInterval(tick,30000);
+}).catch(function(){});
+
+$("inviteForm").addEventListener("submit",function(e){
+  e.preventDefault();var m=$("msg"),b=$("go"),f=e.target;m.className="msg";m.textContent="";
+  var email=$("email").value.trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){m.className="msg err";m.textContent="Enter a valid email address.";return;}
+  if(!$("consent").checked){m.className="msg err";m.textContent="Tick the box so we're allowed to email you.";return;}
+  b.disabled=true;b.textContent="Adding you…";
+  var body=new URLSearchParams(new FormData(f)).toString();
+  fetch(location.pathname,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:body})
+  .then(function(r){if(!r.ok)throw new Error();$("formCard").hidden=true;$("done").hidden=false;})
+  .catch(function(){m.className="msg err";m.textContent="Something went wrong. Please try again in a minute.";b.disabled=false;b.textContent="Join the launch list →";});
+});
+})();
+</script>
+</body>
+</html>

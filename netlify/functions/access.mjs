@@ -11,6 +11,7 @@
 //   STRIPE_CHECKOUT_URL   the Payment Link URL (https://buy.stripe.com/…) shown on the sales and access pages
 //   ACCESS_SECRET         long random string that signs the access cookie; setting it switches the paywall on
 //   STORE_URL             checkout page when selling elsewhere (e.g. a Stan Store product); used before STRIPE_CHECKOUT_URL
+//   LAUNCH_DATE           optional ISO date-time for the /invite/ countdown, e.g. 2026-12-01T18:00:00Z
 //   ACCESS_CODES          comma-separated member codes (8+ characters each) delivered to buyers, e.g. by Stan Store.
 //                         POST { action:"code", code } unlocks the browser. Remove a code to stop new unlocks with it.
 import { signToken, verifyToken, readCookie, cookieHeader, clearCookieHeader } from "../shared/access-token.mjs";
@@ -55,7 +56,7 @@ export default async (req) => {
 
   if (req.method === "GET") {
     const member = secret ? !!(await verifyToken(secret, readCookie(req.headers.get("cookie")))) : true;
-    return json(200, { enabled: !!secret, configured, checkoutUrl: process.env.STORE_URL || process.env.STRIPE_CHECKOUT_URL || "", member, codes: codes.length > 0, stripe: configured });
+    return json(200, { enabled: !!secret, configured, checkoutUrl: process.env.STORE_URL || process.env.STRIPE_CHECKOUT_URL || "", member, codes: codes.length > 0, stripe: configured, launchDate: process.env.LAUNCH_DATE || "" });
   }
   if (req.method !== "POST") return json(405, { error: "Use GET or POST." });
 

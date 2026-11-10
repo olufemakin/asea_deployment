@@ -146,3 +146,4 @@ Done:
 - [x] Launch Studio as its own Netlify project: LAUNCH_SITE=1 edge redirect / → /launch-scripts/; setup steps in docs/PAYMENTS.md
 - [x] Stan Store option: STORE_URL drives all buy buttons; ACCESS_CODES (member codes in the Stan delivery email) unlock /access/; Stripe kept as option B (docs/PAYMENTS.md)
 - [x] Personal branding expanded to 20 posts; sales page no longer advertises the meme pack or private community (not built); value stack lists AI Script Writer + Live Stream Selling Script
+- [x] Built what the feature list promised: writer TikTok Story + Stop; post-launch testimonial spotlight + next launch tease; question-first posts (answers + own story fill the post) for personal branding and post-launch; Authority Studio own topic, editable draft, .txt download, quality review + Authority Score /100, proof image attachments; /invite/ launch list (Netlify Forms, consent, LAUNCH_DATE countdown); Stripe→Resend delivery email

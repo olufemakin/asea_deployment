@@ -82,3 +82,20 @@ Open `/launch-calendar/` in a private window: it should send you to `/access/`.
 - A fully refunded purchase can't unlock or restore access. A browser that was unlocked before the refund stays unlocked
   until `ACCESS_SECRET` changes.
 - Only `/launch-calendar/` and `/script-writer/` are gated. The sales page (`/launch-scripts/`) and `/access/` stay public.
+
+
+## Automatic delivery email (Stripe)
+After each paid checkout, `netlify/functions/stripe-webhook.mjs` emails the buyer a link that unlocks the Studio on any
+device (`/access/?session_id=…`). It uses [Resend](https://resend.com) to send email.
+1. Resend: create an account, verify your sending domain, create an API key.
+2. Stripe → Developers → Webhooks → **Add endpoint**: `https://<your-launch-project>.netlify.app/.netlify/functions/stripe-webhook`,
+   event **checkout.session.completed**. Copy its **Signing secret** (`whsec_…`).
+3. Netlify environment variables: `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`, `DELIVERY_FROM` (e.g. `Tolu <hello@yourdomain.com>`),
+   optional `SITE_URL`. Redeploy. Test with a real purchase (or Stripe's test mode), then refund.
+
+## Launch invitation page (`/invite/`)
+A public "join the launch list" page. Sign-ups (name, email, consent) are saved by **Netlify Forms** (form name
+`launch-invite`, no extra service).
+- See and download sign-ups: Netlify → your project → **Forms** → launch-invite. (Enable form detection under Forms if asked.)
+- Get an email for each sign-up: Forms → **Form notifications** → Add notification → Email notification.
+- Launch date: set `LAUNCH_DATE` (e.g. `2026-12-01T18:00:00Z`) to show a countdown. Without it the page says "Coming soon".
