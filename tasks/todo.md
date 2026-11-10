@@ -150,3 +150,4 @@ Done:
 - [x] Formats: post + thought post added to day cards, carousel + thought to post generators, thought post in the writer/AI. Payments: pay in full / payment plan / subscription options on the sales page; subscriptions only while active (35-day access), finished payment plans keep access; COMMUNITY_URL shown to members in Studio, access page and delivery email
 - [x] Personal Branding gets its own Studio tab (#brand)
 - [x] Personal Branding + post-launch: "Write it with AI in my voice" from the answers (mode:"brand"); Authority Studio asks 4 questions first; all AI modes share human-voice rules (no AI clichés, owner words kept)
+- [x] AI works in the claude.ai previews too: when the Netlify function is missing, the Studio and Script Writer ask Claude through the page "sample" capability with the same human-voice rules
