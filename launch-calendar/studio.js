@@ -15,7 +15,7 @@ var WEEKS = [
   {id:"w5",tab:"Days 29–30",name:"Days 29–30 · Sell Out",from:29,to:30,sub:"Last Call",why:"Don't go quiet at the finish line. The last call matters."},
   {id:"after",tab:"After launch",name:"After launch",sub:"Deliver, collect real reviews, debrief",why:"How you finish this launch sets up the next one."}
 ];
-var FORMATS = [["post","Post","instagram-caption"],["reel","Reel script","reel"],["carousel","Carousel","carousel"],["story","Story","instagram-stories"],["status","Status post","whatsapp-status"],["thought","Thought post","thought"]];
+var FORMATS = [["post","Post","instagram-caption"],["reel","Reel script","reel"],["carousel","Carousel","carousel"],["story","Story","instagram-stories"],["status","Status post","whatsapp-status"],["thought","Thought post","thought"],["broll","B-roll (no talking)","broll"]];
 var PILLARS = {
   "Beginner education":["What should someone know before buying {thing}?","What is one thing beginners get wrong about {thing}?","Explain one term or idea your customers often misunderstand."],
   "Common mistakes":["What is one mistake beginners make in your industry?","What mistake costs your customers the most money?","What do people do that makes {pain} worse?"],
@@ -32,8 +32,8 @@ var CATS = [["auth","Authority & education",30],["story","Personal storytelling"
 var SET_CAT = {"Warm-Up & Visibility":"engage","Stir the Problem":"auth","Share Your Story":"story","Prove Your Expertise":"auth","Position Your Offer":"offer","Gather Your People":"engage","Fill Your Waitlist":"offer","Build the Hype":"engage","Open the Doors":"sell","Answer the Doubts":"offer","Show the Proof":"offer","Last Call":"sell"};
 var PILLAR_CAT = {"Lessons from experience":"story","Customer problems":"engage","Frequently asked questions":"engage"};
 var AFTER_PILLARS = ["Lessons from experience","Service education","Frequently asked questions","Behind-the-scenes expertise","Market observations","Practical tutorials"];
-var TIPS = {post:"Use a photo of your face or your product, and make the first line count: it's all people see before 'more'.",thought:"Post it as plain text on Threads, X, LinkedIn or Facebook. No hashtags needed; reply to every comment.",reel:"Film in natural light, put the hook on screen in the first second and keep it under 30 seconds.",carousel:"Put your face or your product on the cover slide and keep each slide to one idea.",story:"Post the frames an hour or two apart and use a sticker so people can reply.",status:"Post the first status in the morning and the others through the day so more people see it."};
-var AFORMATS = [["facebook","Educational Facebook post"],["carousel","Instagram carousel"],["reel","Reel script"],["caption","Instagram caption"],["status","WhatsApp Status series"],["linkedin","LinkedIn post"],["email","Email newsletter"]];
+var TIPS = {broll:"Film the clips on different days if you like. Add the text in CapCut, Instagram or TikTok, keep each line short enough to read in 2 seconds, and use a trending sound at low volume.",post:"Use a photo of your face or your product, and make the first line count: it's all people see before 'more'.",thought:"Post it as plain text on Threads, X, LinkedIn or Facebook. No hashtags needed; reply to every comment.",reel:"Film in natural light, put the hook on screen in the first second and keep it under 30 seconds.",carousel:"Put your face or your product on the cover slide and keep each slide to one idea.",story:"Post the frames an hour or two apart and use a sticker so people can reply.",status:"Post the first status in the morning and the others through the day so more people see it."};
+var AFORMATS = [["facebook","Educational Facebook post"],["carousel","Instagram carousel"],["reel","Reel script"],["caption","Instagram caption"],["status","WhatsApp Status series"],["linkedin","LinkedIn post"],["email","Email newsletter"],["broll","B-roll video (no talking)"]];
 var AFTER = [
   {h:"Deliver like a pro",items:["Send every buyer a welcome or confirmation message within 24 hours","Tell them exactly what happens next and when","Deliver on time, every time"]},
   {h:"Collect real reviews",items:["Ask once they've had a win, not the day they pay","Make it easy: \"What was your favourite part? What changed for you?\"","Get permission before sharing, and only ever post real reviews"]},
@@ -111,8 +111,18 @@ function gen(d, f) {
   else if (f === "story") body = "Frame 1 · Hook\n" + h + "\n\nFrame 2\n" + a[0] + "\n\nFrame 3\n" + d.stories + "\n\nFrame 4 · Call to action\n" + c + " (add a link, poll or question sticker)";
   else if (f === "post") body = h + "\n\n" + a[0] + "\n\n" + a[1] + " " + a[2] + "\n\n" + c + "\n\n#[yourniche] #[yourcity]";
   else if (f === "thought") body = thought(h, a, c);
+  else if (f === "broll") body = broll(h, a, c, fill(d.shot, p));
   else body = "Status 1 (morning)\n" + fill(d.status, p) + "\n\nStatus 2 (afternoon)\n" + a[1] + "\n\nStatus 3 (evening)\n" + c;
   return t + "\n\n" + body + "\n\nPosting tip: " + TIPS[f];
+}
+function broll(h, a, c, shot1) { // non-talking video: clips + on-screen text
+  if (shot1) { shot1 = shot1.replace(/^\s*face to camera[^,.]*[,.]?\s*(then\s*)?/i, ""); shot1 = /\b(talk|say|speak|face to camera)/i.test(shot1) ? "" : shot1.charAt(0).toUpperCase() + shot1.slice(1); }
+  var p = prof() || {}, thing = p.thing && !/^\[/.test(p.thing) ? p.thing : "your product or work", bts = p.bts && !/^\[/.test(p.bts) ? p.bts : "[something you do behind the scenes]";
+  var shots = [shot1 || "Close-up of " + thing + ", slowly moving in", "Your hands at work: " + bts, "Detail shot: packing, preparing or finishing " + thing, "A result shot: [a finished piece, a happy customer's message (with permission) or your best before-and-after]", "POV shot: you walking to your workspace, or the order going out the door"];
+  var lines = [h].concat(a, [c]).map(function (x) { return String(x).replace(/\s+/g, " ").trim(); }).filter(Boolean);
+  return "🎬 No talking. Film " + lines.length + " short clips (2–3 seconds each), put the words on screen, add a sound.\n\n" +
+    lines.map(function (x, i) { return "Clip " + (i + 1) + (i === 0 ? " · HOOK" : i === lines.length - 1 ? " · CALL TO ACTION" : "") + "\nFILM: " + shots[Math.min(i, shots.length - 1)] + "\nTEXT ON SCREEN: " + x; }).join("\n\n") +
+    "\n\n🎵 Sound: a trending sound or soft instrumental, low volume.\n\nCAPTION\n" + lines[0] + "\n\n" + c;
 }
 function thought(h, a, c) { // short text-only insight for Threads / X / LinkedIn / Facebook
   var end = c.replace(/\s*(Comment|Reply|Tap|DM)[^.?!]*[.?!]?\s*$/i, "").trim();
@@ -125,8 +135,67 @@ function writerLink(n, platform) {
   return "/script-writer/?" + q;
 }
 
+/* ---------- 💡 idea dropdowns: suggestions when someone doesn't know what to write ---------- */
+// Each rule: [pattern on the question, ideas]. {who} {pain} {want} {thing} {bts} come from the profile; [brackets] stay for personal facts.
+var IDEAS = [
+  [/insight/, ["Most {who} don't need more {thing}. They need the right one, used properly.", "The biggest cause of {pain} I see is [what you see most often].", "Cheap {thing} often ends up costing more, because [reason from your work].", "Results come from the simple things done every day, not big efforts once in a while.", "What works for one customer doesn't always work for the next, so I always ask about [what you ask first]."]],
+  [/tip|step they can take|one step/, ["Before you buy {thing}, ask the seller [the question you'd ask].", "Start small: [one simple first step], and stick with it for two weeks.", "Write down [what to track] for one week, so you can see what's really going on.", "Don't copy what works for someone else. Start with what fits your budget and your time.", "Save this post and try [one small action] today."]],
+  [/where you were before|before you started/, ["I was working a 9-to-5 and selling {thing} on the side.", "I was a customer myself, dealing with {pain}.", "I was [your job or situation] and wanted something of my own.", "I needed extra income and had no idea where to start."]],
+  [/moment you decided|the moment/, ["When I got tired of {pain} and saw nobody fixing it properly.", "When a friend asked me to help with {thing}, then told others.", "When my first customer came back and ordered again.", "When I lost [a job / an income] and had to make something work."]],
+  [/tired of seeing/, ["{pain}", "People paying for {thing} that doesn't work.", "Sellers who disappear after you pay."]],
+  [/fact \d|personal detail/, ["I started this business from my [kitchen / bedroom / phone].", "I'm a [mum / dad / student / nurse…] too.", "I can't start my day without [coffee / tea / prayer / a walk].", "My favourite part of the week is [day or activity].", "Before this, I worked as [your old job]."]],
+  [/practice you refuse/, ["sell anything I wouldn't use myself", "promise results I can't deliver", "ignore a customer after they've paid", "hide prices or add surprise costs"]],
+  [/promise you keep/, ["tell you the truth, even if it means you don't buy", "reply to every message, even after you've paid", "deliver exactly what I show you", "check in with you after you buy"]],
+  [/what went wrong/, ["I said yes to every order and couldn't keep up.", "I priced too low and worked for almost nothing.", "I didn't write orders down and mixed some up.", "I trusted a supplier without checking first."]],
+  [/what it cost/, ["Time, money and a couple of customers.", "[amount] and a lot of sleepless nights.", "My confidence, for a while."]],
+  [/differently now|do differently/, ["I write everything down and confirm every order.", "I charge what my work is worth.", "I check before I promise anything.", "I say no to work that isn't right for me."]],
+  [/how your day starts|morning/, ["Checking orders and replying to messages.", "Prayer, coffee, then packing orders.", "School run, then straight to work.", "Planning the day's posts before anyone is awake."]],
+  [/wind down|evening/, ["Planning tomorrow's posts.", "Family time with my phone off.", "Replying to the last messages of the day.", "Writing down what worked today."]],
+  [/never notice|customers never/, ["I check every order twice before it goes out.", "I prepare / pack everything by hand.", "I keep notes on what each customer likes.", "I test everything myself before I sell it."]],
+  [/why it matters|why you believe/, ["Because my customers trust me with their money.", "Because small details are what people remember.", "Because I want people to come back, not just buy once.", "I've seen it with my own customers again and again."]],
+  [/honest opinion|common belief|myth/, ["Expensive doesn't always mean better {thing}.", "You don't need [popular thing] to get results.", "Most advice about {thing} online is made for someone else.", "More products won't fix {pain}. The right routine will."]],
+  [/actually true|truth/, ["What matters most is [what really makes the difference].", "Simple, done consistently, beats fancy.", "It depends on [the real deciding factor], not on the price."]],
+  [/how you know|from your own work|from your experience/, ["I've seen it with my own customers.", "I tried it myself and it didn't work.", "[A real example from your work]."]],
+  [/lesson|advice/, ["Consistency beats perfection.", "Charge what your work is worth.", "Ask for reviews from day one.", "Not every customer is your customer.", "Rest is part of the work."]],
+  [/question \d/, ["How much is it?", "How long does it take?", "Do you deliver to [place]?", "How do I know it will work for me?", "Can I pay in instalments?"]],
+  [/what happened/, ["A customer sent me the sweetest thank-you message.", "I got [number] orders this week.", "I finally [the task I'd been avoiding].", "Someone recommended me to a friend without me asking."]],
+  [/taught you|what you learned/, ["Small steps add up.", "People notice when you care.", "I'm more capable than I think.", "Asking for help is not weakness."]],
+  [/the fear/, ["Showing my face on camera.", "Raising my prices.", "Posting every single day.", "Asking for payment upfront."]],
+  [/did anyway/, ["I posted it anyway, hands shaking.", "I told my customers the new price and explained why.", "I asked for payment upfront and most people were fine with it."]],
+  [/tool or habit/, ["WhatsApp Business", "Canva", "A notebook for every order", "CapCut", "A weekly planning hour"]],
+  [/^why$/, ["keeping orders organised", "saving time every day", "making my posts look clean", "remembering what each customer wants"]],
+  [/next goal/, ["Launching [new product or service].", "Reaching [number] happy customers.", "Opening [a shop / a website].", "Teaching what I know in [a class / a course]."]],
+  [/why it matters/, ["Because more {who} deserve to {want}.", "Because it means I can do this full time."]],
+  [/how your audience can be part/, ["Follow along and tell me what you want to see.", "Join the waitlist so you hear first.", "Vote in my stories this week."]],
+  [/community means/, ["You're the reason I keep going.", "Every like, share and message helps a small business like mine.", "You turned a side hustle into a real business."]],
+  [/moment that touched you/, ["A customer told me [what they said].", "Someone shared my post without me asking.", "A message I got on a hard day."]],
+  [/promise for what's next/, ["More value, more honesty, same care.", "Better service and faster delivery.", "Something new is coming, and you'll hear first."]],
+  [/moment you love/, ["When a customer sends me their before-and-after.", "When someone tells me 'you were right'.", "Seeing the finished {thing} go to a happy customer."]],
+  [/without private details/, ["A customer came to me with {pain} and [what you did together].", "A customer asked a question that made me change [what you changed]."]],
+  [/delivery or start details/, ["Check your email for your login and first steps.", "Your order goes out within [number] days; I'll send tracking.", "We start on [date]. I'll message you the day before."]],
+  [/what you loved about this launch/, ["Every message from people who said 'this is what I needed'.", "Seeing so many first-time customers.", "How much you supported me, even if you didn't buy."]],
+  [/join the next round/, ["Join the waitlist so you hear first.", "Turn on post notifications.", "Send me a message with the word NEXT."]],
+  [/what they were dealing with/, ["{pain}", "They'd tried other {thing} and nothing worked.", "They didn't know where to start."]],
+  [/hint at what's next/, ["Something for people who asked me about [topic].", "A new version, made from your feedback.", "Something I've wanted to make for a long time."]],
+  [/^when$/, ["Next week", "This month", "Very soon. Watch this space"]],
+  [/how to buy now/, ["Tap the link in my bio.", "Send me a DM with the word BUY.", "Order on WhatsApp: [number]."]],
+  [/who exactly/, ["{who}", "Beginners who are just starting with {thing}", "People who have tried {thing} before and got no results", "Busy people who want {want} without wasting money"]],
+  [/one thing you want them to learn/, ["Why {pain} keeps happening, and the first thing to fix", "How to choose the right {thing} for them", "The one mistake that makes {pain} worse", "What to check before buying {thing}"]],
+  [/example or moment/, ["A customer came to me with {pain}. We [what you did] and [what changed].", "When I started, I made this mistake myself: [your mistake].", "Last week someone asked me [their question]."]]
+];
+function ideasFor(q) {
+  var p = prof() || defaults(BUSINESS_CUSTOM), k = String(q).toLowerCase().replace(/[\[\]]/g, "").trim(), out = [];
+  IDEAS.forEach(function (r) { if (r[0].test(k)) r[1].forEach(function (x) { var t = fill(x, p); if (out.indexOf(t) < 0) out.push(t); }); });
+  return out.slice(0, 7);
+}
+function ideaSelect(targetId, q) {
+  var list = ideasFor(q); if (!list.length) return "";
+  return '<select class="idea" data-ideafor="' + targetId + '" aria-label="Ideas for ' + esc(q) + '"><option value="">💡 Not sure? Pick an idea…</option>' + list.map(function (x) { return '<option value="' + esc(x) + '">' + esc(x.length > 90 ? x.slice(0, 88) + "…" : x) + "</option>"; }).join("") + "</select>";
+}
+function renderAQIdeas() { AQ.forEach(function (q) { var el = $("aq-" + q[0]), box = document.querySelector('[data-ideabox="aq-' + q[0] + '"]'); if (!el) return; if (!box) { el.insertAdjacentHTML("afterend", '<div data-ideabox="aq-' + q[0] + '"></div>'); box = el.nextElementSibling; } box.innerHTML = ideaSelect("aq-" + q[0], q[1]); }); }
+
 /* ---------- after-launch + personal branding posts ---------- */
-var POST_FORMATS = [["caption","Post (Instagram / Facebook caption)"],["reel","Reel / TikTok video"],["carousel","Carousel"],["story","Story (Instagram / Facebook)"],["status","WhatsApp status"],["thought","Thought post (Threads / X / LinkedIn)"]];
+var POST_FORMATS = [["caption","Post (Instagram / Facebook caption)"],["reel","Reel / TikTok video"],["carousel","Carousel"],["story","Story (Instagram / Facebook)"],["status","WhatsApp status"],["thought","Thought post (Threads / X / LinkedIn)"],["broll","B-roll video (no talking)"]];
 var POSTS = {
   after: [
     ["delivery","Delivery post","Orders are on their way! 📦",["Thank you to everyone who bought [offer name].","Here's what happens next: [delivery or start details].","Behind the scenes right now: {bts}."],"Already bought? Reply and tell me when yours arrives."],
@@ -160,7 +229,7 @@ var POSTS = {
     ["next","Where I'm going next","Here's where I'm taking this business next.",["[Your next goal]","[Why it matters]","[How your audience can be part of it]"],"Want to come along? Follow so you don't miss it."]
   ]
 };
-var POST_TIPS = {carousel:"Put your face or the main point on the cover slide and keep each slide to one idea.",thought:"Post it as plain text. No hashtags needed; reply to every comment to start a conversation.",caption:"Use a photo of your face or your work, and put the first line where people can see it before 'more'.",reel:"Film in natural light, say the hook in the first second and keep it under 30 seconds.",story:"Post the frames an hour or two apart and add a question or poll sticker.",status:"Post one status in the morning, one in the afternoon and one in the evening."};
+var POST_TIPS = {broll:"No talking needed: film the clips, add the words as on-screen text, and pick a trending sound. Great for days you don't want to show your face.",carousel:"Put your face or the main point on the cover slide and keep each slide to one idea.",thought:"Post it as plain text. No hashtags needed; reply to every comment to start a conversation.",caption:"Use a photo of your face or your work, and put the first line where people can see it before 'more'.",reel:"Film in natural light, say the hook in the first second and keep it under 30 seconds.",story:"Post the frames an hour or two apart and add a question or poll sticker.",status:"Post one status in the morning, one in the afternoon and one in the evening."};
 function postQs(g, id) {
   var it = POSTS[g].filter(function (x) { return x[0] === id; })[0], qs = [];
   [it[2]].concat(it[3], [it[4]]).join(" ").replace(/\[([^\]]{3,80})\]/g, function (m, q) { if (qs.indexOf(q) < 0) qs.push(q); return m; });
@@ -180,6 +249,7 @@ function postText(g, id, f) {
   else if (f === "status") body = "Status 1 (morning)\n" + h + "\n\nStatus 2 (afternoon)\n" + a[0] + " " + a[1] + "\n\nStatus 3 (evening)\n" + a[2] + " " + c;
   else if (f === "carousel") body = "Slide 1 · Hook\n" + h + "\n\nSlide 2\n" + a[0] + "\n\nSlide 3\n" + a[1] + "\n\nSlide 4\n" + a[2] + "\n\nSlide 5 · Call to action\n" + c + "\n\nCAPTION\n" + h + "\n\n" + c;
   else if (f === "thought") body = thought(h, a, c);
+  else if (f === "broll") body = broll(h, a, c);
   else body = h + "\n\n" + a[0] + "\n\n" + a[1] + "\n\n" + a[2] + "\n\n" + c + "\n\n#[yourniche] #[yourcity]";
   return it[1].toUpperCase() + "\n\n" + body + "\n\nPosting tip: " + POST_TIPS[f];
 }
@@ -187,7 +257,7 @@ function postAIBox(g, id, f) {
   var t = ((st.postAI || {})[g + ":" + id + ":" + f]) || "";
   return '<div data-postaibox="' + g + '"' + (t ? "" : " hidden") + '><label class="f">Your AI post <small>(written from your answers; edit anything)</small></label><textarea class="aiedit" data-postaiedit="' + g + ":" + id + ":" + f + '" style="min-height:200px;line-height:1.6">' + esc(t) + '</textarea><div class="acts"><button class="btn small solid" type="button" data-postaicopy="' + g + '">Copy AI post</button></div></div>';
 }
-var AI_FMT = {caption:"caption", reel:"reel", carousel:"carousel", story:"story", status:"status", thought:"thought"};
+var AI_FMT = {broll:"broll", caption:"caption", reel:"reel", carousel:"carousel", story:"story", status:"status", thought:"thought"};
 function postAI(g, btn) {
   var cur = (st.posts || {})[g]; if (!cur) return;
   var it = POSTS[g].filter(function (x) { return x[0] === cur.id; })[0], ans = ((st.ans || {})[g + ":" + cur.id]) || {}, f = cur.f || "caption", err = document.querySelector('[data-posterr="' + g + '"]');
@@ -212,7 +282,7 @@ function renderPosts() {
     var out = document.querySelector('[data-postout="' + g + '"]');
     var qs = cur.id ? postQs(g, cur.id) : [], ans = cur.id ? (((st.ans || {})[g + ":" + cur.id]) || {}) : {};
     out.innerHTML = cur.id ? '<div class="qbox"><b>First, answer a few questions in your own words</b><p class="muted" style="font-size:.84rem">Your answers go straight into the post. Leave any blank to keep a [blank] you can fill later.</p>' +
-      qs.map(function (q, i) { var id2 = "q-" + g + "-" + i; return '<label class="f" for="' + id2 + '">' + esc(q.charAt(0).toUpperCase() + q.slice(1)) + '</label><input type="text" id="' + id2 + '" maxlength="300" data-ans="' + g + '" data-q="' + esc(q) + '" value="' + esc(ans[q] || "") + '">'; }).join("") +
+      qs.map(function (q, i) { var id2 = "q-" + g + "-" + i; return '<label class="f" for="' + id2 + '">' + esc(q.charAt(0).toUpperCase() + q.slice(1)) + '</label><input type="text" id="' + id2 + '" maxlength="300" data-ans="' + g + '" data-q="' + esc(q) + '" value="' + esc(ans[q] || "") + '">' + ideaSelect(id2, q); }).join("") +
       '<label class="f" for="own-' + g + '">Your story, in your own words <small>(optional, added to the post)</small></label><textarea id="own-' + g + '" maxlength="1200" data-ans="' + g + '" data-q="_own">' + esc(ans._own || "") + "</textarea></div>" +
       '<div class="out" style="margin-top:12px" data-postpreview="' + g + '">' + rich(postText(g, cur.id, sel.value)) + '</div><div class="acts"><button class="btn small solid" type="button" data-postcopy="' + g + '">Copy</button><button class="btn small" type="button" data-postai="' + g + '">✨ Write it with AI in my voice</button>' + humBtn("post:" + g + ":" + cur.id + ":" + sel.value) + '</div>' +
       '<p class="err" data-posterr="' + g + '"></p>' + postAIBox(g, cur.id, sel.value) + humBox("post:" + g + ":" + cur.id + ":" + sel.value) +
@@ -341,6 +411,7 @@ function tick(n) {
 
 /* ---------- authority studio ---------- */
 function renderProfile() {
+  renderAQIdeas();
   var p = prof() || {};
   document.querySelectorAll("[data-prof]").forEach(function (el) { if (document.activeElement !== el) el.value = p[el.dataset.prof] || ""; });
   $("profBiz").textContent = bizName() || "not picked yet";
@@ -367,6 +438,7 @@ function quickDraft() {
   var parts = (det.match(/[^.!?]+[.!?]*/g) || []).map(function (x) { return x.trim(); }).filter(Boolean), chunk = function (i) { var s = Math.ceil(parts.length / 3); return parts.slice(i * s, i * s + s).join(" ") || "[point " + (i + 1) + "]"; };
   var cta = "Save this and share it with someone who needs it. Questions? Ask me below 👇";
   if (f === "carousel") return "Slide 1 (cover): " + q + "\nSlide 2: " + chunk(0) + "\nSlide 3: " + chunk(1) + "\nSlide 4: " + chunk(2) + (proofLine ? "\nSlide 5: " + proofLine : "") + "\nLast slide: " + cta + "\n\nCAPTION\n" + q + "\n\n" + cta;
+  if (f === "broll") return broll(q, [chunk(0), chunk(1), chunk(2)].concat(proofLine ? [proofLine] : []).filter(Boolean), cta).replace("CAPTION\n" + q, "CAPTION\n" + q + "\n\n" + det);
   if (f === "reel") return "0–3s · HOOK\n" + q + "\n\nBODY\n" + det + (proofLine ? "\n\nPROOF\n" + proofLine : "") + "\n\nCALL TO ACTION\nFollow for more" + (p.thing ? " on " + p.thing : "") + ". " + cta;
   if (f === "status") return "Status 1: " + q + "\nStatus 2: " + chunk(0) + "\nStatus 3: " + chunk(1) + " " + chunk(2) + (proofLine ? "\nStatus 4: " + proofLine : "") + "\nLast status: Reply with your questions 💬";
   if (f === "email") return "Subject: " + q + "\n\nHi [first name],\n\n" + det + (proofLine ? "\n\n" + proofLine : "") + "\n\nIf this helped, reply and tell me. I read every message.\n\n[Your name]";
@@ -393,7 +465,7 @@ function renderReview() {
 }
 /* AI: the Netlify function on the live site; inside a claude.ai preview, Claude via the page's "sample" capability. */
 var AI_RULES = Human.RULES; // shared with the AI Script Writer (human.js)
-var AI_FORMAT_TEXT = {caption:"Instagram / Facebook caption (hook first line, short paragraphs, CTA, 3-5 hashtags)", reel:"Reel / TikTok script under 60 seconds (hook in the first 3 seconds, spoken lines with on-screen text cues, CTA)", carousel:"carousel (6-8 slides: hook cover, one idea per slide, CTA slide, then a caption)", story:"Story sequence (4-6 frames with a sticker idea)", status:"WhatsApp Status series (3-6 short statuses through the day)", thought:"thought post for Threads / X / LinkedIn (plain text, 3-7 short lines, ends with a question)", facebook:"educational Facebook post", linkedin:"LinkedIn post", email:"email newsletter (subject line, preview text, body, one call to action)", "instagram-caption":"Instagram caption", "instagram-stories":"Instagram Stories sequence", "whatsapp-status":"WhatsApp Status series"};
+var AI_FORMAT_TEXT = {broll:"non-talking B-roll video for Reels / TikTok (4-6 clips of 2-3 seconds; for each clip the shot to film and the on-screen text; no talking or voiceover; a sound suggestion; then a caption)", caption:"Instagram / Facebook caption (hook first line, short paragraphs, CTA, 3-5 hashtags)", reel:"Reel / TikTok script under 60 seconds (hook in the first 3 seconds, spoken lines with on-screen text cues, CTA)", carousel:"carousel (6-8 slides: hook cover, one idea per slide, CTA slide, then a caption)", story:"Story sequence (4-6 frames with a sticker idea)", status:"WhatsApp Status series (3-6 short statuses through the day)", thought:"thought post for Threads / X / LinkedIn (plain text, 3-7 short lines, ends with a question)", facebook:"educational Facebook post", linkedin:"LinkedIn post", email:"email newsletter (subject line, preview text, body, one call to action)", "instagram-caption":"Instagram caption", "instagram-stories":"Instagram Stories sequence", "whatsapp-status":"WhatsApp Status series"};
 function promptFor(b) { return b.mode === "humanize" ? Human.humanizePrompt(b) : basePrompt(b) + Human.extras(b); }
 function basePrompt(b) {
   var biz = "Business: " + (b.business || b.offerType || "not given") + "\nWhat they sell: " + (b.thing || b.offerName || "not given") + "\nWho it's for: " + (b.who || b.audience || "not given") + (b.pain || b.problem ? "\nProblem they solve: " + (b.pain || b.problem) : "") + (b.want || b.transformation ? "\nResult customers get: " + (b.want || b.transformation) : "");
@@ -671,6 +743,7 @@ document.addEventListener("click", function (e) {
   if ((el = t.closest("[data-delsaved]"))) { st.saved = st.saved.filter(function (x) { return x.id !== el.dataset.delsaved; }); save(); return renderBalance(); }
 });
 document.addEventListener("change", function (e) {
+  if (e.target.dataset && e.target.dataset.ideafor) { var it = $(e.target.dataset.ideafor); if (it && e.target.value) { it.value = e.target.value; it.dispatchEvent(new Event("input", {bubbles:true})); it.focus(); toast("Added. Make it yours: edit any words"); } e.target.value = ""; return; }
   var t = e.target;
   if (t.dataset.tick) return tick(+t.dataset.tick);
   if (t.dataset.review) { ui.review = ui.review || {}; ui.review[t.dataset.review] = t.checked; return renderReview(); }

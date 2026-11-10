@@ -32,6 +32,7 @@ const STAGES = {
 const PLATFORMS = {
   "instagram-caption": "Instagram feed post caption (hook in the first line, short paragraphs, CTA, a few relevant hashtags)",
   "instagram-stories": "Instagram Stories sequence (4–7 frames; text per frame plus a sticker/poll/question idea where useful)",
+  "broll": "Non-talking B-roll video for Instagram Reels / TikTok: 4 to 6 short clips of 2 to 3 seconds each. For each clip give FILM (the shot: hands at work, product close-ups, process, behind the scenes, POV, results) and TEXT ON SCREEN (short enough to read in 2 seconds). No talking or voiceover. Suggest a sound, then write the caption",
   "reel": "Instagram Reel / TikTok video script (spoken lines with on-screen text cues, under 60 seconds)",
   "whatsapp-status": "WhatsApp Status sequence (3–6 short statuses, casual, ends with 'reply/DM me' style CTA)",
   "whatsapp-broadcast": "WhatsApp broadcast / DM message (personal, one-to-one tone, short)",
@@ -177,6 +178,7 @@ function buildPrompt(b) {
 const AUTH_FORMATS = {
   facebook: "Educational Facebook post (hook line, teaching in short paragraphs, takeaway, soft call to engage)",
   carousel: "Instagram carousel (6–8 slides: hook cover, one idea per slide, takeaway slide, CTA slide; then a caption)",
+  broll: "Non-talking B-roll video for Instagram Reels / TikTok: 4 to 6 short clips of 2 to 3 seconds each. For each clip give FILM (the shot: hands at work, product close-ups, process, behind the scenes, POV, results) and TEXT ON SCREEN (short enough to read in 2 seconds). No talking or voiceover. Suggest a sound, then write the caption",
   reel: "Reel script under 60 seconds (hook in first 3 seconds, spoken lines with on-screen text cues, CTA)",
   caption: "Instagram caption (hook first line, short paragraphs, CTA, 3–5 relevant hashtags)",
   status: "WhatsApp Status series (4–6 short statuses posted through the day)",
