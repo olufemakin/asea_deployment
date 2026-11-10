@@ -142,3 +142,4 @@ Done:
 - [x] Renamed the 12 launch stages (display names only; ids unchanged): Warm-Up & Visibility, Stir the Problem, Share Your Story, Prove Your Expertise, Position Your Offer, Gather Your People, Fill Your Waitlist, Build the Hype, Open the Doors, Answer the Doubts, Show the Proof, Last Call
 - [x] Studio: after-launch posts (delivery, review request, keep-selling, weekly value, thank-you) and personal branding posts (my story, meet-the-person, what I stand for, lesson from a mistake, prove your expertise), each in caption / Reel-TikTok / Story / WhatsApp status; "Open Authority Content Studio" card
 - [x] 120 interactive launch scripts in the Studio (#scripts): 12 stages × 10, filled for the business, search, stage/used/saved filters, copy, mark used, save, AI rewrite; day cards link to their stage; sales page says 120
+- [x] Stripe Payment Link wired into the sales page and /access/ buy buttons

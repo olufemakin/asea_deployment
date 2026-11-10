@@ -16,6 +16,9 @@ signed, HttpOnly access cookie that lasts 400 days.
 
 The paywall is **off until `ACCESS_SECRET` is set**. Until then both tools stay open, so nothing breaks while you set up.
 
+## Current checkout
+Payment Link: https://buy.stripe.com/3cI9AVeBe2hz58p5bx18c04 (also hard-wired as the fallback on the sales and access pages).
+
 ## Setup
 ### 1. Stripe
 - Create a product "Sold-Out Launch Studio" with a one-time price, and a **Payment Link** for it.
