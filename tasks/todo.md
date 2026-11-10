@@ -151,3 +151,4 @@ Done:
 - [x] Personal Branding gets its own Studio tab (#brand)
 - [x] Personal Branding + post-launch: "Write it with AI in my voice" from the answers (mode:"brand"); Authority Studio asks 4 questions first; all AI modes share human-voice rules (no AI clichés, owner words kept)
 - [x] AI works in the claude.ai previews too: when the Netlify function is missing, the Studio and Script Writer ask Claude through the page "sample" capability with the same human-voice rules
+- TikTok LIVE script: 7 parts with paycheck-to-paycheck hook, destructive broke belief ('if someone can feed you, they can starve you'), strong CTA each part; AI prompts updated.

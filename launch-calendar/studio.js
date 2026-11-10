@@ -241,8 +241,26 @@ var LIVE_PARTS = [
   ["22:00–25:00","Close with a call to buy","Make one clear ask, then thank everyone.",
    "SAY: \"Before I go: [offer name] helps you {want}. If you want it, {buy} right now.\"\nSAY: \"[Real deadline or limit, only if it's true].\"\nSAY: \"Thank you so much for being here. If you bought today, check your DMs for [next step].\"\nDO: Stay on a minute or two for last questions, then follow up with everyone who asked but didn't buy."]
 ];
+// TikTok LIVE: money-mindset version with the broke-belief part and strong calls to action
+var LIVE_TT = [
+  ["0:00–2:00","Opening hook: the paycheck pain","Hit the pain in the first seconds so people stop scrolling and stay.",
+   "SAY: \"If you're tired of living paycheck to paycheck, don't scroll. Stay with me for 25 minutes.\"\nSAY: \"Payday comes, bills take everything, and three days later you're broke again. Sound familiar? Type ME in the comments.\"\nSAY: \"Tonight I'll show you how {who} can {want}, so one income is never your only income again.\"\nCTA: \"{engage}\"\nDO: Start talking straight away. Read out every ME you see."],
+  ["2:00–4:00","Introduction","Say who you are and why they should listen.",
+   "SAY: \"If you're new here, I'm [your name]. [One true line about where you started, e.g. I used to wait for payday too].\"\nSAY: \"Here's the plan: first I'll show you the belief that keeps people broke, then how to break it, then something I made for you. Stay to the end.\"\nCTA: \"Follow me now so you don't lose this LIVE, and share it with one friend who is tired of being broke.\"\nDO: Greet new joiners by name."],
+  ["4:00–8:00","The destructive belief keeping you broke","Name the belief, break it, make them feel it.",
+   "SAY: \"The thing keeping most people broke isn't money. It's a belief.\"\nSAY: \"'My salary is my security.' 'I need money to make money.' 'I'm not the business type.' 'Selling is begging.' Which one have you told yourself? Type the number: 1, 2, 3 or 4.\"\nSAY: \"Here's the truth: if someone can feed you, they can starve you. If one boss, one client or one paycheck controls your food, they control your life.\"\nSAY: \"So stop waiting to be fed. Create income for yourself, so nobody can starve you.\"\nASK: \"Type I'M DONE if you're done living paycheck to paycheck.\"\nDO: Slow down here. Read the comments out loud."],
+  ["8:00–12:00","Teaching: your first step","Give real value so they trust you before you sell.",
+   "SAY: \"Here's how to start creating your own income: [step 1]. [step 2]. [step 3].\"\nDO: Show it, don't just say it: [demonstrate your {thing} / show a real result / share your screen].\nCTA: \"Type YES if this is helping, and tap the screen so more people see this LIVE.\""],
+  ["12:00–16:00","Showing the offer","Show exactly what they get, what it costs and how to buy.",
+   "SAY: \"You can keep doing it alone, or I can hand you the shortcut. This is [offer name].\"\nSAY: \"It's for {who} who want to {want}. You get: [what's included].\"\nSAY: \"The price is [price]. That's less than [a real everyday comparison].\"\nSAY: \"For people on this LIVE only: [LIVE-only bonus, only if it's real].\"\nCTA: \"Don't wait for the next payday to change your life. {buy} right now.\"\nDO: Show it on screen. {pin}"],
+  ["16:00–22:00","Answering comments + doubts","Every answer ends with a call to buy.",
+   "SAY: \"Let me answer your questions.\" Read each comment out loud, then answer.\nPREPARE:\n• \"How much is it?\" → [price and payment options]\n• \"How do I get it?\" → \"{buy}.\"\n• \"I don't have money right now.\" → \"That's exactly why you need a second income. [payment plan or smallest first step].\"\n• \"Is it for me?\" → \"It's for you if [who it's for]. It's not for you if [who it's not for].\"\nCTA every 3 minutes: \"If you just joined: [one-line offer]. If someone can feed you, they can starve you. {buy} now.\""],
+  ["22:00–25:00","Strong close","One clear, urgent ask, then thank everyone.",
+   "SAY: \"Two choices tonight. Close this LIVE and wait for the next payday, the same way you did last month. Or decide right now that you will create your own income.\"\nSAY: \"If you're choosing you: {buy} right now. I'm counting down from 10.\"\nSAY: \"[Real deadline or limit, only if it's true].\"\nSAY: \"Thank you for being here. If you bought, check your DMs for [next step]. Welcome to no more paycheck to paycheck.\"\nDO: Count down out loud and read every buyer's name. Then follow up with everyone who asked but didn't buy."]
+];
+function liveParts(k) { return k === "tiktok" ? LIVE_TT : LIVE_PARTS; }
 function liveText(k, i) {
-  var P = LIVE_P[k], pr = prof() || {}, pt = LIVE_PARTS[i];
+  var P = LIVE_P[k], pr = prof() || {}, pt = liveParts(k)[i];
   var v = {who:pr.who, pain:pr.pain, want:pr.want, thing:pr.thing, engage:P.engage, buy:P.buy, pin:P.pin};
   var body = pt[3].replace(/\{(\w+)\}/g, function (m, key) { var x = v[key]; return x && !/^\[/.test(x) ? x : "[" + ({who:"who you help", pain:"the problem you solve", want:"the result they get", thing:"product"}[key] || key) + "]"; });
   return pt[0] + " · " + pt[1].toUpperCase() + "\n" + body;
@@ -251,7 +269,7 @@ function renderLive() {
   var k = st.live || "tiktok", P = LIVE_P[k];
   document.querySelectorAll("[data-live]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.live === k); });
   $("livePrep").textContent = P.prep;
-  $("liveParts").innerHTML = LIVE_PARTS.map(function (pt, i) {
+  $("liveParts").innerHTML = liveParts(k).map(function (pt, i) {
     return '<div class="part"><div class="part-h"><span><span class="time">' + pt[0] + "</span> · <b>" + (i + 1) + ". " + pt[1] + '</b></span><button class="btn small" type="button" data-livecopy="' + i + '">Copy</button></div><p class="goal">' + pt[2] + '</p><div class="out">' + rich(liveText(k, i).split("\n").slice(1).join("\n")) + "</div></div>";
   }).join("");
   var pr = prof(), q = "stage=live-selling&platform=" + P.ai;
@@ -381,7 +399,7 @@ function promptFor(b) {
   var qa = (b.answers || []).map(function (x) { return "Q: " + x.q + "\nA: " + x.a; }).join("\n\n") || "none";
   if (b.mode === "brand") return "You help a small business owner write a personal post (their story, values, wins, lessons). Write ONE " + (AI_FORMAT_TEXT[b.format] || b.format) + ", type: \"" + b.title + "\", built only from their answers below.\n\n" + AI_RULES + "\n\n<business>\n" + biz + "\n</business>\n<owner_answers>\n" + qa + "\n</owner_answers>\n<owner_own_words>\n" + (b.own || "none") + "\n</owner_own_words>";
   if (b.mode === "authority") return "You help a small business owner write authority content: a post that teaches something useful from their own experience. Pillar: " + b.pillar + ". Write ONE " + (AI_FORMAT_TEXT[b.format] || b.format) + " answering: \"" + b.question + "\".\n\n" + AI_RULES + "\n\n<business>\n" + biz + "\nExperience: " + (b.experience || "not given") + "\nMethod: " + (b.method || "not given") + "\n</business>\n<owner_answers>\n" + qa + "\n</owner_answers>\n<teaching_details>\n" + (b.details || "none") + "\n</teaching_details>\n<proof (quote only these, word for word)>\n" + ((b.proof || []).join("\n") || "none") + "\n</proof>";
-  return "You write launch content for a small business owner. Write ONE ready-to-post " + (AI_FORMAT_TEXT[b.platform] || b.platform) + " for the launch stage \"" + b.stage + "\", tone: " + (b.tone || "warm") + ".\n\n" + AI_RULES + "\n\n<offer>\n" + biz + (b.extra ? "\nAnything else: " + b.extra : "") + "\n</offer>";
+  return "You write launch content for a small business owner. Write ONE ready-to-post " + (AI_FORMAT_TEXT[b.platform] || b.platform) + " for the launch stage \"" + b.stage + "\", tone: " + (b.tone || "warm") + "." + (b.platform === "tiktok-live" ? " Use 7 timed parts over 25 minutes: paycheck-to-paycheck pain hook, intro, the destructive belief keeping people broke (\"If someone can feed you, they can starve you. Create income for yourself so nobody can starve you.\"), teaching, offer, comments and doubts, strong close with a countdown. A strong call to action in every part." : "") + "\n\n" + AI_RULES + "\n\n<offer>\n" + biz + (b.extra ? "\nAnything else: " + b.extra : "") + "\n</offer>";
 }
 function sampleStream(body, onText) {
   if (!window.claude || !window.claude.use) return Promise.reject(new Error("The AI writer works on your live Studio site. Use the free draft here."));
@@ -567,7 +585,7 @@ document.addEventListener("click", function (e) {
   if ((el = t.closest("[data-postcopy]"))) { var g2 = el.dataset.postcopy, c2 = st.posts[g2]; return copyText(postText(g2, c2.id, c2.f || "caption")); }
   if ((el = t.closest("[data-live]"))) { st.live = el.dataset.live; save(); return renderLive(); }
   if ((el = t.closest("[data-livecopy]"))) return copyText(liveText(st.live || "tiktok", +el.dataset.livecopy));
-  if (t.id === "liveCopyAll") { var k2 = st.live || "tiktok"; return copyText(LIVE_P[k2].name + " SELLING SCRIPT (25 minutes)\n\n" + LIVE_PARTS.map(function (_, i) { return liveText(k2, i); }).join("\n\n")); }
+  if (t.id === "liveCopyAll") { var k2 = st.live || "tiktok"; return copyText(LIVE_P[k2].name + " SELLING SCRIPT (25 minutes)\n\n" + liveParts(k2).map(function (_, i) { return liveText(k2, i); }).join("\n\n")); }
   if ((el = t.closest("[data-mixreset]"))) { st.mix = defaultMix(); save(); return renderBalance(); }
   if ((el = t.closest("[data-afterpillar]"))) { ui.aDay = null; $("aPillar").value = el.dataset.afterpillar; $("aQuestion").selectedIndex = 0; return setATab("create"); }
   if ((el = t.closest("[data-auth]"))) {
