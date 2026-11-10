@@ -18,6 +18,7 @@
   --radius:18px; --max:1120px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
 html{scroll-behavior:smooth}
 body{font-family:Poppins,system-ui,sans-serif;background:var(--navy-900);color:var(--cream);line-height:1.65;-webkit-font-smoothing:antialiased}
 a{color:inherit}
@@ -151,6 +152,7 @@ h2.display{font-size:clamp(2.2rem,5vw,3.6rem);margin-bottom:22px}
 .price .now{font-family:Anton,sans-serif;font-size:3.2rem;color:var(--teal);line-height:1}
 .price .was{color:var(--muted);text-decoration:line-through;margin-right:8px}
 .offer .btn{width:100%}
+.payopts{display:grid;gap:12px}.payopts .btn{margin-top:0}
 .offer .ghost-btn{margin-top:18px;background:transparent;color:var(--teal);border:2px solid var(--teal);box-shadow:none}
 
 footer{background:#fff;color:var(--navy-900);padding:22px 0;font-weight:600;font-size:.9rem}
@@ -426,7 +428,8 @@ footer a{text-decoration:none}
         <li>Live Stream Selling Script (TikTok LIVE &amp; Instagram LIVE)</li>
       </ul>
       <div class="price" id="price" hidden><span class="was" id="price-was"></span><span class="now" id="price-now"></span></div>
-      <a class="btn js-checkout" href="#get-it">Get the Sold-Out Launch Studio Now →</a>
+      <div id="payOptions" class="payopts" hidden></div>
+      <a id="mainBuy" class="btn js-checkout" href="#get-it">Get the Sold-Out Launch Studio Now →</a>
       <p class="cta-note center">Instant access · Go from "I want to launch" to launching confidently</p>
       <a class="btn ghost-btn" href="/script-writer/">✨ Try the AI Script Writer — free</a>
       <a class="btn ghost-btn" href="/launch-calendar/">📅 Open the Sold-Out Launch Studio</a>
@@ -456,7 +459,17 @@ var CONFIG = {
   function useCheckout(url){ links.forEach(function(a){ a.href = url; a.rel = "noopener"; }); }
   // The checkout set in Netlify (STORE_URL, e.g. Stan Store, or STRIPE_CHECKOUT_URL) wins; CONFIG.checkoutUrl is the fallback.
   if (CONFIG.checkoutUrl) useCheckout(CONFIG.checkoutUrl);
-  fetch("/.netlify/functions/access").then(function(r){ return r.json(); }).then(function(c){ if (c.checkoutUrl) useCheckout(c.checkoutUrl); }).catch(function(){});
+  fetch("/.netlify/functions/access").then(function(r){ return r.json(); }).then(function(c){
+    if (c.checkoutUrl) useCheckout(c.checkoutUrl);
+    // Several ways to pay (pay in full / payment plan / subscription): show them all in the offer box.
+    if (c.options && c.options.length > 1) {
+      var box = document.getElementById("payOptions");
+      box.innerHTML = c.options.map(function(o, i){ var a = document.createElement("a"); a.className = "btn" + (i ? " ghost-btn" : ""); a.href = o.url; a.rel = "noopener"; a.textContent = ({full:"Pay in full", plan:"Payment plan", sub:"Subscribe"})[o.id] + " · " + o.label + " →"; return a.outerHTML; }).join("");
+      box.hidden = false; document.getElementById("mainBuy").hidden = true;
+      links.forEach(function(a){ if (a.id !== "mainBuy") a.href = "#get-it"; });
+    }
+    if (c.hasCommunity) { var li = document.createElement("li"); li.textContent = "Access to the private learnwithtolu community"; document.querySelector(".offer ul").appendChild(li); }
+  }).catch(function(){});
   if (CONFIG.price) {
     document.getElementById("price").hidden = false;
     document.getElementById("price-now").textContent = CONFIG.price;

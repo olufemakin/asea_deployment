@@ -99,3 +99,28 @@ A public "join the launch list" page. Sign-ups (name, email, consent) are saved 
 - See and download sign-ups: Netlify → your project → **Forms** → launch-invite. (Enable form detection under Forms if asked.)
 - Get an email for each sign-up: Forms → **Form notifications** → Add notification → Email notification.
 - Launch date: set `LAUNCH_DATE` (e.g. `2026-12-01T18:00:00Z`) to show a countdown. Without it the page says "Coming soon".
+
+
+## Pay in full, payment plan and subscription (Stripe)
+Create one Stripe **Payment Link** per option (all pointing back to `/access/?session_id={CHECKOUT_SESSION_ID}`):
+- **Pay in full:** a one-time price.
+- **Payment plan:** a recurring price (e.g. $17 monthly). After the last instalment, cancel the subscription in Stripe
+  (or set it to cancel automatically). Set `STRIPE_PLAN_LINK` (its `plink_…`) and `PLAN_PAYMENTS` (e.g. `3`): once all
+  instalments are paid, access stays on for good; if someone stops paying early, access stops.
+- **Subscription:** a recurring price. Access works only while the subscription is active: it unlocks for 35 days at a
+  time and renews when the member opens the link in their delivery email or uses "Restore my access".
+
+Netlify variables:
+| Variable | Value |
+|---|---|
+| `STRIPE_PAYMENT_LINK` | all three `plink_…` ids, comma-separated |
+| `STRIPE_CHECKOUT_URL` / `PLAN_CHECKOUT_URL` / `SUB_CHECKOUT_URL` | the three buy.stripe.com links |
+| `PRICE_FULL` / `PRICE_PLAN` / `PRICE_SUB` | labels on the buttons, e.g. `$47 one-time`, `3 × $17`, `$9 / month` |
+| `STRIPE_PLAN_LINK` / `PLAN_PAYMENTS` | the payment-plan `plink_…` and its number of instalments |
+
+With two or more links set, the sales page's offer box shows all options and the other buy buttons scroll to it.
+
+## Community
+Set `COMMUNITY_URL` (your WhatsApp / Telegram / Skool / Facebook group link). Members then see "👥 Join the community" in
+the Studio and on the access page, and it's in the delivery email. Visitors never see the link; the sales page only
+adds "Access to the private learnwithtolu community" to the offer list.

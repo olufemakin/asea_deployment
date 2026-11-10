@@ -38,7 +38,9 @@ export async function verifyToken(secret, token) {
   try {
     const want = await hmac(secret, parts[0] + "." + parts[1]);
     if (!sameBytes(want, fromB64url(parts[2]))) return null;
-    return JSON.parse(new TextDecoder().decode(fromB64url(parts[1])));
+    const payload = JSON.parse(new TextDecoder().decode(fromB64url(parts[1])));
+    if (payload.e && payload.e < Math.floor(Date.now() / 1000)) return null; // expired (e.g. a subscription period)
+    return payload;
   } catch {
     return null;
   }
@@ -49,7 +51,7 @@ export function readCookie(header, name = COOKIE) {
   return m ? decodeURIComponent(m[1]) : null;
 }
 
-export function cookieHeader(token) {
-  return `${COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=${MAX_AGE}; HttpOnly; Secure; SameSite=Lax`;
+export function cookieHeader(token, maxAge = MAX_AGE) {
+  return `${COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Lax`;
 }
 export const clearCookieHeader = `${COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`;

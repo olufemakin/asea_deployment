@@ -44,9 +44,9 @@ export default async (req) => {
   if (event.type !== "checkout.session.completed") return new Response("Ignored", { status: 200 });
 
   const s = event.data?.object || {};
-  const plink = process.env.STRIPE_PAYMENT_LINK;
+  const plinks = String(process.env.STRIPE_PAYMENT_LINK || "").split(",").map((x) => x.trim()).filter(Boolean);
   const email = s.customer_details?.email;
-  if (s.payment_status !== "paid" || (plink && s.payment_link !== plink) || !email) return new Response("Skipped", { status: 200 });
+  if (s.payment_status !== "paid" || (plinks.length && !plinks.includes(s.payment_link)) || !email) return new Response("Skipped", { status: 200 });
   if (!process.env.RESEND_API_KEY || !process.env.DELIVERY_FROM) return new Response("Email not configured", { status: 200 });
 
   const site = (process.env.SITE_URL || new URL(req.url).origin).replace(/\/$/, "");
@@ -59,9 +59,11 @@ export default async (req) => {
 <p><a href="${esc(link)}" style="display:inline-block;background:#d4a849;color:#07152b;padding:14px 22px;border-radius:999px;font-weight:bold;text-decoration:none">Open the Sold-Out Launch Studio</a></p>
 <p>This link unlocks the Studio and the AI Script Writer in your browser. Keep this email: you can use the same link on a new phone or computer.</p>
 <p>Inside you'll find your 30-day launch calendar, 120 interactive launch scripts, the AI Script Writer, the Authority Content Studio and the Live Stream Selling Script.</p>
+${/^https:\/\//.test(process.env.COMMUNITY_URL || "") ? `<p><b>Join the community:</b> <a href="${esc(process.env.COMMUNITY_URL)}">${esc(process.env.COMMUNITY_URL)}</a></p>` : ""}
+${s.mode === "subscription" ? "<p>Your subscription keeps the Studio unlocked. About once a month you may be asked to confirm your access: just open this email's link again.</p>" : ""}
 <p>Questions? Just reply to this email.</p>
 <p>Tolu<br>learnwithtolu</p></div>`;
-  const text = `You're in!\n\nThank you for buying the Sold-Out Launch Studio.\nOpen it here: ${link}\n\nKeep this email: the same link works on a new phone or computer.\n\nQuestions? Just reply to this email.\nTolu, learnwithtolu`;
+  const text = `You're in!\n\nThank you for buying the Sold-Out Launch Studio.\nOpen it here: ${link}\n\nKeep this email: the same link works on a new phone or computer.\n\n${/^https:\/\//.test(process.env.COMMUNITY_URL || "") ? "Join the community: " + process.env.COMMUNITY_URL + "\n\n" : ""}Questions? Just reply to this email.\nTolu, learnwithtolu`;
 
   const res = await fetch(`${RESEND}/emails`, {
     method: "POST",

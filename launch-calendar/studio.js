@@ -15,7 +15,7 @@ var WEEKS = [
   {id:"w5",tab:"Days 29–30",name:"Days 29–30 · Sell Out",from:29,to:30,sub:"Last Call",why:"Don't go quiet at the finish line. The last call matters."},
   {id:"after",tab:"After launch",name:"After launch",sub:"Deliver, collect real reviews, debrief",why:"How you finish this launch sets up the next one."}
 ];
-var FORMATS = [["reel","Reel script","reel"],["carousel","Carousel","carousel"],["story","Story","instagram-stories"],["status","Status post","whatsapp-status"]];
+var FORMATS = [["post","Post","instagram-caption"],["reel","Reel script","reel"],["carousel","Carousel","carousel"],["story","Story","instagram-stories"],["status","Status post","whatsapp-status"],["thought","Thought post","thought"]];
 var PILLARS = {
   "Beginner education":["What should someone know before buying {thing}?","What is one thing beginners get wrong about {thing}?","Explain one term or idea your customers often misunderstand."],
   "Common mistakes":["What is one mistake beginners make in your industry?","What mistake costs your customers the most money?","What do people do that makes {pain} worse?"],
@@ -32,7 +32,7 @@ var CATS = [["auth","Authority & education",30],["story","Personal storytelling"
 var SET_CAT = {"Warm-Up & Visibility":"engage","Stir the Problem":"auth","Share Your Story":"story","Prove Your Expertise":"auth","Position Your Offer":"offer","Gather Your People":"engage","Fill Your Waitlist":"offer","Build the Hype":"engage","Open the Doors":"sell","Answer the Doubts":"offer","Show the Proof":"offer","Last Call":"sell"};
 var PILLAR_CAT = {"Lessons from experience":"story","Customer problems":"engage","Frequently asked questions":"engage"};
 var AFTER_PILLARS = ["Lessons from experience","Service education","Frequently asked questions","Behind-the-scenes expertise","Market observations","Practical tutorials"];
-var TIPS = {reel:"Film in natural light, put the hook on screen in the first second and keep it under 30 seconds.",carousel:"Put your face or your product on the cover slide and keep each slide to one idea.",story:"Post the frames an hour or two apart and use a sticker so people can reply.",status:"Post the first status in the morning and the others through the day so more people see it."};
+var TIPS = {post:"Use a photo of your face or your product, and make the first line count: it's all people see before 'more'.",thought:"Post it as plain text on Threads, X, LinkedIn or Facebook. No hashtags needed; reply to every comment.",reel:"Film in natural light, put the hook on screen in the first second and keep it under 30 seconds.",carousel:"Put your face or your product on the cover slide and keep each slide to one idea.",story:"Post the frames an hour or two apart and use a sticker so people can reply.",status:"Post the first status in the morning and the others through the day so more people see it."};
 var AFORMATS = [["facebook","Educational Facebook post"],["carousel","Instagram carousel"],["reel","Reel script"],["caption","Instagram caption"],["status","WhatsApp Status series"],["linkedin","LinkedIn post"],["email","Email newsletter"]];
 var AFTER = [
   {h:"Deliver like a pro",items:["Send every buyer a welcome or confirmation message within 24 hours","Tell them exactly what happens next and when","Deliver on time, every time"]},
@@ -109,8 +109,14 @@ function gen(d, f) {
   if (f === "reel") body = "🎬 Shot idea: " + fill(d.shot, p) + "\n\n0–3s · HOOK (say it + put it on screen)\n" + h + "\n\n3–10s\n" + a[0] + "\n\n10–20s\n" + a[1] + " " + a[2] + "\n\nLast 3s · CALL TO ACTION\n" + c + "\n\nCAPTION\n" + h + " " + a[0] + "\n\n" + c;
   else if (f === "carousel") body = "Slide 1 · Hook\n" + h + "\n\nSlide 2\n" + a[0] + "\n\nSlide 3\n" + a[1] + "\n\nSlide 4\n" + a[2] + "\n\nSlide 5 · Call to action\n" + c + "\n\nCAPTION\n" + h + "\n\n" + a[1] + "\n\n" + c;
   else if (f === "story") body = "Frame 1 · Hook\n" + h + "\n\nFrame 2\n" + a[0] + "\n\nFrame 3\n" + d.stories + "\n\nFrame 4 · Call to action\n" + c + " (add a link, poll or question sticker)";
+  else if (f === "post") body = h + "\n\n" + a[0] + "\n\n" + a[1] + " " + a[2] + "\n\n" + c + "\n\n#[yourniche] #[yourcity]";
+  else if (f === "thought") body = thought(h, a, c);
   else body = "Status 1 (morning)\n" + fill(d.status, p) + "\n\nStatus 2 (afternoon)\n" + a[1] + "\n\nStatus 3 (evening)\n" + c;
   return t + "\n\n" + body + "\n\nPosting tip: " + TIPS[f];
+}
+function thought(h, a, c) { // short text-only insight for Threads / X / LinkedIn / Facebook
+  var end = c.replace(/\s*(Comment|Reply|Tap|DM)[^.?!]*[.?!]?\s*$/i, "").trim();
+  return h + "\n\n" + a.map(function (x) { return "→ " + x; }).join("\n") + "\n\n" + (end ? end : "") + (/\?\s*$/.test(end) ? "" : (end ? "\n\n" : "") + "What do you think?");
 }
 function cleanAI(t) { return String(t).replace(/\*\*/g, "").replace(/^#{1,6}\s*/gm, "").replace(/^\s*SCRIPT\s*\n/, ""); }
 function writerLink(n, platform) {
@@ -120,7 +126,7 @@ function writerLink(n, platform) {
 }
 
 /* ---------- after-launch + personal branding posts ---------- */
-var POST_FORMATS = [["caption","Instagram caption"],["reel","Instagram Reel / TikTok video"],["story","Instagram Story"],["status","WhatsApp status"]];
+var POST_FORMATS = [["caption","Post (Instagram / Facebook caption)"],["reel","Reel / TikTok video"],["carousel","Carousel"],["story","Story (Instagram / Facebook)"],["status","WhatsApp status"],["thought","Thought post (Threads / X / LinkedIn)"]];
 var POSTS = {
   after: [
     ["delivery","Delivery post","Orders are on their way! 📦",["Thank you to everyone who bought [offer name].","Here's what happens next: [delivery or start details].","Behind the scenes right now: {bts}."],"Already bought? Reply and tell me when yours arrives."],
@@ -154,7 +160,7 @@ var POSTS = {
     ["next","Where I'm going next","Here's where I'm taking this business next.",["[Your next goal]","[Why it matters]","[How your audience can be part of it]"],"Want to come along? Follow so you don't miss it."]
   ]
 };
-var POST_TIPS = {caption:"Use a photo of your face or your work, and put the first line where people can see it before 'more'.",reel:"Film in natural light, say the hook in the first second and keep it under 30 seconds.",story:"Post the frames an hour or two apart and add a question or poll sticker.",status:"Post one status in the morning, one in the afternoon and one in the evening."};
+var POST_TIPS = {carousel:"Put your face or the main point on the cover slide and keep each slide to one idea.",thought:"Post it as plain text. No hashtags needed; reply to every comment to start a conversation.",caption:"Use a photo of your face or your work, and put the first line where people can see it before 'more'.",reel:"Film in natural light, say the hook in the first second and keep it under 30 seconds.",story:"Post the frames an hour or two apart and add a question or poll sticker.",status:"Post one status in the morning, one in the afternoon and one in the evening."};
 function postQs(g, id) {
   var it = POSTS[g].filter(function (x) { return x[0] === id; })[0], qs = [];
   [it[2]].concat(it[3], [it[4]]).join(" ").replace(/\[([^\]]{3,80})\]/g, function (m, q) { if (qs.indexOf(q) < 0) qs.push(q); return m; });
@@ -172,6 +178,8 @@ function postText(g, id, f) {
   if (f === "reel") body = "🎬 Shot idea: face to camera, then show your work or your product\n\n0–3s · HOOK (say it + put it on screen)\n" + h + "\n\n3–15s\n" + a[0] + " " + a[1] + "\n\n15–25s\n" + a[2] + "\n\nLast 3s · CALL TO ACTION\n" + c;
   else if (f === "story") body = "Frame 1 · Hook\n" + h + "\n\nFrame 2\n" + a[0] + "\n\nFrame 3\n" + a[1] + "\n\nFrame 4\n" + a[2] + "\n\nFrame 5 · Call to action\n" + c + " (add a question or link sticker)";
   else if (f === "status") body = "Status 1 (morning)\n" + h + "\n\nStatus 2 (afternoon)\n" + a[0] + " " + a[1] + "\n\nStatus 3 (evening)\n" + a[2] + " " + c;
+  else if (f === "carousel") body = "Slide 1 · Hook\n" + h + "\n\nSlide 2\n" + a[0] + "\n\nSlide 3\n" + a[1] + "\n\nSlide 4\n" + a[2] + "\n\nSlide 5 · Call to action\n" + c + "\n\nCAPTION\n" + h + "\n\n" + c;
+  else if (f === "thought") body = thought(h, a, c);
   else body = h + "\n\n" + a[0] + "\n\n" + a[1] + "\n\n" + a[2] + "\n\n" + c + "\n\n#[yourniche] #[yourcity]";
   return it[1].toUpperCase() + "\n\n" + body + "\n\nPosting tip: " + POST_TIPS[f];
 }
@@ -593,6 +601,10 @@ $("aPillar").innerHTML = Object.keys(PILLARS).map(function (k) { return '<option
 $("aFormat").innerHTML = AFORMATS.map(function (f) { return '<option value="' + f[0] + '">' + esc(f[1]) + "</option>"; }).join("");
 $("launch").value = st.launch || "";
 renderBiz(); renderProfile(); renderLive(); renderPosts();
+// Community link (COMMUNITY_URL in Netlify), only sent to members.
+try { fetch("/.netlify/functions/access", {credentials:"same-origin"}).then(function (r) { return r.json(); }).then(function (c) {
+  if (c && /^https:\/\//.test(c.communityUrl || "")) { var el = $("nav-community"); el.href = c.communityUrl; el.hidden = false; }
+}).catch(function () {}); } catch (e) {}
 var first = nextTodo(); if (first === null) { ui.week = "after"; renderWeek(); } else goDay(first, false);
 route();
 })();
