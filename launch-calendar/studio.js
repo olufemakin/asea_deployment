@@ -99,7 +99,7 @@ function renderBiz() {
 }
 function pickBiz(id) {
   st.biz = id; st.prof = defaults(bizRow(id)); ui.changeBiz = false; save();
-  renderBiz(); renderWeek(); renderProfile(); renderLive();
+  renderBiz(); renderWeek(); renderProfile(); renderLive(); renderPosts();
   toast(id.indexOf("custom:") === 0 ? "Added. Fill in your Profile so posts fit your business." : "Posts are now made for " + bizName());
 }
 
@@ -117,6 +117,47 @@ function writerLink(n, platform) {
   var d = DAYS[n - 1], p = prof(), q = "stage=" + STAGE_IDS[d.set] + "&platform=" + platform;
   if (bizRow(st.biz)) q += "&type=" + encodeURIComponent(bizName()) + "&audience=" + encodeURIComponent(p.who) + "&problem=" + encodeURIComponent(p.pain);
   return "/script-writer/?" + q;
+}
+
+/* ---------- after-launch + personal branding posts ---------- */
+var POST_FORMATS = [["caption","Instagram caption"],["reel","Instagram Reel / TikTok video"],["story","Instagram Story"],["status","WhatsApp status"]];
+var POSTS = {
+  after: [
+    ["delivery","Delivery post","Orders are on their way! 📦",["Thank you to everyone who bought [offer name].","Here's what happens next: [delivery or start details].","Behind the scenes right now: {bts}."],"Already bought? Reply and tell me when yours arrives."],
+    ["review","Review request","Can I ask you a small favour? 🙏",["If you've started using your {thing}, I'd love to hear how it's going.","What did you like most? What changed for you?","With your permission, I may share your words to help others decide."],"Reply with a few words or send a short video. It means the world."],
+    ["keepselling","Keep-selling content","Missed the launch? You can still get it.",["[Offer name] helps {who} {want}.","Here's what a customer said: \"[real review, shared with permission]\".","[How to buy now, and any real limit]."],"Ready? {buy} here: [link]."],
+    ["weekly","Weekly value post","Quick tip for {who} 💡",["[Your tip of the week]","Why it matters: it helps you {want}.","Try it this week and tell me how it goes."],"Save this for later and share it with a friend."],
+    ["thanks","Thank-you post","Thank you. This launch happened because of you. 💛",["[What you loved about this launch]","[What you learned]","If you missed it: [how to join the next round]."],"Comment 💛 if you were part of it."]
+  ],
+  brand: [
+    ["story","My story post","How I started selling {thing}.",["[Where you were before you started]","[The moment you decided to start]","Today I help {who} {want}."],"What's your story? Tell me below."],
+    ["meet","Meet-the-person post","Hi, I'm [your name] 👋, the person behind [business name].",["I help {who} {want}.","3 things about me: [fact 1], [fact 2], [fact 3].","Something you might not know: [a personal detail you're happy to share]."],"Say hi in the comments and tell me one thing about you!"],
+    ["stand","What I stand for","Here's what I'll never do in my business.",["I'll never [a practice you refuse].","I'll always [a promise you keep].","Because {who} deserve better than {pain}."],"If you agree, you're my kind of person. Follow for more."],
+    ["mistake","Lesson from a mistake","The mistake that taught me the most.",["[What went wrong]","[What it cost you]","[What you do differently now]"],"Have you made this mistake? Tell me below."],
+    ["expertise","Prove your expertise","What most people don't know about {thing}.",["[Insight 1 from your own experience]","[Insight 2]","[One quick tip anyone can use today]"],"Questions? Ask me in the comments. I answer every one."]
+  ]
+};
+var POST_TIPS = {caption:"Use a photo of your face or your work, and put the first line where people can see it before 'more'.",reel:"Film in natural light, say the hook in the first second and keep it under 30 seconds.",story:"Post the frames an hour or two apart and add a question or poll sticker.",status:"Post one status in the morning, one in the afternoon and one in the evening."};
+function postText(g, id, f) {
+  var it = POSTS[g].filter(function (x) { return x[0] === id; })[0], p = prof() || defaults(BUSINESS_CUSTOM);
+  var h = fill(it[2], p), a = it[3].map(function (x) { return fill(x, p); }), c = fill(it[4], p), body;
+  if (f === "reel") body = "🎬 Shot idea: face to camera, then show your work or your product\n\n0–3s · HOOK (say it + put it on screen)\n" + h + "\n\n3–15s\n" + a[0] + " " + a[1] + "\n\n15–25s\n" + a[2] + "\n\nLast 3s · CALL TO ACTION\n" + c;
+  else if (f === "story") body = "Frame 1 · Hook\n" + h + "\n\nFrame 2\n" + a[0] + "\n\nFrame 3\n" + a[1] + "\n\nFrame 4\n" + a[2] + "\n\nFrame 5 · Call to action\n" + c + " (add a question or link sticker)";
+  else if (f === "status") body = "Status 1 (morning)\n" + h + "\n\nStatus 2 (afternoon)\n" + a[0] + " " + a[1] + "\n\nStatus 3 (evening)\n" + a[2] + " " + c;
+  else body = h + "\n\n" + a[0] + "\n\n" + a[1] + "\n\n" + a[2] + "\n\n" + c + "\n\n#[yourniche] #[yourcity]";
+  return it[1].toUpperCase() + "\n\n" + body + "\n\nPosting tip: " + POST_TIPS[f];
+}
+function renderPosts() {
+  st.posts = st.posts || {};
+  ["after", "brand"].forEach(function (g) {
+    var cur = st.posts[g] || {}, sel = document.querySelector('[data-postfmt="' + g + '"]');
+    document.querySelector('[data-group="' + g + '"]').innerHTML = POSTS[g].map(function (x) { return '<button class="chip" type="button" data-post="' + g + ":" + x[0] + '" aria-pressed="' + (cur.id === x[0]) + '">' + esc(x[1]) + "</button>"; }).join("");
+    if (!sel.options.length) sel.innerHTML = POST_FORMATS.map(function (f) { return '<option value="' + f[0] + '">' + f[1] + "</option>"; }).join("");
+    sel.value = cur.f || "caption";
+    var out = document.querySelector('[data-postout="' + g + '"]');
+    out.innerHTML = cur.id ? '<div class="out" style="margin-top:12px">' + rich(postText(g, cur.id, sel.value)) + '</div><div class="acts"><button class="btn small solid" type="button" data-postcopy="' + g + '">Copy</button></div>' +
+      (bizRow(st.biz) ? "" : '<p class="muted" style="font-size:.84rem;margin-top:8px">Pick your business at the top so this post fits you.</p>') : "";
+  });
 }
 
 /* ---------- live stream selling script (bonus) ---------- */
@@ -384,6 +425,8 @@ document.addEventListener("click", function (e) {
   if ((el = t.closest("[data-copyfmt]"))) { var dn = +el.dataset.copyfmt, fk = dn + ":" + (st.fmt[dn] || "reel"); return copyText(st.ai[fk] && !ui.tpl[fk] ? st.ai[fk] : gen(DAYS[dn - 1], st.fmt[dn] || "reel")); }
   if ((el = t.closest("[data-tpl]"))) { ui.tpl[el.dataset.tpl] = !ui.tpl[el.dataset.tpl]; return renderWeek(); }
   if ((el = t.closest("[data-aigen]"))) return dayAI(+el.dataset.aigen, el);
+  if ((el = t.closest("[data-post]"))) { var gp = el.dataset.post.split(":"); st.posts = st.posts || {}; st.posts[gp[0]] = {id:gp[1], f:(st.posts[gp[0]] || {}).f || "caption"}; save(); return renderPosts(); }
+  if ((el = t.closest("[data-postcopy]"))) { var g2 = el.dataset.postcopy, c2 = st.posts[g2]; return copyText(postText(g2, c2.id, c2.f || "caption")); }
   if ((el = t.closest("[data-live]"))) { st.live = el.dataset.live; save(); return renderLive(); }
   if ((el = t.closest("[data-livecopy]"))) return copyText(liveText(st.live || "tiktok", +el.dataset.livecopy));
   if (t.id === "liveCopyAll") { var k2 = st.live || "tiktok"; return copyText(LIVE_P[k2].name + " SELLING SCRIPT (25 minutes)\n\n" + LIVE_PARTS.map(function (_, i) { return liveText(k2, i); }).join("\n\n")); }
@@ -418,6 +461,7 @@ document.addEventListener("change", function (e) {
   if (t.dataset.tick) return tick(+t.dataset.tick);
   if (t.dataset.after) { if (t.checked) st.after[t.dataset.after] = 1; else delete st.after[t.dataset.after]; save(); t.parentNode.classList.toggle("checked", t.checked); return; }
   if (t.id === "launch") { st.launch = t.value; save(); renderWeek(); if (st.launch) toast("Dates filled in"); return; }
+  if (t.dataset.postfmt) { st.posts = st.posts || {}; var pg = st.posts[t.dataset.postfmt] || {}; pg.f = t.value; st.posts[t.dataset.postfmt] = pg; save(); return renderPosts(); }
   if (t.id === "aPillar") { $("aQuestion").selectedIndex = 0; renderCreate(); }
 });
 document.addEventListener("input", function (e) {
@@ -427,7 +471,7 @@ document.addEventListener("input", function (e) {
   if (t.id === "bizSearch") return renderBiz();
   if (t.dataset.note) { st.notes[t.dataset.note] = t.value; save(); return; }
   if (t.dataset.deb) { st.debrief[t.dataset.deb] = t.value; save(); return; }
-  if (t.dataset.prof) { st.prof = st.prof || prof() || defaults(BUSINESS_CUSTOM); st.prof[t.dataset.prof] = t.value; save(); renderLive(); $("profSaved").textContent = "Saved ✓"; clearTimeout(renderProfile.t); renderProfile.t = setTimeout(function () { $("profSaved").textContent = ""; }, 1200); }
+  if (t.dataset.prof) { st.prof = st.prof || prof() || defaults(BUSINESS_CUSTOM); st.prof[t.dataset.prof] = t.value; save(); renderLive(); renderPosts(); $("profSaved").textContent = "Saved ✓"; clearTimeout(renderProfile.t); renderProfile.t = setTimeout(function () { $("profSaved").textContent = ""; }, 1200); }
 });
 $("bizOther").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); $("bizOtherGo").click(); } });
 window.addEventListener("hashchange", route);
@@ -436,7 +480,7 @@ window.addEventListener("hashchange", route);
 $("aPillar").innerHTML = Object.keys(PILLARS).map(function (k) { return '<option>' + esc(k) + "</option>"; }).join("");
 $("aFormat").innerHTML = AFORMATS.map(function (f) { return '<option value="' + f[0] + '">' + esc(f[1]) + "</option>"; }).join("");
 $("launch").value = st.launch || "";
-renderBiz(); renderProfile(); renderLive();
+renderBiz(); renderProfile(); renderLive(); renderPosts();
 var first = nextTodo(); if (first === null) { ui.week = "after"; renderWeek(); } else goDay(first, false);
 route();
 })();
