@@ -137,9 +137,20 @@ input[type=number]{background:var(--n9);border:1px solid rgba(169,182,201,.3);bo
 .part-h b{font-size:1rem}.part-h .time{font-family:Anton,sans-serif;color:var(--g);font-size:1.05rem;letter-spacing:.5px}
 .part .goal{color:var(--m);font-size:.84rem;margin:2px 0 8px}
 .live{border:1px solid var(--g);margin-top:28px}
+.script{background:var(--n8);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px;margin-top:10px}
+.script.used{border-color:rgba(127,216,166,.5)}
+.script-h{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.script-h .num{font-family:Anton,sans-serif;color:var(--g);font-size:1.05rem;letter-spacing:.5px}
+.script-h b{font-size:1rem}
+.script .stg{font-size:.72rem;color:var(--m);font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.script .out{margin-top:10px}
+.btn.on{background:var(--ok);border-color:var(--ok);color:var(--n9)}
+.stagehead{margin:18px 0 4px}
+.stagehead h2{font-size:1.4rem}
+.stagehead p{color:var(--m);font-size:.9rem}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--g);color:var(--n9);font-weight:800;padding:10px 18px;border-radius:99px;font-size:.88rem;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:90vw;text-align:center}
 footer{text-align:center;color:var(--m);font-size:.8rem;padding:26px 0 40px;border-top:1px solid var(--line);margin-top:30px}
-@media (max-width:640px){header.top:after{width:120px;height:120px;right:-60px;top:-70px}.grid2{grid-template-columns:1fr}.bal .r{grid-template-columns:120px 1fr 22px}}
+@media (max-width:640px){#sStages{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}#sStages .chip{flex:0 0 auto}header.top:after{width:120px;height:120px;right:-60px;top:-70px}.grid2{grid-template-columns:1fr}.bal .r{grid-template-columns:120px 1fr 22px}}
 @media print{.sticky,.views,.acts,.note,.weeknav,.made,.auth,.toast{display:none!important}body{background:#fff;color:#000}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
@@ -152,6 +163,7 @@ footer{text-align:center;color:var(--m);font-size:.8rem;padding:26px 0 40px;bord
     <p class="lede" id="lede">Your 30-day launch calendar, one day at a time. Open today's day, do the post, the story and the action, then tick it off.</p>
     <nav class="views" aria-label="Studio sections">
       <a href="#calendar" id="nav-calendar">📅 30-Day Calendar</a>
+      <a href="#scripts" id="nav-scripts">📝 120 Launch Scripts</a>
       <a href="#authority" id="nav-authority">📖 Authority Content Studio</a>
     </nav>
   </div>
@@ -222,6 +234,28 @@ footer{text-align:center;color:var(--m);font-size:.8rem;padding:26px 0 40px;bord
         <a class="btn" id="liveAI" href="/script-writer/?stage=live-selling&platform=tiktok-live">✨ Write my live script with AI</a>
       </div>
     </section>
+  </section>
+
+  <!-- ===================== SCRIPT LIBRARY ===================== -->
+  <section id="view-scripts" hidden>
+    <div class="card progress">
+      <div class="row"><b id="sText">0 of 120 scripts used</b><span class="muted" id="sPct">0%</span></div>
+      <div class="pbar" aria-hidden="true"><i id="sBar"></i></div>
+      <p class="sub" id="sBiz"></p>
+    </div>
+    <div class="card">
+      <h2 class="anton" style="font-size:1.6rem">120 Launch Scripts</h2>
+      <p class="sub">12 launch stages × 10 scripts, written for your business. Fill in the [brackets], copy, post, and mark it used.</p>
+      <input type="search" id="sSearch" placeholder="Search scripts: waitlist, review, live, price…" style="margin-top:12px" aria-label="Search scripts">
+      <div class="chips" id="sModes" role="toolbar" aria-label="Show">
+        <button class="chip" type="button" data-smode="all">All</button>
+        <button class="chip" type="button" data-smode="unused">Not used yet</button>
+        <button class="chip" type="button" data-smode="fav">★ Saved</button>
+      </div>
+      <div class="chips" id="sStages" role="toolbar" aria-label="Launch stage"></div>
+    </div>
+    <div id="sStageHead"></div>
+    <div id="sList"></div>
   </section>
 
   <!-- ===================== AUTHORITY ===================== -->
@@ -316,6 +350,7 @@ footer{text-align:center;color:var(--m);font-size:.8rem;padding:26px 0 40px;bord
 
 <script src="businesses.js"></script>
 <script src="days.js"></script>
+<script src="scripts.js"></script>
 <script src="studio.js"></script>
 </body>
 </html>

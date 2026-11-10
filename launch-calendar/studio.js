@@ -220,6 +220,7 @@ function dayHTML(n) {
     '<button class="dhb" type="button" data-toggle="' + n + '" aria-expanded="' + open + '"><span class="circ">' + n + '</span><span class="dt"><b>Day ' + n + (n === 22 ? " · Launch Day" : "") + (nx ? '<span class="nextpill">Up next</span>' : "") + '</b><span>' + esc(d.set) + (date ? " · " + fmtD(date) : "") + '</span></span><span class="pm" aria-hidden="true">' + (open ? "−" : "+") + "</span></button></div>" +
     (open ? '<div class="db"><div class="lines"><p><b>Post:</b> ' + esc(d.post) + '</p><p><b>Story / Status:</b> ' + esc(d.stories) + '</p><p><b>Action:</b> ' + esc(d.action) + "</p></div>" + made +
       '<div class="auth"><span class="lbl">' + stage + " · " + esc(d.pillar) + '</span><div class="acts"><button class="btn small" type="button" data-auth="' + n + '">Create Day ' + n + ' authority content</button></div></div>' +
+      '<div class="acts"><button class="btn" type="button" data-gostage="' + STAGE_IDS[d.set] + '">📝 Browse the 10 ' + esc(d.set) + ' scripts</button></div>' +
       '<div class="acts"><a class="btn solid" href="' + writerLink(n, "instagram-caption") + '">✨ Write this post with AI</a><button class="btn" type="button" data-mark="' + n + '">' + (done ? "✓ Done · undo" : "Mark day done") + "</button></div>" +
       '<textarea class="note" data-note="' + n + '" placeholder="Notes for Day ' + n + ' (script used, results, ideas)…">' + esc(st.notes[n] || "") + "</textarea></div>" : "") +
     "</article>";
@@ -403,13 +404,52 @@ function setATab(t) {
   if (t === "profile") renderProfile(); if (t === "create") renderCreate(); if (t === "proof") renderProof(); if (t === "balance") renderBalance();
 }
 
+/* ---------- 120-script library ---------- */
+function scriptList() {
+  var all = [], n = 0;
+  SCRIPT_STAGES.forEach(function (sg) { sg.scripts.forEach(function (sc, i) { n++; all.push({key:sg.id + ":" + i, num:n, stage:sg, title:sc[0], text:sc[1]}); }); });
+  return all;
+}
+var SCRIPTS = scriptList();
+function scriptText(x) { return fill(x.text, prof() || defaults(BUSINESS_CUSTOM)); }
+function renderScripts() {
+  st.used = st.used || {}; st.fav = st.fav || {};
+  var usedN = Object.keys(st.used).length, mode = ui.smode || "all", stage = ui.sstage || "all", q = ($("sSearch").value || "").toLowerCase().trim();
+  $("sText").textContent = usedN + " of 120 scripts used"; $("sPct").textContent = Math.round(usedN / 120 * 100) + "%"; $("sBar").style.width = (usedN / 120 * 100) + "%";
+  $("sBiz").innerHTML = bizRow(st.biz) ? "Written for your <b>" + esc(bizName()) + "</b>. <a href=\"#calendar\">Change business</a>" : 'Tip: <a href="#calendar">pick your business</a> and every script fills in your audience, problem and result.';
+  document.querySelectorAll("[data-smode]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.smode === mode); });
+  $("sStages").innerHTML = '<button class="chip" type="button" data-sstage="all" aria-pressed="' + (stage === "all") + '">All 12 stages</button>' + SCRIPT_STAGES.map(function (sg, i) {
+    var u = sg.scripts.filter(function (_, j) { return st.used[sg.id + ":" + j]; }).length;
+    return '<button class="chip" type="button" data-sstage="' + sg.id + '" aria-pressed="' + (stage === sg.id) + '">' + String(i + 1).padStart(2, "0") + " " + esc(sg.name) + " · " + u + "/10</button>";
+  }).join("");
+  var sg = SCRIPT_STAGES.filter(function (x) { return x.id === stage; })[0];
+  $("sStageHead").innerHTML = sg ? '<div class="stagehead"><h2 class="anton">' + esc(sg.name) + '</h2><p>' + esc(sg.goal) + "</p></div>" : "";
+  var list = SCRIPTS.filter(function (x) {
+    if (stage !== "all" && x.stage.id !== stage) return false;
+    if (mode === "unused" && st.used[x.key]) return false;
+    if (mode === "fav" && !st.fav[x.key]) return false;
+    return !q || (x.title + " " + x.text + " " + x.stage.name).toLowerCase().indexOf(q) >= 0;
+  });
+  $("sList").innerHTML = list.length ? list.map(function (x) {
+    var used = !!st.used[x.key], fav = !!st.fav[x.key], pr = prof(), w = "/script-writer/?stage=" + x.stage.id + "&platform=instagram-caption";
+    if (bizRow(st.biz)) w += "&type=" + encodeURIComponent(bizName()) + (pr && !/^\[/.test(pr.who) ? "&audience=" + encodeURIComponent(pr.who) + "&problem=" + encodeURIComponent(pr.pain) : "");
+    return '<article class="script' + (used ? " used" : "") + '"><div class="script-h"><span><span class="num">#' + String(x.num).padStart(3, "0") + "</span> · <b>" + esc(x.title) + '</b></span><span class="stg">' + esc(x.stage.name) + '</span></div>' +
+      '<div class="out">' + rich(scriptText(x)) + '</div><div class="acts">' +
+      '<button class="btn small solid" type="button" data-scopy="' + x.key + '">Copy</button>' +
+      '<button class="btn small' + (used ? " on" : "") + '" type="button" data-sused="' + x.key + '" aria-pressed="' + used + '">' + (used ? "✓ Used" : "Mark used") + "</button>" +
+      '<button class="btn small" type="button" data-sfav="' + x.key + '" aria-pressed="' + fav + '">' + (fav ? "★ Saved" : "☆ Save") + "</button>" +
+      '<a class="btn small" href="' + w + '">✨ Rewrite with AI</a></div></article>';
+  }).join("") : '<p class="hintbox">No scripts match. Try another search or stage.</p>';
+}
+function scriptByKey(k) { return SCRIPTS.filter(function (x) { return x.key === k; })[0]; }
+
 /* ---------- views ---------- */
 function route() {
-  var auth = location.hash === "#authority";
-  $("view-calendar").hidden = auth; $("view-authority").hidden = !auth;
-  $("nav-calendar").setAttribute("aria-current", auth ? "false" : "page"); $("nav-authority").setAttribute("aria-current", auth ? "page" : "false");
-  $("lede").textContent = auth ? "Your experience. Your perspective. Useful knowledge worth sharing." : "Your 30-day launch calendar, one day at a time. Open today's day, do the post, the story and the action, then tick it off.";
-  if (auth) setATab(ui.atab);
+  var v = location.hash === "#authority" ? "authority" : location.hash === "#scripts" ? "scripts" : "calendar";
+  ["calendar", "scripts", "authority"].forEach(function (k) { $("view-" + k).hidden = v !== k; $("nav-" + k).setAttribute("aria-current", v === k ? "page" : "false"); });
+  $("lede").textContent = v === "authority" ? "Your experience. Your perspective. Useful knowledge worth sharing." : v === "scripts" ? "120 fully-written launch scripts across 12 launch stages, made for your business." : "Your 30-day launch calendar, one day at a time. Open today's day, do the post, the story and the action, then tick it off.";
+  if (v === "authority") setATab(ui.atab);
+  if (v === "scripts") renderScripts();
 }
 
 /* ---------- events ---------- */
@@ -425,6 +465,12 @@ document.addEventListener("click", function (e) {
   if ((el = t.closest("[data-copyfmt]"))) { var dn = +el.dataset.copyfmt, fk = dn + ":" + (st.fmt[dn] || "reel"); return copyText(st.ai[fk] && !ui.tpl[fk] ? st.ai[fk] : gen(DAYS[dn - 1], st.fmt[dn] || "reel")); }
   if ((el = t.closest("[data-tpl]"))) { ui.tpl[el.dataset.tpl] = !ui.tpl[el.dataset.tpl]; return renderWeek(); }
   if ((el = t.closest("[data-aigen]"))) return dayAI(+el.dataset.aigen, el);
+  if ((el = t.closest("[data-smode]"))) { ui.smode = el.dataset.smode; return renderScripts(); }
+  if ((el = t.closest("[data-sstage]"))) { ui.sstage = el.dataset.sstage; renderScripts(); return $("sStageHead").scrollIntoView({block:"start"}); }
+  if ((el = t.closest("[data-scopy]"))) { var sx = scriptByKey(el.dataset.scopy); return copyText(sx.title.toUpperCase() + "\n\n" + scriptText(sx)); }
+  if ((el = t.closest("[data-sused]"))) { st.used = st.used || {}; if (st.used[el.dataset.sused]) delete st.used[el.dataset.sused]; else { st.used[el.dataset.sused] = Date.now(); toast("Marked used ✓"); } save(); return renderScripts(); }
+  if ((el = t.closest("[data-sfav]"))) { st.fav = st.fav || {}; if (st.fav[el.dataset.sfav]) delete st.fav[el.dataset.sfav]; else st.fav[el.dataset.sfav] = 1; save(); return renderScripts(); }
+  if ((el = t.closest("[data-gostage]"))) { ui.sstage = el.dataset.gostage; ui.smode = "all"; $("sSearch").value = ""; location.hash = "#scripts"; window.scrollTo(0, 0); return; }
   if ((el = t.closest("[data-post]"))) { var gp = el.dataset.post.split(":"); st.posts = st.posts || {}; st.posts[gp[0]] = {id:gp[1], f:(st.posts[gp[0]] || {}).f || "caption"}; save(); return renderPosts(); }
   if ((el = t.closest("[data-postcopy]"))) { var g2 = el.dataset.postcopy, c2 = st.posts[g2]; return copyText(postText(g2, c2.id, c2.f || "caption")); }
   if ((el = t.closest("[data-live]"))) { st.live = el.dataset.live; save(); return renderLive(); }
@@ -469,6 +515,7 @@ document.addEventListener("input", function (e) {
   if (t.dataset.mix) { rebalance(t.dataset.mix, +t.value); save(); return renderMixNumbers(); }
   if (t.id === "ppw") { var v = Math.max(1, Math.min(50, +t.value || 7)); st.ppw = v; save(); return renderMixNumbers(); }
   if (t.id === "bizSearch") return renderBiz();
+  if (t.id === "sSearch") return renderScripts();
   if (t.dataset.note) { st.notes[t.dataset.note] = t.value; save(); return; }
   if (t.dataset.deb) { st.debrief[t.dataset.deb] = t.value; save(); return; }
   if (t.dataset.prof) { st.prof = st.prof || prof() || defaults(BUSINESS_CUSTOM); st.prof[t.dataset.prof] = t.value; save(); renderLive(); renderPosts(); $("profSaved").textContent = "Saved ✓"; clearTimeout(renderProfile.t); renderProfile.t = setTimeout(function () { $("profSaved").textContent = ""; }, 1200); }
