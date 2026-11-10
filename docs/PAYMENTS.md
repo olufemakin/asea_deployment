@@ -19,11 +19,19 @@ The paywall is **off until `ACCESS_SECRET` is set**. Until then both tools stay 
 ## Current checkout
 Payment Link: https://buy.stripe.com/3cI9AVeBe2hz58p5bx18c04 (also hard-wired as the fallback on the sales and access pages).
 
+## Its own Netlify project
+The Studio lives in the same repo as the interview app, but should run as its **own Netlify project**:
+1. Netlify → **Add new project → Import an existing project → GitHub** → `olufemakin/asea_deployment`.
+2. Branch: `main` (after merging) or `claude/wonderful-turing-39z4fz`. Build command: empty. Publish directory: `.`
+3. Environment variables: `LAUNCH_SITE=1` (makes `/` open the sales page) plus the four Stripe/access variables below.
+4. Deploy, then **Project configuration → Change project name** (e.g. `soldoutlaunchstudio` → `https://soldoutlaunchstudio.netlify.app`).
+5. Use that address in the Stripe redirect below. Netlify AI Gateway works per project, so the AI Script Writer runs there too.
+
 ## Setup
 ### 1. Stripe
 - Create a product "Sold-Out Launch Studio" with a one-time price, and a **Payment Link** for it.
 - In the Payment Link, set **After payment → Don't show confirmation page → Redirect** to
-  `https://<your-site>/access/?session_id={CHECKOUT_SESSION_ID}`.
+  `https://<your-launch-project>.netlify.app/access/?session_id={CHECKOUT_SESSION_ID}`.
 - Turn on **Settings → Customer emails → Successful payments**, so buyers get a receipt with a receipt number.
   "Restore my access" needs it.
 - Create a **restricted API key** (Developers → API keys → Create restricted key) with
