@@ -501,9 +501,9 @@ function scriptByKey(k) { return SCRIPTS.filter(function (x) { return x.key === 
 
 /* ---------- views ---------- */
 function route() {
-  var v = location.hash === "#authority" ? "authority" : location.hash === "#scripts" ? "scripts" : "calendar";
-  ["calendar", "scripts", "authority"].forEach(function (k) { $("view-" + k).hidden = v !== k; $("nav-" + k).setAttribute("aria-current", v === k ? "page" : "false"); });
-  $("lede").textContent = v === "authority" ? "Your experience. Your perspective. Useful knowledge worth sharing." : v === "scripts" ? "120 fully-written launch scripts across 12 launch stages, made for your business." : "Your 30-day launch calendar, one day at a time. Open today's day, do the post, the story and the action, then tick it off.";
+  var v = location.hash === "#authority" ? "authority" : location.hash === "#scripts" ? "scripts" : location.hash === "#brand" ? "brand" : "calendar";
+  ["calendar", "scripts", "brand", "authority"].forEach(function (k) { $("view-" + k).hidden = v !== k; $("nav-" + k).setAttribute("aria-current", v === k ? "page" : "false"); });
+  $("lede").textContent = v === "authority" ? "Your experience. Your perspective. Useful knowledge worth sharing." : v === "scripts" ? "120 fully-written launch scripts across 12 launch stages, made for your business." : v === "brand" ? "Build a personal brand people buy from: 20 posts, written from your own answers, in every format." : "Your 30-day launch calendar, one day at a time. Open today's day, do the post, the story and the action, then tick it off.";
   if (v === "authority") setATab(ui.atab);
   if (v === "scripts") renderScripts();
 }

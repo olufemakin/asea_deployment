@@ -167,6 +167,7 @@ footer{text-align:center;color:var(--m);font-size:.8rem;padding:26px 0 40px;bord
     <nav class="views" aria-label="Studio sections">
       <a href="#calendar" id="nav-calendar">📅 30-Day Calendar</a>
       <a href="#scripts" id="nav-scripts">📝 120 Launch Scripts</a>
+      <a href="#brand" id="nav-brand">🌟 Personal Branding</a>
       <a href="#authority" id="nav-authority">📖 Authority Content Studio</a>
       <a href="#" id="nav-community" target="_blank" rel="noopener" hidden>👥 Join the community</a>
     </nav>
@@ -208,14 +209,7 @@ footer{text-align:center;color:var(--m);font-size:.8rem;padding:26px 0 40px;bord
       <div data-postout="after"></div>
     </section>
 
-    <section class="card" id="postsBrand" aria-labelledby="brandTitle">
-      <span class="k">Personal branding</span>
-      <h2 class="anton" id="brandTitle" style="font-size:1.5rem">Build a personal brand people buy from</h2>
-      <p class="sub">People buy from people. Pick a personal branding post and it will be written for you.</p>
-      <div class="chips" data-group="brand"></div>
-      <label class="f" for="fmt-brand">Format</label><select id="fmt-brand" data-postfmt="brand"></select>
-      <div data-postout="brand"></div>
-    </section>
+
 
     <section class="card" aria-labelledby="authTitle">
       <h2 class="anton" id="authTitle" style="font-size:1.5rem">Authority Content Studio</h2>
@@ -260,6 +254,19 @@ footer{text-align:center;color:var(--m);font-size:.8rem;padding:26px 0 40px;bord
     </div>
     <div id="sStageHead"></div>
     <div id="sList"></div>
+  </section>
+
+  <!-- ===================== PERSONAL BRANDING ===================== -->
+  <section id="view-brand" hidden>
+    <section class="card" id="postsBrand" style="margin-top:16px" aria-labelledby="brandTitle">
+      <span class="k">Personal branding</span>
+      <h2 class="anton" id="brandTitle" style="font-size:1.5rem">Build a personal brand people buy from</h2>
+      <p class="sub">People buy from people. Pick a personal branding post and it will be written for you.</p>
+      <div class="chips" data-group="brand"></div>
+      <label class="f" for="fmt-brand">Format</label><select id="fmt-brand" data-postfmt="brand"></select>
+      <div data-postout="brand"></div>
+    </section>
+    <div class="card"><p class="sub">Tip: pick your business in the <a href="#calendar">30-Day Calendar</a> first, so every post fits you. Your answers are saved on this device.</p></div>
   </section>
 
   <!-- ===================== AUTHORITY ===================== -->
