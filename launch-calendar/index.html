@@ -151,6 +151,7 @@ input[type=number]{background:var(--n9);border:1px solid rgba(169,182,201,.3);bo
 .qbox{margin-top:12px;background:var(--n9);border:1px solid var(--line);border-radius:12px;padding:12px}
 .qbox b{color:var(--g2)}
 .score{font-family:Anton,sans-serif;color:var(--g);font-size:1.15rem;letter-spacing:.5px}
+.aiedit{width:100%}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--g);color:var(--n9);font-weight:800;padding:10px 18px;border-radius:99px;font-size:.88rem;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:90vw;text-align:center}
 footer{text-align:center;color:var(--m);font-size:.8rem;padding:26px 0 40px;border-top:1px solid var(--line);margin-top:30px}
 @media (max-width:640px){#sStages{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}#sStages .chip{flex:0 0 auto}header.top:after{width:120px;height:120px;right:-60px;top:-70px}.grid2{grid-template-columns:1fr}.bal .r{grid-template-columns:120px 1fr 22px}}
@@ -309,8 +310,14 @@ footer{text-align:center;color:var(--m);font-size:.8rem;padding:26px 0 40px;bord
         <label class="f" for="aQuestion">Daily authority question</label><select id="aQuestion"></select>
         <label class="f" for="aTopic">Or write your own topic or question <small>(anything you want to teach; replaces the question above)</small></label>
         <input type="text" id="aTopic" maxlength="200" placeholder="e.g. How to choose the right wig cap for your head shape">
-        <label class="f" for="aDetails">Your teaching details</label>
-        <textarea id="aDetails" maxlength="1500" placeholder="Answer the question in your own words: the point, why it matters, your method and one practical step someone can take."></textarea>
+        <div class="qbox"><b>Answer a few questions in your own words</b><p class="muted" style="font-size:.84rem">The AI writes from your answers, in your voice. Short, honest answers work best.</p>
+          <label class="f" for="aq-who">Who exactly is this for?</label><input type="text" id="aq-who" maxlength="300" placeholder="e.g. first-time wig buyers who are scared it'll look fake">
+          <label class="f" for="aq-point">What's the one thing you want them to learn?</label><input type="text" id="aq-point" maxlength="300">
+          <label class="f" for="aq-example">A real example or moment from your work</label><textarea id="aq-example" maxlength="400" style="min-height:60px"></textarea>
+          <label class="f" for="aq-step">One step they can take today</label><input type="text" id="aq-step" maxlength="300">
+        </div>
+        <label class="f" for="aDetails">Anything else you want to say <small>(optional)</small></label>
+        <textarea id="aDetails" maxlength="1500" placeholder="Extra details, your method, or the story in your own words."></textarea>
         <div id="aProofPick"></div>
         <div class="acts">
           <button class="btn solid" type="button" id="aAI">✨ Write it with AI</button>

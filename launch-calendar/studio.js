@@ -183,6 +183,25 @@ function postText(g, id, f) {
   else body = h + "\n\n" + a[0] + "\n\n" + a[1] + "\n\n" + a[2] + "\n\n" + c + "\n\n#[yourniche] #[yourcity]";
   return it[1].toUpperCase() + "\n\n" + body + "\n\nPosting tip: " + POST_TIPS[f];
 }
+function postAIBox(g, id, f) {
+  var t = ((st.postAI || {})[g + ":" + id + ":" + f]) || "";
+  return '<div data-postaibox="' + g + '"' + (t ? "" : " hidden") + '><label class="f">Your AI post <small>(written from your answers; edit anything)</small></label><textarea class="aiedit" data-postaiedit="' + g + ":" + id + ":" + f + '" style="min-height:200px;line-height:1.6">' + esc(t) + '</textarea><div class="acts"><button class="btn small solid" type="button" data-postaicopy="' + g + '">Copy AI post</button></div></div>';
+}
+var AI_FMT = {caption:"caption", reel:"reel", carousel:"carousel", story:"story", status:"status", thought:"thought"};
+function postAI(g, btn) {
+  var cur = (st.posts || {})[g]; if (!cur) return;
+  var it = POSTS[g].filter(function (x) { return x[0] === cur.id; })[0], ans = ((st.ans || {})[g + ":" + cur.id]) || {}, f = cur.f || "caption", err = document.querySelector('[data-posterr="' + g + '"]');
+  var answers = postQs(g, cur.id).filter(function (q) { return ans[q] && ans[q].trim(); }).map(function (q) { return {q:q, a:ans[q].trim()}; });
+  var own = (ans._own || "").trim(), len = own.length; answers.forEach(function (x) { len += x.a.length; });
+  if (len < 20) { err.textContent = "Answer a couple of the questions above first, so the post sounds like you."; return; }
+  var p = prof() || {}, clean2 = function (v) { return v && !/^\[/.test(v) ? v : ""; };
+  err.textContent = ""; btn.disabled = true; btn.textContent = "Writing in your voice…";
+  var box = document.querySelector('[data-postaibox="' + g + '"]'), ta = box.querySelector("textarea"); box.hidden = false; ta.value = "";
+  stream({mode:"brand", title:it[1], format:AI_FMT[f], business:bizName(), thing:clean2(p.thing), who:clean2(p.who), answers:answers, own:own}, function (t) { ta.value = t; })
+    .then(function (r) { st.postAI = st.postAI || {}; st.postAI[g + ":" + cur.id + ":" + f] = r.text; ta.value = r.text; save(); if (r.note) err.textContent = r.note; })
+    .catch(function (e) { if (e.status === 401) return toAccess(); err.textContent = e.message; if (!ta.value) box.hidden = true; })
+    .then(function () { btn.disabled = false; btn.textContent = "✨ Write it with AI in my voice"; });
+}
 function renderPosts() {
   st.posts = st.posts || {};
   ["after", "brand"].forEach(function (g) {
@@ -195,7 +214,8 @@ function renderPosts() {
     out.innerHTML = cur.id ? '<div class="qbox"><b>First, answer a few questions in your own words</b><p class="muted" style="font-size:.84rem">Your answers go straight into the post. Leave any blank to keep a [blank] you can fill later.</p>' +
       qs.map(function (q, i) { var id2 = "q-" + g + "-" + i; return '<label class="f" for="' + id2 + '">' + esc(q.charAt(0).toUpperCase() + q.slice(1)) + '</label><input type="text" id="' + id2 + '" maxlength="300" data-ans="' + g + '" data-q="' + esc(q) + '" value="' + esc(ans[q] || "") + '">'; }).join("") +
       '<label class="f" for="own-' + g + '">Your story, in your own words <small>(optional, added to the post)</small></label><textarea id="own-' + g + '" maxlength="1200" data-ans="' + g + '" data-q="_own">' + esc(ans._own || "") + "</textarea></div>" +
-      '<div class="out" style="margin-top:12px" data-postpreview="' + g + '">' + rich(postText(g, cur.id, sel.value)) + '</div><div class="acts"><button class="btn small solid" type="button" data-postcopy="' + g + '">Copy</button></div>' +
+      '<div class="out" style="margin-top:12px" data-postpreview="' + g + '">' + rich(postText(g, cur.id, sel.value)) + '</div><div class="acts"><button class="btn small solid" type="button" data-postcopy="' + g + '">Copy</button><button class="btn small" type="button" data-postai="' + g + '">✨ Write it with AI in my voice</button></div>' +
+      '<p class="err" data-posterr="' + g + '"></p>' + postAIBox(g, cur.id, sel.value) +
       (bizRow(st.biz) ? "" : '<p class="muted" style="font-size:.84rem;margin-top:8px">Pick your business at the top so this post fits you.</p>') : "";
   });
 }
@@ -322,7 +342,9 @@ function renderCreate() {
 }
 function chosenProof() { var ids = {}; document.querySelectorAll("[data-useproof]:checked").forEach(function (el) { ids[el.dataset.useproof] = 1; }); return st.proof.filter(function (x) { return ids[x.id] && x.perm; }); }
 function quickDraft() {
-  var q = topic(), det = $("aDetails").value.trim() || "[Your answer in your own words]", f = $("aFormat").value, pr = chosenProof(), p = prof() || {};
+  var aa = aAnswers(), byQ = {}; aa.forEach(function (x) { byQ[x.q] = x.a; });
+  var fromQs = [byQ[AQ[1][1]], byQ[AQ[2][1]] && "For example: " + byQ[AQ[2][1]], byQ[AQ[3][1]] && "Try this today: " + byQ[AQ[3][1]]].filter(Boolean).join(" ");
+  var q = topic(), det = ($("aDetails").value.trim() + (fromQs ? " " + fromQs : "")).trim() || "[Your answer in your own words]", f = $("aFormat").value, pr = chosenProof(), p = prof() || {};
   var proofLine = pr.length ? pr.map(function (x) { return '"' + x.text + '" · ' + (x.source || "a customer"); }).join("\n") : "";
   var parts = (det.match(/[^.!?]+[.!?]*/g) || []).map(function (x) { return x.trim(); }).filter(Boolean), chunk = function (i) { var s = Math.ceil(parts.length / 3); return parts.slice(i * s, i * s + s).join(" ") || "[point " + (i + 1) + "]"; };
   var cta = "Save this and share it with someone who needs it. Questions? Ask me below 👇";
@@ -332,6 +354,8 @@ function quickDraft() {
   if (f === "email") return "Subject: " + q + "\n\nHi [first name],\n\n" + det + (proofLine ? "\n\n" + proofLine : "") + "\n\nIf this helped, reply and tell me. I read every message.\n\n[Your name]";
   return q + "\n\n" + det + (proofLine ? "\n\n" + proofLine : "") + "\n\n" + cta;
 }
+var AQ = [["who","Who exactly is this for?"],["point","What's the one thing you want them to learn?"],["example","A real example or moment from your work"],["step","One step they can take today"]];
+function aAnswers() { return AQ.map(function (q) { var el = $("aq-" + q[0]); return {q:q[1], a:el ? el.value.trim() : ""}; }).filter(function (x) { return x.a; }); }
 function topic() { var own = ($("aTopic").value || "").trim(); return own || $("aQuestion").selectedOptions[0].textContent; }
 function showOut(t) { ui.aiText = t; $("aEdit").value = t; $("aOutWrap").hidden = !t; ui.review = {}; renderReview(); }
 var REVIEW = [
@@ -379,11 +403,12 @@ function dayAI(n, btn) {
 function aiWrite() {
   var det = $("aDetails").value.trim();
   $("aErr").textContent = "";
-  if (det.length < 20) { $("aErr").textContent = "Add your teaching details first (a few sentences in your own words)."; return; }
+  var qa = aAnswers(), qlen = 0; qa.forEach(function (x) { qlen += x.a.length; });
+  if (det.length + qlen < 20) { $("aErr").textContent = "Answer the questions above (or add teaching details) first, so the post sounds like you."; return; }
   if (!bizRow(st.biz)) { $("aErr").textContent = "Pick your business in the calendar first so the post fits you."; return; }
   var p = {}, raw = prof(); Object.keys(raw).forEach(function (k) { p[k] = /^\[.*\]$/.test(String(raw[k]).trim()) ? "" : raw[k]; });
   var body = {mode:"authority", business:bizName(), thing:p.thing, who:p.who, pain:p.pain, want:p.want, experience:p.experience || "", method:p.method || "",
-    pillar:$("aPillar").value, format:$("aFormat").value, question:topic(), details:det,
+    pillar:$("aPillar").value, format:$("aFormat").value, question:topic(), details:det, answers:qa,
     proof:chosenProof().map(function (x) { return x.type + ': "' + x.text + '" (' + (x.source || "a customer") + ")"; })};
   $("aAI").disabled = true; $("aStatus").textContent = "Writing your authority content…"; showOut(""); var text = "";
   fetch(ENDPOINT, {method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify(body)}).then(function (res) {
@@ -528,6 +553,8 @@ document.addEventListener("click", function (e) {
   if ((el = t.closest("[data-sfav]"))) { st.fav = st.fav || {}; if (st.fav[el.dataset.sfav]) delete st.fav[el.dataset.sfav]; else st.fav[el.dataset.sfav] = 1; save(); return renderScripts(); }
   if ((el = t.closest("[data-gostage]"))) { ui.sstage = el.dataset.gostage; ui.smode = "all"; $("sSearch").value = ""; location.hash = "#scripts"; window.scrollTo(0, 0); return; }
   if ((el = t.closest("[data-post]"))) { var gp = el.dataset.post.split(":"); st.posts = st.posts || {}; st.posts[gp[0]] = {id:gp[1], f:(st.posts[gp[0]] || {}).f || "caption"}; save(); return renderPosts(); }
+  if ((el = t.closest("[data-postai]"))) return postAI(el.dataset.postai, el);
+  if ((el = t.closest("[data-postaicopy]"))) { var bx = document.querySelector('[data-postaibox="' + el.dataset.postaicopy + '"] textarea'); return copyText(bx ? bx.value : ""); }
   if ((el = t.closest("[data-postcopy]"))) { var g2 = el.dataset.postcopy, c2 = st.posts[g2]; return copyText(postText(g2, c2.id, c2.f || "caption")); }
   if ((el = t.closest("[data-live]"))) { st.live = el.dataset.live; save(); return renderLive(); }
   if ((el = t.closest("[data-livecopy]"))) return copyText(liveText(st.live || "tiktok", +el.dataset.livecopy));
@@ -587,6 +614,7 @@ document.addEventListener("input", function (e) {
   if (t.id === "bizSearch") return renderBiz();
   if (t.id === "sSearch") return renderScripts();
   if (t.id === "aEdit") { ui.aiText = t.value; return renderReview(); }
+  if (t.dataset.postaiedit) { st.postAI = st.postAI || {}; st.postAI[t.dataset.postaiedit] = t.value; save(); return; }
   if (t.dataset.ans) { var gq = t.dataset.ans, cp = (st.posts || {})[gq]; if (!cp) return; st.ans = st.ans || {}; var k2 = gq + ":" + cp.id; st.ans[k2] = st.ans[k2] || {}; st.ans[k2][t.dataset.q] = t.value; save();
     var pv = document.querySelector('[data-postpreview="' + gq + '"]'); if (pv) pv.innerHTML = rich(postText(gq, cp.id, cp.f || "caption")); return; }
   if (t.dataset.note) { st.notes[t.dataset.note] = t.value; save(); return; }
