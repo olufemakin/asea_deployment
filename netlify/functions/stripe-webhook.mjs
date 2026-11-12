@@ -1,6 +1,6 @@
 // Automatic delivery email for the Sold-Out Launch Studio.
 // Stripe calls this after each checkout (event: checkout.session.completed). If the order is paid, the buyer gets an
-// email with everything they bought: a link that unlocks the Members Hub on any device (/access/?session_id=…&next=/members/),
+// email with everything they bought: a link that unlocks the interactive Studio on any device (/access/?session_id=…&next=/launch-calendar/#start),
 // the list of deliverables, and the two PDFs attached. Sent through Resend.
 // Endpoint: /.netlify/functions/stripe-webhook   (add it in Stripe → Developers → Webhooks)
 //
@@ -32,9 +32,9 @@ async function verify(body, header, secret) {
   return sigs.some((s) => sameHex(s, want));
 }
 // Everything the buyer gets, listed in the delivery email. The two PDFs are attached when the function can read them
-// (netlify.toml includes members/downloads/*.pdf in this function); otherwise the email points to the Members Hub.
+// (netlify.toml includes members/downloads/*.pdf in this function); otherwise the email points to "Start here" in the Studio.
 const DELIVERABLES = [
-  ["🏠 Members Hub", "one page with everything below"],
+  ["🏠 Interactive Sold-Out Launch Studio", "everything below in one place, saved as you go (open \"Start here\")"],
   ["📅 30-Day Launch Calendar", "what to post, story, status and one action every day, in every format including B-roll"],
   ["📝 120 Launch Scripts", "12 launch stages × 10 fully-written scripts, filled in for your business"],
   ["✨ AI Launch Script Writer", "any stage and platform, in your voice, plus Make It Sound Human"],
@@ -77,7 +77,7 @@ export default async (req) => {
   if (!process.env.RESEND_API_KEY || !process.env.DELIVERY_FROM) return new Response("Email not configured", { status: 200 });
 
   const site = (process.env.SITE_URL || new URL(req.url).origin).replace(/\/$/, "");
-  const link = `${site}/access/?session_id=${encodeURIComponent(s.id)}&next=${encodeURIComponent("/members/")}`;
+  const link = `${site}/access/?session_id=${encodeURIComponent(s.id)}&next=${encodeURIComponent("/launch-calendar/#start")}`;
   const name = s.customer_details?.name ? esc(s.customer_details.name.split(" ")[0]) : "there";
   const community = /^https:\/\//.test(process.env.COMMUNITY_URL || "") ? process.env.COMMUNITY_URL : "";
   const attachments = await loadAttachments();
@@ -85,19 +85,19 @@ export default async (req) => {
   const html = `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#0c2142;line-height:1.55">
 <h1 style="font-size:24px;margin:0 0 12px">You're in! 🎉</h1>
 <p>Hi ${name},</p>
-<p>Thank you for buying the <b>Sold-Out Launch Studio</b>. Everything you bought is in your Members Hub:</p>
-<p><a href="${esc(link)}" style="display:inline-block;background:#d4a849;color:#07152b;padding:14px 22px;border-radius:999px;font-weight:bold;text-decoration:none">Open my Members Hub</a></p>
+<p>Thank you for buying the <b>Sold-Out Launch Studio</b>. Everything you bought is inside your interactive Studio:</p>
+<p><a href="${esc(link)}" style="display:inline-block;background:#d4a849;color:#07152b;padding:14px 22px;border-radius:999px;font-weight:bold;text-decoration:none">Open my Sold-Out Launch Studio</a></p>
 <p style="font-size:14px;color:#4a5b73">This link unlocks everything in your browser. Keep this email: the same link works on a new phone or computer.</p>
 <h2 style="font-size:17px;margin:22px 0 8px">What's inside</h2>
 <ul style="padding-left:18px;margin:0">${items}</ul>
-${attachments.length ? `<p>📎 <b>Your PDFs are attached to this email</b> (${attachments.map((a) => esc(a.filename)).join(", ")}). You can also download them any time from your Members Hub.</p>` : `<p>📎 Your PDF downloads are in your Members Hub.</p>`}
+${attachments.length ? `<p>📎 <b>Your PDFs are attached to this email</b> (${attachments.map((a) => esc(a.filename)).join(", ")}). You can also download them any time from "Start here" in your Studio.</p>` : `<p>📎 Your PDF downloads are in your Studio under "Start here".</p>`}
 ${community ? `<p><b>👥 Join the community:</b> <a href="${esc(community)}">${esc(community)}</a></p>` : ""}
 ${s.mode === "subscription" ? "<p>Your subscription keeps the Studio unlocked. About once a month you may be asked to confirm your access: just open this email's link again.</p>" : ""}
 <h2 style="font-size:17px;margin:22px 0 8px">Start in 3 steps</h2>
-<ol style="padding-left:18px;margin:0"><li>Open your Members Hub and the 30-Day Calendar.</li><li>Pick your business and set your writing voice.</li><li>Pick your launch date and do Day 1 today.</li></ol>
+<ol style="padding-left:18px;margin:0"><li>Open your Studio and the 30-Day Calendar.</li><li>Pick your business and set your writing voice.</li><li>Pick your launch date and do Day 1 today.</li></ol>
 <p>Questions? Just reply to this email.</p>
 <p>Tolu<br>learnwithtolu</p></div>`;
-  const text = `You're in!\n\nThank you for buying the Sold-Out Launch Studio.\nOpen your Members Hub (everything is there): ${link}\nKeep this email: the same link works on a new phone or computer.\n\nWHAT'S INSIDE\n${DELIVERABLES.map(([t, d]) => `- ${t}: ${d}`).join("\n")}\n\n${attachments.length ? "Your PDFs are attached to this email and are also in your Members Hub.\n\n" : ""}${community ? "Join the community: " + community + "\n\n" : ""}Start: open the 30-Day Calendar, pick your business, set your writing voice, pick your launch date and do Day 1 today.\n\nQuestions? Just reply to this email.\nTolu, learnwithtolu`;
+  const text = `You're in!\n\nThank you for buying the Sold-Out Launch Studio.\nOpen your Sold-Out Launch Studio (everything is there): ${link}\nKeep this email: the same link works on a new phone or computer.\n\nWHAT'S INSIDE\n${DELIVERABLES.map(([t, d]) => `- ${t}: ${d}`).join("\n")}\n\n${attachments.length ? "Your PDFs are attached to this email and are also in your Studio under "Start here".\n\n" : ""}${community ? "Join the community: " + community + "\n\n" : ""}Start: open the Studio, pick your business, set your writing voice, pick your launch date and do Day 1 today.\n\nQuestions? Just reply to this email.\nTolu, learnwithtolu`;
 
   const res = await fetch(`${RESEND}/emails`, {
     method: "POST",

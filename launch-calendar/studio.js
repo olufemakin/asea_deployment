@@ -567,6 +567,16 @@ function renderVoice() {
   if (document.activeElement !== $("voiceSamples")) $("voiceSamples").value = v.voice;
   renderVoiceSum();
 }
+/* In a claude.ai preview there is no website: the writer link opens the writer preview, PDFs save via the download prompt. */
+var PREVIEW_WRITER = "https://claude.ai/artifact/X7BJyMXh62FFoQ4KQC7zWg";
+function previewDownload(name) {
+  var note = $("dlNote"); note.textContent = "Preparing " + name + "…";
+  window.claude.use("downloads").then(function (dl) {
+    if (!dl) throw {code:"unavailable"};
+    return fetch("downloads/" + name).then(function (r) { if (!r.ok) throw {code:"missing"}; return r.blob(); }).then(function (b) { return dl.save({filename:name, data:b}); });
+  }).then(function () { note.textContent = "Saved ✓ " + name; })
+    .catch(function (err) { var c = err && err.code; note.textContent = c === "declined" ? "Download cancelled." : c === "rate_limited" ? "One moment, then try again." : "Downloads aren't available in this view. They work on your live site."; });
+}
 function toAccess() { location.href = "/access/?next=" + encodeURIComponent(location.pathname); }
 function renderProof() {
   $("prList").innerHTML = st.proof.length ? st.proof.map(function (x) {
@@ -664,9 +674,9 @@ function scriptByKey(k) { return SCRIPTS.filter(function (x) { return x.key === 
 
 /* ---------- views ---------- */
 function route() {
-  var v = location.hash === "#authority" ? "authority" : location.hash === "#scripts" ? "scripts" : location.hash === "#brand" ? "brand" : "calendar";
-  ["calendar", "scripts", "brand", "authority"].forEach(function (k) { $("view-" + k).hidden = v !== k; $("nav-" + k).setAttribute("aria-current", v === k ? "page" : "false"); });
-  $("lede").textContent = v === "authority" ? "Your experience. Your perspective. Useful knowledge worth sharing." : v === "scripts" ? "120 fully-written launch scripts across 12 launch stages, made for your business." : v === "brand" ? "Build a personal brand people buy from: 20 posts, written from your own answers, in every format." : "Your 30-day launch calendar, one day at a time. Open today's day, do the post, the story and the action, then tick it off.";
+  var v = location.hash === "#start" ? "start" : location.hash === "#authority" ? "authority" : location.hash === "#scripts" ? "scripts" : location.hash === "#brand" ? "brand" : "calendar";
+  ["start", "calendar", "scripts", "brand", "authority"].forEach(function (k) { $("view-" + k).hidden = v !== k; $("nav-" + k).setAttribute("aria-current", v === k ? "page" : "false"); });
+  $("lede").textContent = v === "start" ? "Your Sold-Out Launch Studio: every tool, script and download you bought, in one place." : v === "authority" ? "Your experience. Your perspective. Useful knowledge worth sharing." : v === "scripts" ? "120 fully-written launch scripts across 12 launch stages, made for your business." : v === "brand" ? "Build a personal brand people buy from: 20 posts, written from your own answers, in every format." : "Your 30-day launch calendar, one day at a time. Open today's day, do the post, the story and the action, then tick it off.";
   if (v === "authority") setATab(ui.atab);
   if (v === "scripts") renderScripts();
   if (location.hash === "#live") setTimeout(function () { $("liveSec").scrollIntoView({block:"start"}); }, 60);
@@ -689,6 +699,9 @@ document.addEventListener("click", function (e) {
   if ((el = t.closest("[data-sstage]"))) { ui.sstage = el.dataset.sstage; renderScripts(); return $("sStageHead").scrollIntoView({block:"start"}); }
   if ((el = t.closest("[data-scopy]"))) { var sx = scriptByKey(el.dataset.scopy); return copyText(sx.title.toUpperCase() + "\n\n" + sText(sx)); }
   if ((el = t.closest("[data-sorig]"))) { delete st.sh[el.dataset.sorig]; save(); return renderScripts(); }
+  if ((el = t.closest("[data-openvoice]"))) { $("voiceCard").open = true; $("voiceCard").scrollIntoView({block:"start"}); return; }
+  if ((el = t.closest("[data-writer]")) && window.claude && window.claude.use) { e.preventDefault(); window.open(PREVIEW_WRITER, "_blank", "noopener"); return; }
+  if ((el = t.closest("[data-dl]")) && window.claude && window.claude.use) { e.preventDefault(); return previewDownload(el.dataset.dl); }
   if ((el = t.closest("[data-humanize]"))) return humanize(el.dataset.humanize);
   if ((el = t.closest("[data-hum-use]"))) { var hid = el.dataset.humUse, hs = humSource(hid), hv = ui.hum[hid]; if (hs && hv && hv.text) { hs.use(hv.text); delete ui.hum[hid]; hs.paint(); toast("Humanized version saved ✓"); } return; }
   if ((el = t.closest("[data-hum-copy]"))) { var hv2 = ui.hum[el.dataset.humCopy]; return copyText(hv2 && hv2.text || ""); }
@@ -778,7 +791,7 @@ $("launch").value = st.launch || "";
 renderVoice(); renderBiz(); renderProfile(); renderLive(); renderPosts();
 // Community link (COMMUNITY_URL in Netlify), only sent to members.
 try { fetch("/.netlify/functions/access", {credentials:"same-origin"}).then(function (r) { return r.json(); }).then(function (c) {
-  if (c && /^https:\/\//.test(c.communityUrl || "")) { var el = $("nav-community"); el.href = c.communityUrl; el.hidden = false; }
+  if (c && /^https:\/\//.test(c.communityUrl || "")) { var el = $("nav-community"); el.href = c.communityUrl; el.hidden = false; $("startCommunityLink").href = c.communityUrl; $("startCommunity").hidden = false; }
 }).catch(function () {}); } catch (e) {}
 var first = nextTodo(); if (first === null) { ui.week = "after"; renderWeek(); } else goDay(first, false);
 route();

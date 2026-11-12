@@ -86,13 +86,13 @@ Open `/launch-calendar/` in a private window: it should send you to `/access/`.
 
 ## Automatic delivery email (Stripe): everything in one email
 After each paid checkout, `netlify/functions/stripe-webhook.mjs` emails the buyer:
-- a button that unlocks and opens the **Members Hub** (`/members/`) on any device (`/access/?session_id=…&next=/members/`);
+- a button that unlocks and opens the interactive **Studio** at "Start here" on any device (`/access/?session_id=…&next=/launch-calendar/#start`);
 - the list of everything included (calendar, 120 scripts, AI writer, personal branding, authority studio, live scripts);
 - both PDFs **attached**: `members/downloads/sold-out-launch-studio-workbook.pdf` and `selling-confidently-and-naturally.pdf`
   (netlify.toml includes them in the function);
 - the community link (if `COMMUNITY_URL` is set).
 
-The Members Hub (`/members/`, behind the paywall) links every tool and both downloads. After paying, buyers land there.
+"Start here" (`/launch-calendar/#start`) lists every tool, both downloads and the community. After paying, buyers land there.
 Rebuild the workbook after changing Studio content: `node tools/build-workbook.cjs`.
 It uses [Resend](https://resend.com) to send email.
 1. Resend: create an account, verify your sending domain, create an API key.

@@ -54,6 +54,15 @@ label.f small{text-transform:none;letter-spacing:0;font-weight:500;color:var(--m
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .chip{border:1px solid rgba(212,168,73,.4);background:transparent;color:var(--c);border-radius:99px;padding:7px 13px;font-size:.84rem;font-weight:600}
 .chip:hover{border-color:var(--g)}
+.sech{margin:26px 0 10px;font-size:1.25rem;color:var(--g2)}
+.starts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.start{display:block;text-align:left;font:inherit;font-size:.9rem;color:var(--c);background:var(--n9);border:1px solid rgba(212,168,73,.3);border-radius:14px;padding:12px;text-decoration:none;cursor:pointer}
+.start b{display:block;color:var(--g);font-size:.75rem;letter-spacing:1.5px;text-transform:uppercase}
+.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.tool{display:flex;flex-direction:column;gap:4px;background:var(--n8);border:1px solid rgba(212,168,73,.3);border-radius:16px;padding:16px;color:var(--c);text-decoration:none}
+.tool:hover,.tool:focus-visible{border-color:var(--g)}.tool .ic{font-size:1.5rem}.tool span:last-child{color:var(--m);font-size:.86rem}
+.dlrow{display:flex;gap:12px;align-items:center}.dlrow .ic{font-size:1.6rem}.dlrow div{flex:1}
+@media(max-width:760px){.starts,.tools{grid-template-columns:1fr}.dlrow{flex-wrap:wrap}}
 select.idea{margin-top:6px;font-size:.84rem;padding:7px 10px;color:var(--g2);background:transparent;border:1px dashed rgba(212,168,73,.45);width:auto;max-width:100%}
 details.voice summary{cursor:pointer;list-style:none}details.voice summary::-webkit-details-marker{display:none}details.voice[open] .vopen{display:none}details.voice textarea{min-height:90px}
 .chip[aria-pressed=true]{background:var(--g);color:var(--n9);border-color:var(--g);font-weight:800}
@@ -168,7 +177,7 @@ footer{text-align:center;color:var(--m);font-size:.8rem;padding:26px 0 40px;bord
     <h1 class="anton">Sold-Out <em>Launch Studio</em></h1>
     <p class="lede" id="lede">Your 30-day launch calendar, one day at a time. Open today's day, do the post, the story and the action, then tick it off.</p>
     <nav class="views" aria-label="Studio sections">
-      <a href="/members/">🏠 Members Hub</a>
+      <a href="#start" id="nav-start">🏠 Start here</a>
       <a href="#calendar" id="nav-calendar">📅 30-Day Calendar</a>
       <a href="#scripts" id="nav-scripts">📝 120 Launch Scripts</a>
       <a href="#brand" id="nav-brand">🌟 Personal Branding</a>
@@ -189,6 +198,34 @@ footer{text-align:center;color:var(--m);font-size:.8rem;padding:26px 0 40px;bord
     <p class="muted" style="font-size:.82rem;margin-top:6px">The AI copies your rhythm, words and habits. It never copies facts or stories from your samples into other posts.</p>
   </details>
   <!-- ===================== CALENDAR ===================== -->
+  <!-- ===================== START HERE (everything you bought) ===================== -->
+  <section id="view-start" hidden>
+    <div class="card">
+      <span class="k">Welcome, you're in 🎉</span>
+      <h2 class="anton">Everything you bought, in one place</h2>
+      <p class="sub">This Studio is your launch. It saves your progress on this device. Bookmark this page, and use the link in your purchase email on any new phone or computer.</p>
+      <div class="starts">
+        <a class="start" href="#calendar"><b>Step 1</b>Open the 30-Day Calendar and pick your business (or type your own).</a>
+        <button class="start" type="button" data-openvoice="1"><b>Step 2</b>Set your writing voice once, so every AI post sounds like you.</button>
+        <a class="start" href="#calendar"><b>Step 3</b>Pick your launch date and do Day 1 today. One day at a time.</a>
+      </div>
+    </div>
+    <h2 class="anton sech">Your tools</h2>
+    <div class="tools">
+      <a class="tool" href="#calendar"><span class="ic">📅</span><b>30-Day Launch Calendar</b><span>What to post, story, status and one action every day, in every format including B-roll.</span></a>
+      <a class="tool" href="#scripts"><span class="ic">📝</span><b>120 Launch Scripts</b><span>12 launch stages × 10 fully-written scripts, filled in for your business.</span></a>
+      <a class="tool" href="/script-writer/" data-writer="1"><span class="ic">✨</span><b>AI Launch Script Writer</b><span>Any stage, any platform, in your voice. Plus ✨ Make It Sound Human.</span></a>
+      <a class="tool" href="#brand"><span class="ic">🌟</span><b>Personal Branding</b><span>20 posts people buy from, written from your own answers.</span></a>
+      <a class="tool" href="#authority"><span class="ic">📖</span><b>Authority Content Studio</b><span>Teach what you know, keep your proof and balance your content week.</span></a>
+      <a class="tool" href="#live"><span class="ic">🎥</span><b>Live Stream Selling Script</b><span>25-minute TikTok LIVE and Instagram LIVE scripts with strong calls to buy.</span></a>
+    </div>
+    <h2 class="anton sech">Your downloads</h2>
+    <div class="card dlrow"><span class="ic">📘</span><div><b>Sold-Out Launch Studio Workbook (PDF)</b><p class="muted">The calendar, all 120 scripts, the live scripts, branding and after-launch posts. Printable.</p></div><a class="btn solid" href="/members/downloads/sold-out-launch-studio-workbook.pdf" data-dl="sold-out-launch-studio-workbook.pdf" download>⬇ Download</a></div>
+    <div class="card dlrow"><span class="ic">🎁</span><div><b>Bonus: Selling Confidently &amp; Naturally (PDF)</b><p class="muted">Sell without feeling salesy, with plug-and-play hook formulas.</p></div><a class="btn solid" href="/members/downloads/selling-confidently-and-naturally.pdf" data-dl="selling-confidently-and-naturally.pdf" download>⬇ Download</a></div>
+    <p class="muted" id="dlNote" role="status" style="min-height:1.2em;margin-top:8px"></p>
+    <div class="card" id="startCommunity" hidden><b>👥 Join the community</b><p class="muted">Ask questions, share your wins and launch alongside other members.</p><div class="acts"><a class="btn solid" id="startCommunityLink" href="#" target="_blank" rel="noopener">Join now →</a></div></div>
+  </section>
+
   <section id="view-calendar">
     <div class="card progress">
       <div class="row"><b id="pText">0 of 30 days done</b><span class="muted" id="pPct">0%</span></div>

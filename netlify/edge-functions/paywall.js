@@ -1,4 +1,4 @@
-// Keeps the Members Hub (+ PDF downloads), the Sold-Out Launch Studio and the AI Script Writer for paying customers.
+// Keeps the member PDF downloads (/members/downloads/), the Sold-Out Launch Studio and the AI Script Writer for paying customers.
 // Off until ACCESS_SECRET is set in Netlify, so the site keeps working while payments are set up.
 import { verifyToken, readCookie } from "../shared/access-token.mjs";
 

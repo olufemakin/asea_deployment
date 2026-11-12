@@ -46,11 +46,10 @@ footer{text-align:center;color:var(--m);font-size:.82rem;margin-top:30px}
     <h2 id="claimTitle"><span class="spin"></span>Unlocking your Studio…</h2>
     <p id="claimText">Confirming your payment with Stripe. This takes a few seconds.</p>
     <div id="claimGo" hidden>
-      <a class="btn" id="goStudio" href="/members/">🏠 Open my Members Hub</a>
-      <a class="btn ghost" href="/launch-calendar/">📅 Open the Sold-Out Launch Studio</a>
+      <a class="btn" id="goStudio" href="/launch-calendar/#start">📅 Open my Sold-Out Launch Studio</a>
       <a class="btn ghost" href="/script-writer/">✨ Open the AI Script Writer</a>
       <a class="btn ghost" id="goCommunity" href="#" target="_blank" rel="noopener" hidden>👥 Join the community</a>
-      <p class="muted" style="margin-top:12px">Your Members Hub has everything: the Studio, the AI Script Writer and your PDF downloads. Bookmark it. Access is saved in this browser. On another phone or browser, enter your access code again (or restore with your receipt).</p>
+      <p class="muted" style="margin-top:12px">The Studio has everything: the calendar, 120 scripts, the AI Script Writer and your PDF downloads (see "Start here"). Bookmark it. Access is saved in this browser. On another phone or browser, enter your access code again (or restore with your receipt).</p>
     </div>
   </section>
 
@@ -93,8 +92,9 @@ footer{text-align:center;color:var(--m);font-size:.82rem;margin-top:30px}
 <script>
 (function(){
 var API="/.netlify/functions/access", $=function(id){return document.getElementById(id)};
-var q=new URLSearchParams(location.search), next=q.get("next")||"/members/";
-if(!/^\/(members|launch-calendar|script-writer)(\/|$)/.test(next))next="/members/";
+var q=new URLSearchParams(location.search), next=q.get("next")||"/launch-calendar/#start";
+if(!/^\/(members|launch-calendar|script-writer)(\/|$)/.test(next))next="/launch-calendar/#start";
+if(/^\/members\/?$/.test(next))next="/launch-calendar/#start";
 $("goStudio").href=next;
 
 function post(body){return fetch(API,{method:"POST",headers:{"content-type":"application/json"},credentials:"same-origin",body:JSON.stringify(body)})
