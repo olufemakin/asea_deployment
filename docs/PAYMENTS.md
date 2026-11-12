@@ -84,9 +84,17 @@ Open `/launch-calendar/` in a private window: it should send you to `/access/`.
 - Only `/launch-calendar/` and `/script-writer/` are gated. The sales page (`/launch-scripts/`) and `/access/` stay public.
 
 
-## Automatic delivery email (Stripe)
-After each paid checkout, `netlify/functions/stripe-webhook.mjs` emails the buyer a link that unlocks the Studio on any
-device (`/access/?session_id=…`). It uses [Resend](https://resend.com) to send email.
+## Automatic delivery email (Stripe): everything in one email
+After each paid checkout, `netlify/functions/stripe-webhook.mjs` emails the buyer:
+- a button that unlocks and opens the **Members Hub** (`/members/`) on any device (`/access/?session_id=…&next=/members/`);
+- the list of everything included (calendar, 120 scripts, AI writer, personal branding, authority studio, live scripts);
+- both PDFs **attached**: `members/downloads/sold-out-launch-studio-workbook.pdf` and `selling-confidently-and-naturally.pdf`
+  (netlify.toml includes them in the function);
+- the community link (if `COMMUNITY_URL` is set).
+
+The Members Hub (`/members/`, behind the paywall) links every tool and both downloads. After paying, buyers land there.
+Rebuild the workbook after changing Studio content: `node tools/build-workbook.cjs`.
+It uses [Resend](https://resend.com) to send email.
 1. Resend: create an account, verify your sending domain, create an API key.
 2. Stripe → Developers → Webhooks → **Add endpoint**: `https://<your-launch-project>.netlify.app/.netlify/functions/stripe-webhook`,
    event **checkout.session.completed**. Copy its **Signing secret** (`whsec_…`).

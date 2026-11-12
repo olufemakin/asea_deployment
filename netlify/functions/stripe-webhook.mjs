@@ -1,6 +1,7 @@
 // Automatic delivery email for the Sold-Out Launch Studio.
 // Stripe calls this after each checkout (event: checkout.session.completed). If the order is paid, the buyer gets an
-// email with a link that unlocks the Studio on any device (/access/?session_id=…), sent through Resend.
+// email with everything they bought: a link that unlocks the Members Hub on any device (/access/?session_id=…&next=/members/),
+// the list of deliverables, and the two PDFs attached. Sent through Resend.
 // Endpoint: /.netlify/functions/stripe-webhook   (add it in Stripe → Developers → Webhooks)
 //
 // Netlify environment variables (the email stays off until all three are set):
@@ -30,6 +31,32 @@ async function verify(body, header, secret) {
   const want = await hmacHex(secret, `${t}.${body}`);
   return sigs.some((s) => sameHex(s, want));
 }
+// Everything the buyer gets, listed in the delivery email. The two PDFs are attached when the function can read them
+// (netlify.toml includes members/downloads/*.pdf in this function); otherwise the email points to the Members Hub.
+const DELIVERABLES = [
+  ["🏠 Members Hub", "one page with everything below"],
+  ["📅 30-Day Launch Calendar", "what to post, story, status and one action every day, in every format including B-roll"],
+  ["📝 120 Launch Scripts", "12 launch stages × 10 fully-written scripts, filled in for your business"],
+  ["✨ AI Launch Script Writer", "any stage and platform, in your voice, plus Make It Sound Human"],
+  ["🌟 Personal Branding", "20 posts written from your own answers"],
+  ["📖 Authority Content Studio", "teach what you know, keep your proof, balance your content week"],
+  ["🎥 Live Stream Selling Script", "25-minute TikTok LIVE and Instagram LIVE scripts"],
+  ["📘 Sold-Out Launch Studio Workbook (PDF)", "the calendar, all 120 scripts, live, branding and after-launch posts, printable"],
+  ["🎁 Bonus: Selling Confidently & Naturally (PDF)", "sell without feeling salesy, with hook formulas"],
+];
+const PDFS = ["sold-out-launch-studio-workbook.pdf", "selling-confidently-and-naturally.pdf"];
+async function loadAttachments() {
+  const { readFile } = await import("node:fs/promises");
+  const path = await import("node:path");
+  const roots = [process.cwd(), process.env.LAMBDA_TASK_ROOT || "", "/var/task"].filter(Boolean);
+  const out = [];
+  for (const f of PDFS) {
+    for (const r of roots) {
+      try { out.push({ filename: f, content: (await readFile(path.join(r, "members/downloads", f))).toString("base64") }); break; } catch {}
+    }
+  }
+  return out;
+}
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 export default async (req) => {
@@ -50,25 +77,32 @@ export default async (req) => {
   if (!process.env.RESEND_API_KEY || !process.env.DELIVERY_FROM) return new Response("Email not configured", { status: 200 });
 
   const site = (process.env.SITE_URL || new URL(req.url).origin).replace(/\/$/, "");
-  const link = `${site}/access/?session_id=${encodeURIComponent(s.id)}`;
+  const link = `${site}/access/?session_id=${encodeURIComponent(s.id)}&next=${encodeURIComponent("/members/")}`;
   const name = s.customer_details?.name ? esc(s.customer_details.name.split(" ")[0]) : "there";
-  const html = `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#0c2142">
-<h1 style="font-size:24px">You're in! 🎉</h1>
+  const community = /^https:\/\//.test(process.env.COMMUNITY_URL || "") ? process.env.COMMUNITY_URL : "";
+  const attachments = await loadAttachments();
+  const items = DELIVERABLES.map(([t, d]) => `<li style="margin:0 0 8px"><b>${t}</b><br><span style="color:#4a5b73">${d}</span></li>`).join("");
+  const html = `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#0c2142;line-height:1.55">
+<h1 style="font-size:24px;margin:0 0 12px">You're in! 🎉</h1>
 <p>Hi ${name},</p>
-<p>Thank you for buying the <b>Sold-Out Launch Studio</b>. Here's your access:</p>
-<p><a href="${esc(link)}" style="display:inline-block;background:#d4a849;color:#07152b;padding:14px 22px;border-radius:999px;font-weight:bold;text-decoration:none">Open the Sold-Out Launch Studio</a></p>
-<p>This link unlocks the Studio and the AI Script Writer in your browser. Keep this email: you can use the same link on a new phone or computer.</p>
-<p>Inside you'll find your 30-day launch calendar, 120 interactive launch scripts, the AI Script Writer, the Authority Content Studio and the Live Stream Selling Script.</p>
-${/^https:\/\//.test(process.env.COMMUNITY_URL || "") ? `<p><b>Join the community:</b> <a href="${esc(process.env.COMMUNITY_URL)}">${esc(process.env.COMMUNITY_URL)}</a></p>` : ""}
+<p>Thank you for buying the <b>Sold-Out Launch Studio</b>. Everything you bought is in your Members Hub:</p>
+<p><a href="${esc(link)}" style="display:inline-block;background:#d4a849;color:#07152b;padding:14px 22px;border-radius:999px;font-weight:bold;text-decoration:none">Open my Members Hub</a></p>
+<p style="font-size:14px;color:#4a5b73">This link unlocks everything in your browser. Keep this email: the same link works on a new phone or computer.</p>
+<h2 style="font-size:17px;margin:22px 0 8px">What's inside</h2>
+<ul style="padding-left:18px;margin:0">${items}</ul>
+${attachments.length ? `<p>📎 <b>Your PDFs are attached to this email</b> (${attachments.map((a) => esc(a.filename)).join(", ")}). You can also download them any time from your Members Hub.</p>` : `<p>📎 Your PDF downloads are in your Members Hub.</p>`}
+${community ? `<p><b>👥 Join the community:</b> <a href="${esc(community)}">${esc(community)}</a></p>` : ""}
 ${s.mode === "subscription" ? "<p>Your subscription keeps the Studio unlocked. About once a month you may be asked to confirm your access: just open this email's link again.</p>" : ""}
+<h2 style="font-size:17px;margin:22px 0 8px">Start in 3 steps</h2>
+<ol style="padding-left:18px;margin:0"><li>Open your Members Hub and the 30-Day Calendar.</li><li>Pick your business and set your writing voice.</li><li>Pick your launch date and do Day 1 today.</li></ol>
 <p>Questions? Just reply to this email.</p>
 <p>Tolu<br>learnwithtolu</p></div>`;
-  const text = `You're in!\n\nThank you for buying the Sold-Out Launch Studio.\nOpen it here: ${link}\n\nKeep this email: the same link works on a new phone or computer.\n\n${/^https:\/\//.test(process.env.COMMUNITY_URL || "") ? "Join the community: " + process.env.COMMUNITY_URL + "\n\n" : ""}Questions? Just reply to this email.\nTolu, learnwithtolu`;
+  const text = `You're in!\n\nThank you for buying the Sold-Out Launch Studio.\nOpen your Members Hub (everything is there): ${link}\nKeep this email: the same link works on a new phone or computer.\n\nWHAT'S INSIDE\n${DELIVERABLES.map(([t, d]) => `- ${t}: ${d}`).join("\n")}\n\n${attachments.length ? "Your PDFs are attached to this email and are also in your Members Hub.\n\n" : ""}${community ? "Join the community: " + community + "\n\n" : ""}Start: open the 30-Day Calendar, pick your business, set your writing voice, pick your launch date and do Day 1 today.\n\nQuestions? Just reply to this email.\nTolu, learnwithtolu`;
 
   const res = await fetch(`${RESEND}/emails`, {
     method: "POST",
     headers: { authorization: `Bearer ${process.env.RESEND_API_KEY}`, "content-type": "application/json", "idempotency-key": `delivery-${s.id}` },
-    body: JSON.stringify({ from: process.env.DELIVERY_FROM, to: [email], subject: "Your Sold-Out Launch Studio access 🎉", html, text }),
+    body: JSON.stringify({ from: process.env.DELIVERY_FROM, to: [email], subject: "Your Sold-Out Launch Studio is ready 🎉 (everything inside)", html, text, ...(attachments.length ? { attachments } : {}) }),
   });
   if (!res.ok) {
     console.error("delivery email failed", res.status, await res.text().catch(() => ""));

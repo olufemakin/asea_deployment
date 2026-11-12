@@ -154,3 +154,4 @@ Done:
 - TikTok LIVE script: 7 parts with paycheck-to-paycheck hook, destructive broke belief ('if someone can feed you, they can starve you'), strong CTA each part; AI prompts updated.
 - Humanized AI writer: stronger HUMAN rules + silent 8-question quality check in every mode, 6 writing styles, "Sounds Like Me" writing samples, mode "humanize" + ✨ Make It Sound Human with Original/Humanized compare (writer, day cards, 120 scripts, after-launch + personal branding posts, Authority), robotic-phrase check. Shared client helpers in launch-calendar/human.js.
 - 💡 Idea dropdowns for post/Authority questions (profile-filled, personal facts stay [bracketed]); B-roll (no talking) format everywhere incl. writer + function.
+- Members Hub (/members/) with every deliverable + PDF workbook (tools/build-workbook.cjs) + bonus guide; delivery email lists all and attaches both PDFs; checkout lands on the hub.

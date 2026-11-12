@@ -669,6 +669,7 @@ function route() {
   $("lede").textContent = v === "authority" ? "Your experience. Your perspective. Useful knowledge worth sharing." : v === "scripts" ? "120 fully-written launch scripts across 12 launch stages, made for your business." : v === "brand" ? "Build a personal brand people buy from: 20 posts, written from your own answers, in every format." : "Your 30-day launch calendar, one day at a time. Open today's day, do the post, the story and the action, then tick it off.";
   if (v === "authority") setATab(ui.atab);
   if (v === "scripts") renderScripts();
+  if (location.hash === "#live") setTimeout(function () { $("liveSec").scrollIntoView({block:"start"}); }, 60);
 }
 
 /* ---------- events ---------- */

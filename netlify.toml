@@ -8,6 +8,10 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# The delivery email attaches the member PDFs.
+[functions."stripe-webhook"]
+  included_files = ["members/downloads/*.pdf"]
+
 [[headers]]
   for = "/*"
   [headers.values]
